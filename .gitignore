@@ -1,0 +1,16 @@
+.DS_Store
+.env
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Experiment outputs are immutable artifacts and live outside git by default.
+artifacts/
+checkpoints/
+data/
+outputs/
+wandb/

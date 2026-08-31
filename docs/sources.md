@@ -1,0 +1,54 @@
+# Source provenance
+
+The project uses public implementations and papers as the starting point.
+Version-specific claims should cite the pinned source revision or an immutable
+paper version, not this summary.
+
+## Models and benchmarks
+
+- **OpenPI:** Physical Intelligence's public pi0/pi0.5 implementation. Pinned at
+  commit `215abfb217dbac7d5f1273282331b9b1866c0479` in
+  `third_party/openpi`.
+- **pi0:** flow-matching VLA and action-expert architecture
+  ([paper](https://arxiv.org/abs/2410.24164)).
+- **pi0.5:** open-world VLA and heterogeneous co-training
+  ([paper](https://arxiv.org/abs/2504.16054)). The public OpenPI release exposes
+  the flow-matching action path but not the full high-level semantic-prediction
+  training pipeline described in the paper.
+- **pi0.7:** richer multimodal context conditioning
+  ([paper](https://arxiv.org/abs/2604.15483)). It is a future extension because
+  its trained implementation and weights are not present in the pinned OpenPI
+  release.
+- **LIBERO:** lifelong robot-learning benchmark
+  ([paper](https://arxiv.org/abs/2306.03310),
+  [code](https://github.com/Lifelong-Robot-Learning/LIBERO)).
+
+## Action chunking and flow policies
+
+- **ACT:** action chunking with transformer action queries
+  ([paper](https://arxiv.org/abs/2304.13705),
+  [code](https://github.com/tonyzhaozh/act)).
+- **Diffusion Policy:** conditional denoising of action sequences and
+  receding-horizon execution
+  ([paper](https://arxiv.org/abs/2303.04137),
+  [code](https://github.com/real-stanford/diffusion_policy)).
+
+## Causal methodology
+
+- Interchange interventions and causal abstraction: Geiger et al.
+  ([paper](https://arxiv.org/abs/2112.00826)).
+- Activation-patching metrics and sensitivity to methodological choices: Zhang
+  and Nanda ([paper](https://arxiv.org/abs/2309.16042)).
+- General causal-abstraction framework: Geiger et al.
+  ([paper](https://arxiv.org/abs/2301.04709)).
+
+## Source-use policy
+
+1. Reuse upstream preprocessing, checkpoint loading, model definitions, and
+   benchmark adapters when available.
+2. Pin every external source revision and document any local behavioral change.
+3. Keep analysis and intervention code in this repository; do not fork model
+   code unless hooks cannot express the required intervention.
+4. Validate inferred architecture details against both the paper and executable
+   source. When they differ, the executable checkpoint path governs the
+   experiment and the discrepancy is reported.

@@ -1,0 +1,38 @@
+study:
+  name: pi05_libero_action_commitment
+  protocol_version: "0.1"
+  pilot_pairs_per_family: 16
+  confirmatory_pairs_per_family: 50
+  noise_seeds_per_pair: 4
+  commitment_retention_threshold: 0.8
+
+upstream:
+  openpi_commit: 215abfb217dbac7d5f1273282331b9b1866c0479
+  primary_config: pi05_libero
+  primary_checkpoint: gs://openpi-assets/checkpoints/pi05_libero
+  control_config: pi0_libero
+
+inference:
+  flow_steps: 10
+  shared_noise: true
+  deterministic_algorithms: true
+
+pair_families:
+  - instruction_target
+  - target_pose
+  - obstacle_position
+  - recovery
+
+action_groups:
+  # Exact indices are filled from the LIBERO output transform and frozen after
+  # the pilot audit; never infer them from tensor position alone.
+  translation: null
+  rotation: null
+  gripper: null
+  auxiliary: null
+
+analysis:
+  cluster_unit: scene_pair
+  bootstrap_replicates: 10000
+  fdr_method: benjamini_hochberg
+  fdr_family: property_x_intervention
