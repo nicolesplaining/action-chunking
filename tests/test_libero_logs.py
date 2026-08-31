@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from action_chunking.libero_logs import parse_episode_results, summarize_episode_results
+from action_chunking.libero_logs import parse_episode_results, summarize_episode_results, wilson_interval
 
 
 def test_parse_episode_results_ignores_incomplete_episode(tmp_path) -> None:
@@ -29,3 +29,10 @@ def test_parse_episode_results_ignores_incomplete_episode(tmp_path) -> None:
 def test_summarize_episode_results_rejects_empty_input() -> None:
     with pytest.raises(ValueError, match="no completed episodes"):
         summarize_episode_results([], "libero_object")
+
+
+def test_wilson_interval_contains_observed_rate() -> None:
+    low, high = wilson_interval(491, 500)
+    assert low < 491 / 500 < high
+    assert wilson_interval(16, 16)[1] == 1.0
+    assert wilson_interval(0, 16)[0] == 0.0

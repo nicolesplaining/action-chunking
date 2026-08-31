@@ -18,6 +18,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--gpu", type=int, default=1)
     parser.add_argument("--port", type=int, default=8002)
     parser.add_argument("--noise-seeds", default="0,1,2,3")
+    parser.add_argument("--initial-input-mode", choices=("strict", "fixture"), default="strict")
+    parser.add_argument("--save-sim-states", action="store_true")
     return parser.parse_args()
 
 
@@ -51,6 +53,8 @@ def main() -> int:
                     str(seed),
                     str(job_output),
                     str(args.clean_screen),
+                    args.initial_input_mode,
+                    str(args.save_sim_states).lower(),
                 ]
                 completed = subprocess.run(command, check=False)
                 if completed.returncode not in {0, 1} or not summary_path.exists():
@@ -69,6 +73,12 @@ def main() -> int:
                     "both_successful": summary["both_successful"],
                     "first_chunk_exact": all(
                         result["first_chunk_max_abs_error"] == 0.0 for result in summary["results"]
+                    ),
+                    "simulator_state_exact": all(
+                        result.get("restored_sim_state_max_abs_error") == 0.0 for result in summary["results"]
+                    ),
+                    "initial_input_modes": sorted(
+                        {result.get("initial_input_mode", "unrecorded") for result in summary["results"]}
                     ),
                     "summary": str(summary_path),
                 }
@@ -92,6 +102,7 @@ def _write_summary(output: Path, jobs: list[dict[str, Any]], expected_jobs: int)
         "completed_jobs": completed_jobs,
         "successful_jobs": sum(job["both_successful"] for job in jobs),
         "all_first_chunks_exact": all(job["first_chunk_exact"] for job in jobs),
+        "all_simulator_states_exact": all(job["simulator_state_exact"] for job in jobs),
         "all_behaviorally_successful": completed_jobs == expected_jobs and all(job["both_successful"] for job in jobs),
         "jobs": jobs,
     }

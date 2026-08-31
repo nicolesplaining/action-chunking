@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from action_chunking.analysis import commitment_step, symmetric_mean
-from action_chunking.metrics import LIBERO_ACTION_GROUPS
+from action_chunking.metrics import LIBERO_ACTION_GROUPS, gripper_closure_position
 
 GROUPS = ("all", "translation", "rotation", "gripper")
 DIRECTIONS = ("base_to_donor", "donor_to_base")
@@ -27,6 +27,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--threshold", type=float, default=0.8)
     parser.add_argument("--minimum-action-contrast", type=float, default=0.01)
     parser.add_argument("--minimum-target-contrast", type=float, default=0.01)
+    parser.add_argument("--gripper-closure-threshold", type=float, default=0.0)
+    parser.add_argument("--formation-relative-error-tolerance", type=float, default=0.2)
     return parser.parse_args()
 
 
@@ -36,18 +38,37 @@ def main() -> int:
     metadata = json.loads((args.input / "metadata.json").read_text())
     records = [json.loads(line) for line in (args.input / "records.jsonl").read_text().splitlines()]
 
-    contrasts = _endpoint_contrasts(args.input, records)
+    contrasts, closure_positions = _endpoint_contrasts(
+        args.input,
+        records,
+        args.gripper_closure_threshold,
+    )
     validity = {
         metric: contrasts[metric]
         >= (args.minimum_target_contrast if metric == "target_direction" else args.minimum_action_contrast)
         for metric in (*GROUPS, "target_direction")
     }
+    validity["gripper"] = (
+        validity["gripper"]
+        and closure_positions["base"] is not None
+        and closure_positions["donor"] is not None
+        and closure_positions["base"] != closure_positions["donor"]
+    )
     flow_rows, commitments, curve_statistics = _flow_summary(records, args.threshold, validity)
     _write_csv(args.output / "flow_retention.csv", flow_rows)
     _plot_flow(flow_rows, validity, args.output / "flow_retention")
 
+    formation_rows, formation_steps = _formation_contrast_summary(
+        records,
+        validity,
+        args.formation_relative_error_tolerance,
+    )
+    _write_csv(args.output / "formation_contrast.csv", formation_rows)
+    _plot_formation_contrast(formation_rows, validity, args.output / "formation_contrast")
+
     residual_rows = _residual_summary(records)
     intervention_peaks: dict[str, Any] = {}
+    token_mixing = []
     if residual_rows:
         _write_csv(args.output / "residual_transfer.csv", residual_rows)
         _plot_residual(
@@ -64,6 +85,11 @@ def main() -> int:
         _write_csv(args.output / "position_transfer.csv", position_rows)
         _plot_positions(position_rows, validity, args.output / "position_transfer")
         intervention_peaks["position_patch"] = _peak_summary(position_rows, "symmetric_ncte", validity)
+        position_output_rows = _position_output_summary(records, args.input, args.minimum_action_contrast)
+        _write_csv(args.output / "position_to_output_transfer.csv", position_output_rows)
+        _plot_position_to_output(position_output_rows, args.output / "position_to_output_transfer")
+        token_mixing = _position_mixing_summary(position_output_rows)
+        _write_csv(args.output / "position_mixing.csv", token_mixing)
 
     dimension_rows = _dimension_summary(records)
     if dimension_rows:
@@ -78,11 +104,16 @@ def main() -> int:
         "commitment_threshold": args.threshold,
         "commitment_steps": commitments,
         "curve_statistics": curve_statistics,
+        "formation_relative_error_tolerance": args.formation_relative_error_tolerance,
+        "formation_steps": formation_steps,
         "endpoint_contrasts": contrasts,
         "minimum_action_contrast": args.minimum_action_contrast,
         "minimum_target_contrast": args.minimum_target_contrast,
         "valid_contrasts": validity,
+        "gripper_closure_threshold": args.gripper_closure_threshold,
+        "gripper_closure_positions": closure_positions,
         "intervention_peaks": intervention_peaks,
+        "token_mixing": token_mixing,
         "endpoint_l2_contrast": metadata["endpoint_l2_contrast"],
         "controls": metadata["controls"],
         "interpretation_scope": "single-pair pilot; descriptive only",
@@ -213,6 +244,173 @@ def _position_summary(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return rows
 
 
+def _position_output_summary(
+    records: list[dict[str, Any]],
+    input_directory: Path,
+    minimum_contrast: float,
+) -> list[dict[str, Any]]:
+    patch = [record for record in records if record["family"] == "residual_patch_position"]
+    sites: dict[tuple[int, int, int], dict[str, dict[str, Any]]] = defaultdict(dict)
+    for record in patch:
+        position = record["action_positions"]
+        if not isinstance(position, list) or len(position) != 1:
+            raise ValueError("position-patch records must contain one action position")
+        sites[(record["flow_step"], record["layer"], position[0])][record["direction"]] = record
+    with np.load(input_directory / "clean_trace.npz") as trace:
+        base = trace["base_actions"]
+        donor = trace["donor_actions"]
+    output_contrasts = np.linalg.norm(donor - base, axis=1)
+    rows = []
+    for (step, layer, patched_position), directions in sorted(sites.items()):
+        if set(directions) != set(DIRECTIONS):
+            raise ValueError(f"position site {(step, layer, patched_position)} lacks a patch direction")
+        directional = [directions[direction]["metrics"]["per_position_ncte"] for direction in DIRECTIONS]
+        if len(directional[0]) != len(output_contrasts) or len(directional[1]) != len(output_contrasts):
+            raise ValueError("per-position effects do not match the clean action horizon")
+        for output_position, contrast in enumerate(output_contrasts):
+            values = [float(direction[output_position]) for direction in directional]
+            eligible = bool(contrast >= minimum_contrast and np.all(np.isfinite(values)))
+            rows.append(
+                {
+                    "flow_step": step,
+                    "layer": layer,
+                    "patched_action_position": patched_position,
+                    "output_action_position": output_position,
+                    "output_position_l2_contrast": float(contrast),
+                    "eligible_output_position": eligible,
+                    "base_to_donor_ncte": values[0],
+                    "donor_to_base_ncte": values[1],
+                    "symmetric_ncte": float(np.mean(values)) if eligible else np.nan,
+                    "directional_asymmetry": abs(values[0] - values[1]) if eligible else np.nan,
+                }
+            )
+    return rows
+
+
+def _position_mixing_summary(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    sites = sorted({(row["flow_step"], row["layer"]) for row in rows})
+    summaries = []
+    for step, layer in sites:
+        selected = [
+            row
+            for row in rows
+            if row["flow_step"] == step and row["layer"] == layer and row["eligible_output_position"]
+        ]
+        diagonal = [
+            float(row["symmetric_ncte"])
+            for row in selected
+            if row["patched_action_position"] == row["output_action_position"]
+        ]
+        off_diagonal = [
+            float(row["symmetric_ncte"])
+            for row in selected
+            if row["patched_action_position"] != row["output_action_position"]
+        ]
+        total_absolute = sum(abs(value) for value in (*diagonal, *off_diagonal))
+        summaries.append(
+            {
+                "flow_step": step,
+                "layer": layer,
+                "eligible_cells": len(selected),
+                "mean_diagonal_ncte": float(np.mean(diagonal)),
+                "mean_absolute_diagonal_ncte": float(np.mean(np.abs(diagonal))),
+                "mean_absolute_off_diagonal_ncte": float(np.mean(np.abs(off_diagonal))),
+                "off_diagonal_absolute_share": (
+                    sum(abs(value) for value in off_diagonal) / total_absolute if total_absolute else np.nan
+                ),
+                "maximum_absolute_cell_ncte": max(abs(value) for value in (*diagonal, *off_diagonal)),
+            }
+        )
+    return summaries
+
+
+def _formation_contrast_summary(
+    records: list[dict[str, Any]],
+    validity: dict[str, bool],
+    tolerance: float,
+) -> tuple[list[dict[str, Any]], dict[str, int | None]]:
+    if tolerance <= 0:
+        raise ValueError("formation relative-error tolerance must be positive")
+    formation = [record for record in records if record["family"] == "formation"]
+    by_side = {
+        side: {record["flow_step"]: record for record in formation if record["side"] == side}
+        for side in ("base", "donor")
+    }
+    if set(by_side["base"]) != set(by_side["donor"]):
+        raise ValueError("formation sides have different flow-step grids")
+    clean = {record["direction"]: record for record in records if record["family"] == "clean"}
+    final_actions = {
+        side: np.asarray(clean[side]["actions"], dtype=np.float64) for side in ("base", "donor")
+    }
+    rows = []
+    for step in sorted(by_side["base"]):
+        estimates = {
+            side: np.asarray(by_side[side][step]["actions"], dtype=np.float64)
+            for side in ("base", "donor")
+        }
+        for metric in GROUPS:
+            indices = LIBERO_ACTION_GROUPS[metric]
+            final_contrast = final_actions["donor"][:, indices] - final_actions["base"][:, indices]
+            current_contrast = estimates["donor"][:, indices] - estimates["base"][:, indices]
+            rows.append(_formation_row(step, metric, current_contrast, final_contrast, validity[metric]))
+        final_target = (
+            clean["donor"]["target_direction_affinity"] - clean["base"]["target_direction_affinity"]
+        )
+        current_target = (
+            by_side["donor"][step]["target_direction_affinity"]
+            - by_side["base"][step]["target_direction_affinity"]
+        )
+        rows.append(
+            _formation_row(
+                step,
+                "target_direction",
+                np.asarray([current_target]),
+                np.asarray([final_target]),
+                validity["target_direction"],
+            )
+        )
+    formation_steps = {}
+    for metric in (*GROUPS, "target_direction"):
+        selected = [row for row in rows if row["metric"] == metric]
+        formation_steps[metric] = _persistent_formation_step(selected, tolerance) if validity[metric] else None
+    return rows, formation_steps
+
+
+def _formation_row(
+    step: int,
+    metric: str,
+    current_contrast: np.ndarray,
+    final_contrast: np.ndarray,
+    eligible: bool,
+) -> dict[str, Any]:
+    current = current_contrast.reshape(-1)
+    final = final_contrast.reshape(-1)
+    denominator = float(np.dot(final, final))
+    if not eligible or denominator <= 1e-12:
+        alignment = relative_error = cosine = np.nan
+    else:
+        alignment = float(np.dot(current, final) / denominator)
+        relative_error = float(np.linalg.norm(current - final) / np.sqrt(denominator))
+        current_norm = float(np.linalg.norm(current))
+        cosine = float(np.dot(current, final) / (current_norm * np.sqrt(denominator))) if current_norm else np.nan
+    return {
+        "flow_step": step,
+        "metric": metric,
+        "eligible": eligible,
+        "contrast_alignment": alignment,
+        "contrast_relative_error": relative_error,
+        "contrast_cosine": cosine,
+    }
+
+
+def _persistent_formation_step(rows: list[dict[str, Any]], tolerance: float) -> int | None:
+    errors = [float(row["contrast_relative_error"]) for row in rows]
+    for index, error in enumerate(errors):
+        if np.isfinite(error) and error <= tolerance and all(value <= tolerance for value in errors[index:]):
+            return int(rows[index]["flow_step"])
+    return None
+
+
 def _dimension_summary(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
     patch = [record for record in records if record["family"] == "action_dimension_patch"]
     if not patch:
@@ -252,7 +450,7 @@ def _plot_flow(rows: list[dict[str, Any]], validity: dict[str, bool], output_ste
         axis.plot(x, [row["donor_to_base_retention"] for row in selected], "--", alpha=0.6, label="B→A")
         axis.plot(x, [row["isotonic_retention"] for row in selected], "o-", color="black", label="symmetric isotonic")
         axis.axhline(0.8, color="0.6", linewidth=0.8)
-        suffix = "" if validity[metric] else " (low endpoint contrast)"
+        suffix = "" if validity[metric] else " (ineligible clean outcome)"
         axis.set_title(metric.replace("_", " ") + suffix)
         axis.set_ylim(-0.15, 1.15)
         axis.grid(alpha=0.2)
@@ -324,6 +522,29 @@ def _plot_formation(records: list[dict[str, Any]], output_stem: Path) -> None:
     _save_figure(figure, output_stem)
 
 
+def _plot_formation_contrast(
+    rows: list[dict[str, Any]],
+    validity: dict[str, bool],
+    output_stem: Path,
+) -> None:
+    figure, axes = plt.subplots(1, 2, figsize=(9.2, 3.8), sharex=True, layout="constrained")
+    for metric in (*GROUPS, "target_direction"):
+        if not validity[metric]:
+            continue
+        selected = [row for row in rows if row["metric"] == metric]
+        steps = [row["flow_step"] for row in selected]
+        axes[0].plot(steps, [row["contrast_alignment"] for row in selected], "o-", label=metric)
+        axes[1].plot(steps, [row["contrast_relative_error"] for row in selected], "o-", label=metric)
+    axes[0].axhline(1.0, color="0.6", linewidth=0.8)
+    axes[0].set_ylabel("alignment with final paired contrast")
+    axes[1].set_ylabel("relative error to final paired contrast")
+    for axis in axes:
+        axis.set_xlabel("flow step")
+        axis.grid(alpha=0.2)
+    axes[0].legend(fontsize=7, frameon=False)
+    _save_figure(figure, output_stem)
+
+
 def _plot_positions(rows: list[dict[str, Any]], validity: dict[str, bool], output_stem: Path) -> None:
     sites = sorted({(row["flow_step"], row["layer"]) for row in rows})
     positions = sorted({row["action_position"] for row in rows})
@@ -358,6 +579,47 @@ def _plot_positions(rows: list[dict[str, Any]], validity: dict[str, bool], outpu
         axis.set_ylabel("flow/layer site")
     assert image is not None
     figure.colorbar(image, ax=axes.ravel().tolist(), label="symmetric normalized causal transfer", shrink=0.85)
+    _save_figure(figure, output_stem)
+
+
+def _plot_position_to_output(rows: list[dict[str, Any]], output_stem: Path) -> None:
+    sites = sorted({(row["flow_step"], row["layer"]) for row in rows})
+    patched_positions = sorted({row["patched_action_position"] for row in rows})
+    output_positions = sorted({row["output_action_position"] for row in rows})
+    values = np.asarray(
+        [row["symmetric_ncte"] for row in rows if row["eligible_output_position"]],
+        dtype=np.float64,
+    )
+    limit = max(float(np.nanpercentile(np.abs(values), 98)), 0.05)
+    columns = min(4, len(sites))
+    row_count = (len(sites) + columns - 1) // columns
+    figure, axes = plt.subplots(
+        row_count,
+        columns,
+        figsize=(3.1 * columns, 2.7 * row_count),
+        squeeze=False,
+        sharex=True,
+        sharey=True,
+        layout="constrained",
+    )
+    image = None
+    for axis, site in zip(axes.flat, sites, strict=False):
+        heatmap = np.full((len(output_positions), len(patched_positions)), np.nan)
+        for row in rows:
+            if (row["flow_step"], row["layer"]) == site:
+                output_index = output_positions.index(row["output_action_position"])
+                patched_index = patched_positions.index(row["patched_action_position"])
+                heatmap[output_index, patched_index] = row["symmetric_ncte"]
+        image = axis.imshow(heatmap, aspect="auto", origin="lower", cmap="coolwarm", vmin=-limit, vmax=limit)
+        axis.set_title(f"flow {site[0]}, layer {site[1]}")
+        axis.set_xticks(range(len(patched_positions)), patched_positions)
+        axis.set_yticks(range(len(output_positions)), output_positions)
+        axis.set_xlabel("patched token")
+        axis.set_ylabel("output token")
+    for axis in axes.flat[len(sites) :]:
+        axis.set_axis_off()
+    assert image is not None
+    figure.colorbar(image, ax=axes.ravel().tolist(), label="symmetric per-output NCTE", shrink=0.85)
     _save_figure(figure, output_stem)
 
 
@@ -419,7 +681,11 @@ def _switch_key(record: dict[str, Any]) -> int:
     return int(record["switch_after_steps"])
 
 
-def _endpoint_contrasts(input_directory: Path, records: list[dict[str, Any]]) -> dict[str, float]:
+def _endpoint_contrasts(
+    input_directory: Path,
+    records: list[dict[str, Any]],
+    gripper_closure_threshold: float,
+) -> tuple[dict[str, float], dict[str, int | None]]:
     with np.load(input_directory / "clean_trace.npz") as trace:
         base = trace["base_actions"]
         donor = trace["donor_actions"]
@@ -431,7 +697,11 @@ def _endpoint_contrasts(input_directory: Path, records: list[dict[str, Any]]) ->
     contrasts["target_direction"] = abs(
         clean["donor"]["target_direction_affinity"] - clean["base"]["target_direction_affinity"]
     )
-    return contrasts
+    closure_positions = {
+        "base": gripper_closure_position(base, threshold=gripper_closure_threshold),
+        "donor": gripper_closure_position(donor, threshold=gripper_closure_threshold),
+    }
+    return contrasts, closure_positions
 
 
 def _peak_summary(

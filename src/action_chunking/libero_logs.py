@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import dataclasses
+import math
 import re
 from pathlib import Path
 
@@ -53,10 +54,13 @@ def summarize_episode_results(results: list[EpisodeResult], suite: str) -> tuple
             "episodes": len(successes),
             "successes": sum(successes),
             "success_rate": sum(successes) / len(successes),
+            "success_rate_ci95_low": wilson_interval(sum(successes), len(successes))[0],
+            "success_rate_ci95_high": wilson_interval(sum(successes), len(successes))[1],
         }
         for task, successes in sorted(grouped.items())
     ]
     total_successes = sum(result.success for result in results)
+    ci_low, ci_high = wilson_interval(total_successes, len(results))
     summary = {
         "schema_version": 1,
         "suite": suite,
@@ -64,5 +68,21 @@ def summarize_episode_results(results: list[EpisodeResult], suite: str) -> tuple
         "episodes": len(results),
         "successes": total_successes,
         "success_rate": total_successes / len(results),
+        "success_rate_ci95_low": ci_low,
+        "success_rate_ci95_high": ci_high,
     }
     return rows, summary
+
+
+def wilson_interval(successes: int, trials: int, *, z: float = 1.959963984540054) -> tuple[float, float]:
+    """Return a two-sided Wilson score interval for a binomial proportion."""
+
+    if trials <= 0 or not 0 <= successes <= trials or z <= 0:
+        raise ValueError("Wilson interval requires 0 <= successes <= positive trials and z > 0")
+    proportion = successes / trials
+    denominator = 1.0 + z * z / trials
+    center = (proportion + z * z / (2.0 * trials)) / denominator
+    half_width = z / denominator * math.sqrt(
+        proportion * (1.0 - proportion) / trials + z * z / (4.0 * trials * trials)
+    )
+    return max(0.0, center - half_width), min(1.0, center + half_width)

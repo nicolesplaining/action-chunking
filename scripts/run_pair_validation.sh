@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-if [[ $# -lt 6 || $# -gt 7 ]]; then
-  echo "usage: $0 <manifest> <pair-id> <gpu> <port> <noise-seed> <output-dir> [clean-screen-jsonl]" >&2
+if [[ $# -lt 6 || $# -gt 12 ]]; then
+  echo "usage: $0 <manifest> <pair-id> <gpu> <port> <noise-seed> <output-dir> [clean-screen-jsonl] [initial-input-mode] [save-sim-states] [intervention-json] [intervene-replans] [stop-after-first-task-contact]" >&2
   exit 2
 fi
 
@@ -13,6 +13,11 @@ port="$4"
 noise_seed="$5"
 output_dir="$(realpath -m "$6")"
 clean_screen="${7:-}"
+initial_input_mode="${8:-strict}"
+save_sim_states="${9:-false}"
+intervention="${10:-}"
+intervene_replans="${11:-0}"
+stop_after_first_task_contact="${12:-false}"
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 mkdir -p "$output_dir"
@@ -24,10 +29,30 @@ fi
 
 extra_mounts=()
 expected_args=()
+sim_state_args=()
+intervention_args=()
+contact_args=()
 if [[ -n "$clean_screen" ]]; then
   clean_screen="$(realpath "$clean_screen")"
   extra_mounts+=(--volume "$(dirname "$clean_screen"):/screen:ro")
   expected_args=(--expected-clean-screen "/screen/$(basename "$clean_screen")")
+fi
+if [[ -n "$intervention" ]]; then
+  intervention="$(realpath "$intervention")"
+  extra_mounts+=(--volume "$(dirname "$intervention"):/intervention:ro")
+  intervention_args=(--intervention "/intervention/$(basename "$intervention")" --intervene-replans "$intervene_replans")
+fi
+if [[ "$stop_after_first_task_contact" == "true" ]]; then
+  contact_args=(--stop-after-first-task-contact)
+elif [[ "$stop_after_first_task_contact" != "false" ]]; then
+  echo "stop-after-first-task-contact must be true or false" >&2
+  exit 2
+fi
+if [[ "$save_sim_states" == "true" ]]; then
+  sim_state_args=(--save-sim-states)
+elif [[ "$save_sim_states" != "false" ]]; then
+  echo "save-sim-states must be true or false" >&2
+  exit 2
 fi
 
 "${docker_command[@]}" run --rm \
@@ -49,4 +74,8 @@ fi
     --output /data \
     --port '$port' \
     --noise-seed '$noise_seed' \
-    ${expected_args[*]}"
+    --initial-input-mode '$initial_input_mode' \
+    ${expected_args[*]} \
+    ${sim_state_args[*]} \
+    ${intervention_args[*]} \
+    ${contact_args[*]}"

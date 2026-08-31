@@ -90,6 +90,16 @@ def target_direction_affinity(
     return float(np.dot(displacement, donor_direction) - np.dot(displacement, base_direction))
 
 
+def gripper_closure_position(actions: ArrayLike, *, threshold: float = 0.0) -> int | None:
+    """Return the first future position whose LIBERO gripper command closes."""
+
+    action_array = np.asarray(actions, dtype=np.float64)
+    if action_array.ndim != 2 or action_array.shape[1] < 7:
+        raise ValueError("actions must have shape [horizon, action_dim>=7]")
+    positions = np.flatnonzero(action_array[:, 6] > threshold)
+    return int(positions[0]) if len(positions) else None
+
+
 def summarize_transfer(patched: ArrayLike, base: ArrayLike, donor: ArrayLike) -> dict[str, object]:
     """Return preregistered action-group and temporal transfer summaries."""
 

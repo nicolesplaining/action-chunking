@@ -68,7 +68,10 @@ paper version, not this summary.
   The current rollout logger emits its public `trajectory_records.jsonl` field
   schema directly. The implementation audited for this adapter is commit
   `f7a000024a32d8b9ee8e92aab5e79694a2f2bc1c`; the AWE threshold will be
-  calibrated on pilot trajectories rather than copied without validation.
+  calibrated on pilot trajectories rather than copied without validation. The
+  corresponding public AWE fork is pinned at
+  `7197bb86a20784666dabed90e6eabcf8bb1e9912`; the versioned launcher verifies
+  both revisions before calling Event-SAE's extractor unchanged.
 
 These works primarily interpret or steer features at selected layers or rollout
 times. None of them replaces the paired flow-switch experiment here, which

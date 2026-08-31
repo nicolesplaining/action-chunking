@@ -16,6 +16,9 @@ def test_paired_rollout_summary_preserves_pairing_and_first_contact() -> None:
                 "steps": 100,
                 "first_chunk_max_abs_error": 0.0,
                 "first_contact_step_by_object": {"mug_a": 20},
+                "initial_input_mode": "strict",
+                "live_initial_input_diagnostics": {"observation/image": {"array_equal": True}},
+                "restored_sim_state_max_abs_error": 0.0,
             },
             {
                 "side": "donor",
@@ -24,6 +27,9 @@ def test_paired_rollout_summary_preserves_pairing_and_first_contact() -> None:
                 "steps": 400,
                 "first_chunk_max_abs_error": 0.0,
                 "first_contact_step_by_object": {"mug_a": 18, "mug_b": 30},
+                "initial_input_mode": "strict",
+                "live_initial_input_diagnostics": {"observation/image": {"array_equal": True}},
+                "restored_sim_state_max_abs_error": 0.0,
             },
         ],
     }
@@ -36,3 +42,7 @@ def test_paired_rollout_summary_preserves_pairing_and_first_contact() -> None:
     assert aggregate["paired_noise_jobs_both_successful"] == 0
     assert aggregate["successful_side_rollouts"] == 1
     assert aggregate["all_first_chunks_exact"] is True
+    assert aggregate["paired_noise_jobs_both_first_contacts_target"] == 0
+    assert aggregate["paired_noise_jobs_strictly_eligible"] == 0
+    assert aggregate["initial_input_exact_side_rollouts"] == 2
+    assert aggregate["simulator_state_exact_side_rollouts"] == 2

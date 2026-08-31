@@ -1,0 +1,3 @@
+# Transitive runtime import required by AWE's wandb dependency.
+click==8.1.8
+wandb==0.13.1

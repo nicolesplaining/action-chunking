@@ -8,9 +8,13 @@ When does a flow-matching vision-language-action model become causally committed
 to the semantic and geometric properties of a predicted action chunk?
 
 The primary model is the public pi0.5-LIBERO checkpoint. A pi0 model fine-tuned
-on the same demonstrations, preprocessing, optimization budget, and evaluation
-scenes is the matched control. Pi0.7 is outside the confirmatory scope until its
-weights and internal implementation are public.
+with the pinned public `pi0_libero` recipe uses the same demonstrations, 30,000-
+step budget, and evaluation scenes as the matched model-level control. Its
+architecture-specific 50-action horizon and legacy extra-delta transform differ
+from pi0.5's 10-action horizon and are reported rather than disguised as perfect
+matching; primary cross-model position comparisons use the first 10 positions
+and a normalized chunk-time sensitivity analysis. Pi0.7 is outside the
+confirmatory scope until its weights and internal implementation are public.
 
 The computational axes are:
 
@@ -130,6 +134,15 @@ An open-loop directional contrast alone is not evidence of target identity: the
 instructed object must be the first task object contacted and the closed-loop
 rollout must complete the task.
 
+The pilot additionally reports a contact-valid sensitivity estimand: both sides
+must exactly reproduce the saved initial input, simulator
+state, and first clean chunk, and must first contact their instructed targets,
+but a later placement failure does not remove the pair. The dual-success
+estimand remains primary. This separation prevents a downstream placement
+failure from being relabeled as failed target selection while making the
+inclusion rule and its timing auditable. Confirmatory inclusion rules are frozen
+before confirmatory interventions are inspected.
+
 Eligibility is property-specific. For example, an instruction pair whose clean
 chunks both keep the gripper open may be valid for target direction but is not
 evidence about gripper-closure commitment. Normalized effects are never
@@ -143,6 +156,15 @@ threshold.
 For every switch boundary from zero through all Euler steps, integrate the same
 initial noise under the base prefix before the boundary and the donor prefix
 afterward. Cache keys and values are switched as a complete conditioning object.
+
+Categorical target identity is tested online, not inferred from action distance:
+the same boundary intervention is applied at every replan until the first task-
+object contact, at which point the rollout terminates. The outcome is source-
+target retention, donor-target transfer, or contact with neither target. Full-
+donor and full-source boundaries are required positive and identity controls.
+A separate first-replan-only experiment measures whether later clean replans
+recover from an intervened initial chunk; it is labeled recovery rather than
+pooled into the repeated-intervention target-identity curve.
 
 ### 5.2 Residual-stream patch
 
@@ -185,6 +207,11 @@ Evaluators are deterministic functions versioned with the experiment.
 
 Thresholds and contact windows are calibrated on pilot demonstrations without
 viewing intervention effects, then frozen.
+
+Rollout phase anchors begin with Event-SAE's pinned AWE position-only dynamic
+program and a pilot error-threshold sensitivity sweep. Its geometric-gripper
+mode is not used unless the logged policy command is demonstrably discrete;
+continuous OpenPI gripper values make exact command-change detection degenerate.
 
 ## 7. Effect estimates
 

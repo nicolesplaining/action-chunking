@@ -80,7 +80,7 @@ policy server on either GPU. The baseline launcher records render GPU and policy
 port separately; the initial failed Spatial client completed no episodes and
 was restarted from episode zero.
 
-## 2026-08-31: official LIBERO object baseline
+## 2026-08-31: official LIBERO baselines
 
 The full pinned OpenPI evaluation protocol completed 50 trials for each of the
 10 `libero_object` tasks. Pi0.5 succeeded in 491/500 episodes (98.2%), exactly
@@ -88,6 +88,11 @@ matching the aggregate result reported in the pinned OpenPI LIBERO README.
 Per-task rates ranged from 96% to 100%. The raw evaluator log was parsed only
 after all 500 success records were present; the versioned parser rejects empty
 or incomplete expected episode counts.
+
+The corresponding `libero_spatial` run succeeded in 493/500 episodes (98.6%),
+one episode below the pinned OpenPI README's 98.8%. Per-task rates again ranged
+from 96% to 100%. Aggregate and per-task tables report Wilson 95% binomial
+intervals; the published value lies well within run-to-run sampling uncertainty.
 
 ## 2026-08-31: exact instruction-target fixture
 
@@ -166,3 +171,74 @@ zero states passed the direct-target sign criterion because both prompts'
 initial actions project toward the bowl direction. This supports replacing the
 invalid direct-line proxy with phase-aligned clean trajectory and contact
 outcomes, not relaxing its threshold after observing interventions.
+
+## 2026-08-31: first behaviorally valid official-suite causal pair
+
+Official `libero_goal` initialization state 0 provides a strict wine-bottle
+versus bowl target substitution with the destination fixed. Under shared saved
+noise, both closed-loop endpoints reproduced their offline first chunks exactly,
+contacted the instructed object first (steps 28 and 29), and succeeded at step
+81. The initial chunks contained no closure command, so gripper-closure outcomes
+are right-censored and excluded even though their continuous gripper vectors
+have a small nonzero L2 difference.
+
+All 180 residual identity patches, 60 grouped-dimension identity patches, and
+the full-donor flow switch had exactly zero action error. At the provisional
+20% formation-error tolerance, paired translation, rotation, and all-action
+contrasts were already aligned with their final contrasts at the first flow
+step; the direct-target projection reached tolerance at step 6. Causal suffix
+switches told a different story: translation, rotation, all-action, and target-
+direction retention did not cross 0.8 until step 9 of 10. Thus a paired action
+contrast can be legible in the first clean estimate while remaining causally
+editable until the penultimate integration update.
+
+At the final flow step, grouped `x_t` translation interchange transferred 0.571
+of the symmetric translation contrast and grouped rotation interchange
+transferred 0.937 of rotation. The strongest positive all-position residual
+transfer was 0.094 at the final action-expert layer. Single-token patches showed
+exactly diagonal output influence at the final layer, as expected from the
+token-wise output head, but earlier layers propagated effects off diagonal
+through subsequent action-token mixing. These are single-pair pilot effects,
+not population estimates.
+
+The unchanged Event-SAE/AWE position-only extractor, pinned at the revisions in
+`docs/sources.md`, found paired waypoints `[22, 61, 80]` and `[23, 63, 80]` at
+its public 0.05 error threshold. A 0.01--0.075 sensitivity sweep preserved an
+early waypoint near the observed first-contact event and a later transport/
+placement waypoint. Event-SAE's geometric-gripper mode selected every step
+because OpenPI emits continuous gripper commands while the public toggle helper
+tests exact inequality; it is therefore not used for phase labels.
+
+Finally, flat MuJoCo state alone did not reproduce observations for initialization
+indices after zero. Fixture generation advances a seeded environment reset once
+per index, and some observation-relevant task state lies outside the flat state.
+Replaying that reset sequence before state restoration recovered strict image,
+proprioception, simulator-state, and first-chunk equality for state 1; the full
+strict state audit uses this procedure. The completed 16-state audit reproduced
+all three model inputs, the simulator state, and the clean first chunk exactly
+for all 32 side rollouts. Every side first contacted its instructed target. The
+two sides both completed the task in 15/16 paired states (Wilson 95% interval
+0.717--0.989); state 3's wine-bottle side contacted the correct target but later
+failed the task. The dual-success primary pilot set therefore has 15 states,
+while all 16 enter the explicitly labeled contact-valid sensitivity analysis.
+
+The online intervention server then reproduced both offline clean endpoints and
+all source-identity, donor-endpoint, residual-identity, and dimension-identity
+controls with zero maximum absolute error. Representative bidirectional
+nonidentity residual and `x_t` translation patches also matched their offline
+outputs exactly. In the state-0 closed-loop positive
+control, applying the full donor condition at every replan symmetrically swapped
+first contact: the wine-bottle instruction contacted the bowl at step 29 and the
+bowl instruction contacted the wine bottle at step 28. Neither side contacted
+its source target or completed the source task. The full-source identity control
+reproduced the original target contacts and both 81-step successes. This is a
+causal target-selection positive control, but remains a single-state pilot until
+the clean-selected state sweep is complete.
+
+The complete state-0 first-contact sweep was monotonic and symmetric. Boundaries
+0--7 transferred donor identity in both directions; boundaries 8--10 retained
+source identity in both directions. The categorical commitment step was
+therefore 8/10 for both directional curves (source-retention AUC 0.25). This is
+earlier than the provisional continuous-action 0.8-retention boundary at step 9,
+showing why categorical contact and geometric action-distance endpoints must be
+reported separately.
