@@ -72,6 +72,14 @@ def _read_rows(root: Path, cluster_by_pair: dict[str, str]) -> list[dict[str, An
                         "first_contact_step": int(raw["first_contact_step"]) if raw["first_contact_step"] else None,
                         "first_contact_is_source": _boolean(raw["first_contact_is_source"]),
                         "first_contact_is_donor": _boolean(raw["first_contact_is_donor"]),
+                        "outcome_mode": raw.get("outcome_mode", "first_contact"),
+                        "endpoint_choice": raw.get("endpoint_choice") or raw["first_contact_object"] or None,
+                        "endpoint_is_source": _boolean(
+                            raw.get("endpoint_is_source", raw["first_contact_is_source"])
+                        ),
+                        "endpoint_is_donor": _boolean(
+                            raw.get("endpoint_is_donor", raw["first_contact_is_donor"])
+                        ),
                         "initial_input_exact": _boolean(raw["initial_input_exact"]),
                         "simulator_state_exact": _boolean(raw["simulator_state_exact"]),
                     }
@@ -96,9 +104,9 @@ def _validate_jobs(rows: list[dict[str, Any]]) -> None:
         for row in selected:
             by_side[row["side"]][row["switch_after_steps"]] = row
         for side, curve in by_side.items():
-            if not curve[0]["first_contact_is_donor"]:
+            if not curve[0]["endpoint_is_donor"]:
                 raise ValueError(f"flow job {job} side {side} failed the full-donor positive control")
-            if not curve[10]["first_contact_is_source"]:
+            if not curve[10]["endpoint_is_source"]:
                 raise ValueError(f"flow job {job} side {side} failed the full-source identity control")
 
 
@@ -114,12 +122,12 @@ def _pair_curves(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 "scene_state_sha256": cluster,
                 "switch_after_steps": boundary,
                 "side_seed_observations": len(selected),
-                "source_retention": float(np.mean([row["first_contact_is_source"] for row in selected])),
-                "donor_transfer": float(np.mean([row["first_contact_is_donor"] for row in selected])),
+                "source_retention": float(np.mean([row["endpoint_is_source"] for row in selected])),
+                "donor_transfer": float(np.mean([row["endpoint_is_donor"] for row in selected])),
                 "neither_target": float(
                     np.mean(
                         [
-                            not row["first_contact_is_source"] and not row["first_contact_is_donor"]
+                            not row["endpoint_is_source"] and not row["endpoint_is_donor"]
                             for row in selected
                         ]
                     )
@@ -165,7 +173,7 @@ def _commitment_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
         grouped[key].append(row)
     result = []
     for (pair_id, cluster, noise_seed, side), selected in sorted(grouped.items()):
-        curve = {row["switch_after_steps"]: row["first_contact_is_source"] for row in selected}
+        curve = {row["switch_after_steps"]: row["endpoint_is_source"] for row in selected}
         commitment = next(
             boundary for boundary in range(11) if all(curve[later] for later in range(boundary, 11))
         )
@@ -199,6 +207,7 @@ def _summary(
         "state_clusters": len({row["scene_state_sha256"] for row in rows}),
         "noise_seeds": sorted({row["noise_seed"] for row in rows}),
         "direction_seed_curves": len(commitments),
+        "outcome_modes": sorted({row["outcome_mode"] for row in rows}),
         "full_donor_positive_control_rate": curve[0]["donor_transfer"],
         "full_source_identity_control_rate": curve[-1]["source_retention"],
         "categorical_commitment_step_median": float(np.median(commitment_values)),
@@ -224,11 +233,15 @@ def _plot_curve(rows: list[dict[str, Any]], stem: Path) -> None:
     donor_low = np.asarray([row["donor_transfer_ci95_low"] for row in rows])
     donor_high = np.asarray([row["donor_transfer_ci95_high"] for row in rows])
     fig, axis = plt.subplots(figsize=(6.2, 4.1))
-    axis.plot(x, source, marker="o", color="#2166ac", label="source target retained")
+    axis.plot(x, source, marker="o", color="#2166ac", label="source endpoint retained")
     axis.fill_between(x, source_low, source_high, color="#2166ac", alpha=0.18)
-    axis.plot(x, donor, marker="s", color="#b2182b", label="donor target transferred")
+    axis.plot(x, donor, marker="s", color="#b2182b", label="donor endpoint transferred")
     axis.fill_between(x, donor_low, donor_high, color="#b2182b", alpha=0.18)
-    axis.set(xlabel="flow updates under source condition before switch", ylabel="first-contact probability", ylim=(-0.03, 1.03))
+    axis.set(
+        xlabel="flow updates under source condition before switch",
+        ylabel="categorical endpoint probability",
+        ylim=(-0.03, 1.03),
+    )
     axis.set_xticks(range(11))
     axis.legend(frameon=False)
     fig.tight_layout()

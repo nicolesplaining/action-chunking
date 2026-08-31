@@ -6,6 +6,7 @@ import pytest
 from action_chunking.pairs import (
     InstructionPair,
     canonicalize_bddl_scene,
+    goal_argument_atoms,
     instruction_difference_role,
     instruction_target_difference,
 )
@@ -83,3 +84,9 @@ def test_instruction_difference_role_distinguishes_object_and_destination() -> N
     destination = "(define (:goal (And (In bowl plate))))"
     assert instruction_difference_role(target, "mug") == "manipulated_object"
     assert instruction_difference_role(destination, "plate") == "destination"
+
+
+def test_goal_argument_atoms_extracts_goal_roles() -> None:
+    text = "(:goal (And (On akita_black_bowl_1 plate_1)))"
+    assert goal_argument_atoms(text, 0) == ["akita_black_bowl_1"]
+    assert goal_argument_atoms(text, 1) == ["plate_1"]

@@ -20,6 +20,7 @@ from action_chunking.pairs import (
     array_digest,
     canonicalize_bddl_scene,
     file_digest,
+    goal_argument_atoms,
     instruction_difference_role,
     instruction_target_difference,
 )
@@ -65,8 +66,14 @@ def main() -> int:
         instruction_difference_role(base_text, base_targets[0]),
         instruction_difference_role(donor_text, base_targets[1]),
     )
-    if roles != ("manipulated_object", "manipulated_object"):
-        raise ValueError(f"generator requires a manipulated-object substitution, found roles {roles}")
+    if roles[0] != roles[1] or roles[0] not in {"manipulated_object", "destination"}:
+        raise ValueError(f"generator requires a consistent object or destination substitution, found {roles}")
+    semantic_role = roles[0]
+    manipulated_objects = (
+        base_targets
+        if semantic_role == "manipulated_object"
+        else _common_manipulated_object(base_text, donor_text)
+    )
     initial_states = task_suite.get_task_init_states(base_id)
     stop_index = args.start_index + args.count
     if stop_index > len(initial_states):
@@ -74,10 +81,17 @@ def main() -> int:
 
     args.output.mkdir(parents=True, exist_ok=True)
     pending = _collect_base_samples(base_task, initial_states, args)
-    entries = _validate_with_donor_and_save(donor_task, pending, base_targets, args)
+    entries = _validate_with_donor_and_save(
+        donor_task,
+        pending,
+        base_targets,
+        manipulated_objects,
+        semantic_role,
+        args,
+    )
     manifest = {
         "schema_version": 1,
-        "pair_family": "instruction_target",
+        "pair_family": "instruction_target" if semantic_role == "manipulated_object" else "instruction_destination",
         "suite": args.suite,
         "seed": args.seed,
         "settle_steps": args.settle_steps,
@@ -89,9 +103,11 @@ def main() -> int:
             "canonical_scene_sha256": hashlib.sha256(base_scene.encode()).hexdigest(),
         },
         "registered_difference": {
-            "field": "prompt_target",
+            "field": "prompt_target" if semantic_role == "manipulated_object" else "prompt_destination",
             "base_target": base_targets[0],
             "donor_target": base_targets[1],
+            "base_manipulated_object": manipulated_objects[0],
+            "donor_manipulated_object": manipulated_objects[1],
         },
         "pairs": entries,
     }
@@ -129,6 +145,8 @@ def _validate_with_donor_and_save(
     task: Any,
     samples: list[dict[str, Any]],
     targets: tuple[str, str],
+    manipulated_objects: tuple[str, str],
+    semantic_role: str,
     args: argparse.Namespace,
 ) -> list[dict[str, Any]]:
     env = _make_env(task, args.resolution, args.seed)
@@ -156,9 +174,10 @@ def _validate_with_donor_and_save(
             pair.validate()
             donor_poses = _object_poses(env)
             _assert_pose_maps_equal(sample["object_poses"], donor_poses)
-            for target in targets:
-                if target not in donor_poses:
-                    raise KeyError(f"target {target!r} is absent from object pose map")
+            target_positions = tuple(_named_position(env, target, donor_poses) for target in targets)
+            for manipulated_object in manipulated_objects:
+                if manipulated_object not in donor_poses:
+                    raise KeyError(f"manipulated object {manipulated_object!r} is absent from object pose map")
 
             pair_id = f"{args.suite}_{sample['init_index']:03d}_{targets[0]}_to_{targets[1]}"
             pair_path = args.output / f"{pair_id}.npz"
@@ -185,9 +204,12 @@ def _validate_with_donor_and_save(
                     "donor_prompt": pair.donor_prompt,
                     "base_target": targets[0],
                     "donor_target": targets[1],
+                    "semantic_role": semantic_role,
+                    "base_manipulated_object": manipulated_objects[0],
+                    "donor_manipulated_object": manipulated_objects[1],
                     "end_effector_position": pair.base_state[:3].tolist(),
-                    "base_target_position": donor_poses[targets[0]]["pos"],
-                    "donor_target_position": donor_poses[targets[1]]["pos"],
+                    "base_target_position": target_positions[0],
+                    "donor_target_position": target_positions[1],
                     "identity_hashes": {
                         "image": array_digest(pair.base_image),
                         "wrist_image": array_digest(pair.base_wrist_image),
@@ -256,6 +278,35 @@ def _object_poses(env: OffScreenRenderEnv) -> dict[str, dict[str, list[float]]]:
             "quat": np.asarray(geom["quat"], dtype=np.float64).tolist(),
         }
     return poses
+
+
+def _named_position(
+    env: OffScreenRenderEnv,
+    name: str,
+    object_poses: dict[str, dict[str, list[float]]],
+) -> list[float]:
+    if name in object_poses:
+        return object_poses[name]["pos"]
+    for kind, positions in (
+        ("site", env.sim.data.site_xpos),
+        ("geom", env.sim.data.geom_xpos),
+        ("body", env.sim.data.body_xpos),
+    ):
+        lookup = getattr(env.sim.model, f"{kind}_name2id")
+        try:
+            index = lookup(name)
+        except (KeyError, TypeError, ValueError):
+            continue
+        return np.asarray(positions[index], dtype=np.float64).tolist()
+    raise KeyError(f"semantic atom {name!r} has no object, site, geom, or body position")
+
+
+def _common_manipulated_object(base_text: str, donor_text: str) -> tuple[str, str]:
+    base = goal_argument_atoms(base_text, 0)
+    donor = goal_argument_atoms(donor_text, 0)
+    if len(base) != 1 or base != donor:
+        raise ValueError(f"destination substitution must preserve one manipulated object, found {base} and {donor}")
+    return base[0], donor[0]
 
 
 def _assert_pose_maps_equal(base: dict[str, Any], donor: dict[str, Any]) -> None:

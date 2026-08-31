@@ -213,6 +213,7 @@ def _rollout(
                 step_indices=np.arange(len(simulator_states), dtype=np.int64),
                 sim_states=np.stack(simulator_states),
             )
+        destination_evaluation = _destination_evaluation(env, entry, target)
         return {
             "side": side,
             "target": target,
@@ -229,6 +230,7 @@ def _rollout(
             "terminated_after_first_task_contact": terminated_after_first_task_contact,
             "first_contact_step_by_object": contacts,
             "target_contacted": target in contacts,
+            "destination_evaluation": destination_evaluation,
         }
     finally:
         env.close()
@@ -310,6 +312,47 @@ def _update_contacts(env: OffScreenRenderEnv, contacts: dict[str, int], step: in
         object_geoms = set(env.env.get_object(name).contact_geoms)
         if touching_gripper & object_geoms:
             contacts[name] = step
+
+
+def _destination_evaluation(
+    env: OffScreenRenderEnv,
+    entry: dict[str, Any],
+    source_target: str,
+) -> dict[str, Any] | None:
+    if entry.get("semantic_role") != "destination":
+        return None
+    manipulated = entry["base_manipulated_object"]
+    if manipulated != entry["donor_manipulated_object"]:
+        raise ValueError("destination evaluation requires a common manipulated object")
+    position = _live_object_position(env, manipulated)
+    targets = {
+        "base": (entry["base_target"], np.asarray(entry["base_target_position"], dtype=np.float64)),
+        "donor": (entry["donor_target"], np.asarray(entry["donor_target_position"], dtype=np.float64)),
+    }
+    distances = {
+        side: float(np.linalg.norm(position - target_position))
+        for side, (_, target_position) in targets.items()
+    }
+    nearest_side = min(distances, key=distances.get)
+    nearest_target = targets[nearest_side][0]
+    return {
+        "manipulated_object": manipulated,
+        "final_object_position": position.tolist(),
+        "distance_to_base_target_m": distances["base"],
+        "distance_to_donor_target_m": distances["donor"],
+        "nearest_registered_destination": nearest_target,
+        "nearest_registered_destination_side": nearest_side,
+        "nearest_destination_margin_m": abs(distances["base"] - distances["donor"]),
+        "nearest_destination_is_source": nearest_target == source_target,
+    }
+
+
+def _live_object_position(env: OffScreenRenderEnv, object_name: str) -> np.ndarray:
+    geom_names = env.env.get_object(object_name).contact_geoms
+    geom_ids = [env.sim.model.geom_name2id(name) for name in geom_names]
+    if not geom_ids:
+        raise ValueError(f"object {object_name!r} has no contact geoms")
+    return np.asarray(env.sim.data.geom_xpos[geom_ids], dtype=np.float64).mean(axis=0)
 
 
 def _quat2axisangle(quat: np.ndarray) -> np.ndarray:

@@ -18,7 +18,12 @@ paper version, not this summary.
 - **pi0.7:** richer multimodal context conditioning
   ([paper](https://arxiv.org/abs/2604.15483)). It is a future extension because
   its trained implementation and weights are not present in the pinned OpenPI
-  release.
+  release. A fresh audit of the official
+  [OpenPI model and checkpoint list](https://github.com/Physical-Intelligence/openpi)
+  on 2026-08-31 likewise found public pi0, pi0-FAST, and pi0.5 entries but no
+  pi0.7 implementation or checkpoint. Pi0.7 is therefore ineligible for internal
+  activation interventions; a remote endpoint could only support a separately
+  labeled behavioral comparison.
 - **LIBERO:** lifelong robot-learning benchmark
   ([paper](https://arxiv.org/abs/2306.03310),
   [code](https://github.com/Lifelong-Robot-Learning/LIBERO)).

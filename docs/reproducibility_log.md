@@ -242,3 +242,18 @@ therefore 8/10 for both directional curves (source-retention AUC 0.25). This is
 earlier than the provisional continuous-action 0.8-retention boundary at step 9,
 showing why categorical contact and geometric action-distance endpoints must be
 reported separately.
+
+The prespecified seed-0 offline sweep then completed on all 15 dual-success
+scene-state clusters. A 10,000-replicate scene-state cluster bootstrap confirmed
+that the paired full-action, translation, and rotation contrasts were formed at
+flow step 0 (all 95% intervals 0--0). Target-direction formation was also step
+0, with a wider 0--3 interval. In contrast, 0.8 source retention was not reached
+until step 10 for the full action, translation, and target direction (all 95%
+intervals 9--10), and step 9 for rotation (95% interval 9--9). The corresponding
+retention AUCs were 0.232, 0.220, 0.159, and 0.310. Gripper timing remained
+ineligible because neither clean initial chunk contained a closure event. This
+is the first multi-state positive result: the output contrast is geometrically
+legible after the first flow update while remaining causally editable until the
+last one or two updates. It remains a single instruction contrast and a single
+noise seed; the closed-loop state sweep and additional shared-noise seeds are
+required before generalization.

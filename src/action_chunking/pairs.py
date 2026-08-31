@@ -147,6 +147,20 @@ def instruction_difference_role(text: str, atom: str) -> str:
     return "mixed"
 
 
+def goal_argument_atoms(text: str, argument_index: int) -> list[str]:
+    """Return unique atoms occupying one zero-based goal-predicate argument position."""
+
+    if argument_index < 0:
+        raise ValueError("goal argument index must be nonnegative")
+    goal = _balanced_clause(text, ":goal")
+    atoms = []
+    for match in re.finditer(r"\(([^()]+)\)", goal):
+        arguments = match.group(1).split()[1:]
+        if argument_index < len(arguments):
+            atoms.append(arguments[argument_index])
+    return sorted(set(atoms))
+
+
 def clause_atoms(text: str, clause: str) -> list[str]:
     """Extract whitespace-separated atoms from one balanced BDDL clause."""
 

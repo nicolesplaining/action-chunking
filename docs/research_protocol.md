@@ -16,6 +16,14 @@ matching; primary cross-model position comparisons use the first 10 positions
 and a normalized chunk-time sensitivity analysis. Pi0.7 is outside the
 confirmatory scope until its weights and internal implementation are public.
 
+The pi0 control is trained with the pinned public JAX `pi0_libero` recipe for
+30,000 optimizer steps, global batch size 32, two-device FSDP, and its configured
+0.99 EMA; normalization statistics are computed with OpenPI's unchanged public
+script. This preserves the released model-specific recipe and EMA rather than
+introducing a second training implementation. It does not equalize total sample
+exposures to the released pi0.5 checkpoint, so the comparison is explicitly a
+model-level control, not an isolated causal estimate of one architectural flag.
+
 The computational axes are:
 
 - flow integration step `s`;
@@ -125,6 +133,17 @@ by pair-level clean closed-loop validation.
 4. **Recovery:** fork a common successful rollout immediately before a scripted
    perturbation; change only the perturbation state, then analyze the first
    post-perturbation chunk and subsequent closed-loop success.
+
+Destination/subgoal pairs are evaluated from a phase-aligned post-grasp state,
+not only from task initialization. For each direction, use the earliest state
+starting five consecutive control steps in which the gripper contacts the common
+manipulated object and the object is at least 2 cm above its initial height.
+Restore that exact serialized state under both destination prompts and require
+pixel-, wrist-image-, proprioception-, and simulator-state identity. Both the
+base-derived and donor-derived snapshots are retained as separate blocks so the
+result is not conditional on one destination's clean approach trajectory. The
+2 cm lift, five-step persistence, and earliest-qualifying-state rule are frozen
+before inspecting destination interventions.
 
 A pair enters causal analysis only if both unpatched endpoints are successful,
 their measured property contrast exceeds the evaluator's minimum effect size,

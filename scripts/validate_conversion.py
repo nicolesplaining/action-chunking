@@ -19,20 +19,21 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--jax-checkpoint", type=Path, required=True)
     parser.add_argument("--pytorch-checkpoint", type=Path, required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
+    parser.add_argument("--config", default="pi05_libero")
     parser.add_argument("--gpu", default="0")
     parser.add_argument("--max-abs-tolerance", type=float, default=0.15)
     parser.add_argument("--worker", choices=("jax", "pytorch"))
     return parser.parse_args()
 
 
-def make_fixture(path: Path) -> None:
+def make_fixture(path: Path, action_horizon: int, action_dim: int) -> None:
     rng = np.random.default_rng(20260831)
     np.savez_compressed(
         path,
         image=rng.integers(0, 256, size=(224, 224, 3), dtype=np.uint8),
         wrist_image=rng.integers(0, 256, size=(224, 224, 3), dtype=np.uint8),
         state=rng.uniform(-0.25, 0.25, size=8).astype(np.float32),
-        noise=rng.standard_normal(size=(10, 32)).astype(np.float32),
+        noise=rng.standard_normal(size=(action_horizon, action_dim)).astype(np.float32),
         prompt=np.asarray("pick up the black bowl and place it on the plate"),
     )
 
@@ -49,7 +50,7 @@ def run_worker(args: argparse.Namespace) -> None:
         "prompt": str(fixture["prompt"]),
     }
     noise = fixture["noise"]
-    config = training_config.get_config("pi05_libero")
+    config = training_config.get_config(args.config)
     checkpoint = args.jax_checkpoint
     kwargs = {}
     if args.worker == "pytorch":
@@ -63,8 +64,11 @@ def run_worker(args: argparse.Namespace) -> None:
 
 
 def run_parent(args: argparse.Namespace) -> int:
+    from openpi.training import config as training_config
+
     args.output_dir.mkdir(parents=True, exist_ok=True)
-    make_fixture(args.output_dir / "fixture.npz")
+    model_config = training_config.get_config(args.config).model
+    make_fixture(args.output_dir / "fixture.npz", model_config.action_horizon, model_config.action_dim)
     common = [
         sys.executable,
         str(Path(__file__).resolve()),
@@ -74,6 +78,8 @@ def run_parent(args: argparse.Namespace) -> int:
         str(args.pytorch_checkpoint),
         "--output-dir",
         str(args.output_dir),
+        "--config",
+        args.config,
         "--gpu",
         args.gpu,
         "--max-abs-tolerance",
@@ -89,6 +95,7 @@ def run_parent(args: argparse.Namespace) -> int:
     pytorch_actions = np.load(args.output_dir / "actions_pytorch.npy")
     difference = pytorch_actions - jax_actions
     summary = {
+        "config": args.config,
         "shape": list(jax_actions.shape),
         "max_abs_error": float(np.max(np.abs(difference))),
         "mean_abs_error": float(np.mean(np.abs(difference))),

@@ -79,6 +79,12 @@ def _write_tables(output: Path, pair_id: str, entry: dict[str, Any], noise_seed:
             other_side = "donor" if side == "base" else "base"
             contacts = result["first_contact_step_by_object"]
             first_object = min(contacts, key=contacts.get) if contacts else None
+            destination = result.get("destination_evaluation")
+            endpoint_object = (
+                destination["nearest_registered_destination"]
+                if destination is not None
+                else first_object
+            )
             rows.append(
                 {
                     "pair_id": pair_id,
@@ -91,6 +97,13 @@ def _write_tables(output: Path, pair_id: str, entry: dict[str, Any], noise_seed:
                     "first_contact_step": contacts.get(first_object) if first_object is not None else None,
                     "first_contact_is_source": first_object == entry[f"{side}_target"],
                     "first_contact_is_donor": first_object == entry[f"{other_side}_target"],
+                    "outcome_mode": "destination" if destination is not None else "first_contact",
+                    "endpoint_choice": endpoint_object,
+                    "endpoint_is_source": endpoint_object == entry[f"{side}_target"],
+                    "endpoint_is_donor": endpoint_object == entry[f"{other_side}_target"],
+                    "destination_margin_m": (
+                        destination["nearest_destination_margin_m"] if destination is not None else None
+                    ),
                     "success": bool(result["success"]),
                     "steps": int(result["steps"]),
                     "initial_input_exact": all(
@@ -118,6 +131,8 @@ def _write_tables(output: Path, pair_id: str, entry: dict[str, Any], noise_seed:
                 "sides": len(selected),
                 "source_first_contacts": sum(row["first_contact_is_source"] for row in selected),
                 "donor_first_contacts": sum(row["first_contact_is_donor"] for row in selected),
+                "source_endpoint_choices": sum(row["endpoint_is_source"] for row in selected),
+                "donor_endpoint_choices": sum(row["endpoint_is_donor"] for row in selected),
                 "successes": sum(row["success"] for row in selected),
             }
         )
@@ -128,9 +143,13 @@ def _write_tables(output: Path, pair_id: str, entry: dict[str, Any], noise_seed:
         "intervention_applied_at_replans": json.loads(next(output.glob("switch_after_*/summary.json")).read_text())[
             "intervene_replans"
         ],
-        "rollout_endpoint": "first_contact" if all(
-            row["terminated_after_first_task_contact"] for row in rows
-        ) else "full_or_mixed",
+        "rollout_endpoint": (
+            "first_contact"
+            if all(row["terminated_after_first_task_contact"] for row in rows)
+            else "full"
+            if not any(row["terminated_after_first_task_contact"] for row in rows)
+            else "mixed"
+        ),
         "all_initial_inputs_exact": all(row["initial_input_exact"] for row in rows),
         "all_simulator_states_exact": all(row["simulator_state_exact"] for row in rows),
         "boundaries": by_boundary,
