@@ -32,3 +32,30 @@ def test_sampler_integrates_constant_velocity_and_records_clean_estimate():
     assert len(trace.x_t) == len(trace.v_t) == len(trace.clean_action_estimates) == 4
     for estimate in trace.clean_action_estimates:
         torch.testing.assert_close(estimate, torch.full_like(noise, -1.0))
+
+
+def test_sampler_applies_state_and_velocity_interventions_at_named_steps():
+    model = ConstantVelocityModel()
+    noise = torch.zeros(1, 2, 3)
+    condition = PreparedCondition(
+        state=torch.empty(0), prefix_pad_masks=torch.empty(0), past_key_values=None
+    )
+
+    def patch_state(step, state):
+        return torch.ones_like(state) if step == 0 else state
+
+    def patch_velocity(step, velocity):
+        return torch.full_like(velocity, 2.0) if step == 1 else velocity
+
+    actions, trace = sample_actions(
+        model,
+        noise,
+        lambda _step: condition,
+        num_steps=2,
+        state_intervention=patch_state,
+        velocity_intervention=patch_velocity,
+    )
+
+    torch.testing.assert_close(trace.x_t[0], torch.ones_like(noise))
+    torch.testing.assert_close(trace.v_t[1], torch.full_like(noise, 2.0))
+    torch.testing.assert_close(actions, torch.full_like(noise, -0.5))

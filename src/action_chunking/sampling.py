@@ -72,6 +72,8 @@ def sample_actions(
     *,
     num_steps: int = 10,
     tracer: ResidualTracer | None = None,
+    state_intervention: Callable[[int, Tensor], Tensor] | None = None,
+    velocity_intervention: Callable[[int, Tensor], Tensor] | None = None,
 ) -> tuple[Tensor, SamplingTrace]:
     """Integrate the official OpenPI velocity field with an explicit condition schedule.
 
@@ -94,6 +96,9 @@ def sample_actions(
     for step in range(num_steps):
         expanded_time = time.expand(noise.shape[0])
         condition = condition_for_step(step)
+        if state_intervention is not None:
+            x_t = state_intervention(step, x_t)
+            _validate_intervention_shape("state", x_t, noise)
 
         trace.times.append(float(time.item()))
         trace.x_t.append(x_t.detach().clone())
@@ -115,6 +120,9 @@ def sample_actions(
                     expanded_time,
                 )
 
+        if velocity_intervention is not None:
+            v_t = velocity_intervention(step, v_t)
+            _validate_intervention_shape("velocity", v_t, noise)
         trace.v_t.append(v_t.detach().clone())
         clean_time = expanded_time[:, None, None]
         trace.clean_action_estimates.append((x_t - clean_time * v_t).detach().clone())
@@ -131,3 +139,9 @@ def _make_attention_masks(pad_masks: Tensor, attention_masks: Tensor) -> Tensor:
     causal = cumulative[:, None, :] <= cumulative[:, :, None]
     valid = pad_masks[:, None, :] * pad_masks[:, :, None]
     return causal & valid
+
+
+def _validate_intervention_shape(name: str, value: Tensor, reference: Tensor) -> None:
+    if not isinstance(value, Tensor) or value.shape != reference.shape:
+        shape = tuple(value.shape) if isinstance(value, Tensor) else type(value).__name__
+        raise ValueError(f"{name} intervention must return shape {tuple(reference.shape)}, got {shape}")

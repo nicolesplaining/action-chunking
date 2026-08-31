@@ -72,3 +72,58 @@ of one-time `torch.compile` autotuning; the remaining episodes took 15--23
 seconds each. LIBERO emitted `EGL_NOT_INITIALIZED` only while destroying the
 already-completed render context at process exit; all ten videos and success
 records had already been written.
+
+GPU 0 on this host cannot create a MuJoCo EGL device context, while the same
+minimal context test succeeds on GPU 1. Policy inference remains valid on both
+GPUs. All simulator clients are therefore rendered on GPU 1 and may query a
+policy server on either GPU. The baseline launcher records render GPU and policy
+port separately; the initial failed Spatial client completed no episodes and
+was restarted from episode zero.
+
+## 2026-08-31: exact instruction-target fixture
+
+The public LIBERO-90 living-room tasks for alphabet soup and cream cheese share
+the same region bounds, object inventory, initialization predicates, and scene.
+Their BDDL files differ only in language, `obj_of_interest`, and goal. Initial
+state 0 was settled for ten no-op controls, serialized, and restored in both
+task environments.
+
+The resulting pair passed byte-exact equality for both 224x224 policy images,
+the 8-D robot state, the complete flattened MuJoCo state, and every object pose.
+Only the prompt target differs. The fixture SHA-256 is
+`c38aff06a83ff831686f817dbcd10ee6832a4ade73d69571cba3e574502aa0cf`.
+
+## 2026-08-31: single-pair intervention pilot
+
+This pilot is diagnostic and is not confirmatory evidence. With one saved noise
+seed, the complete bidirectional 10-flow-step by 18-layer residual screen
+produced 584 records. All 180 `A -> A` residual identity patches had maximum
+absolute action error 0, and the all-donor flow switch reproduced the donor
+endpoint with error 0. A strict cuBLAS-deterministic rerun produced byte-identical
+clean traces and JSONL records.
+
+The clean base-to-donor L2 contrasts were 0.1122 for translation, 0.0260 for
+rotation, and only 0.00143 for gripper. The gripper outcome was therefore marked
+ineligible rather than interpreting unstable normalized effects. At a provisional
+0.8 retention threshold, translation, rotation, and target direction crossed
+only after all ten source-conditioned updates. Relative to the uniform-step
+null, target-direction retention was strongly late weighted: AUC 0.093 and a
+final-update marginal contribution of 0.798. These numbers motivate replication
+across pairs and noise seeds; they do not establish a population-level hierarchy.
+
+Grouped action-state and velocity interventions added 120 bidirectional effects
+and 60 identity controls. Every dimension identity intervention had error 0.
+For this pair, replacing translation coordinates of `x_t` at the final flow step
+transferred 0.467 of the translation endpoint contrast after direction
+symmetrization. Single future-token follow-ups were selected from the coarse
+screen without changing the confirmatory hypotheses.
+
+Both prompts subsequently succeeded in deterministic closed-loop rollouts using
+the same explicit Gaussian-noise sequence at each replan. Their first action
+chunks exactly matched the offline endpoints. The alphabet-soup rollout first
+contacted its target at step 61 and succeeded at step 134. The cream-cheese
+rollout contacted alphabet soup at step 61 before contacting its instructed
+target at step 199 and succeeding at step 249. Consequently this pair is
+excluded from a clean first-contact target-identity analysis, while remaining a
+valid recovery/eventual-success case. This exclusion used only clean behavior,
+never patched outcomes.

@@ -69,6 +69,13 @@ retention of the initial condition. The commitment step is the earliest `k`
 whose isotonic mean retention is at least 0.8 and remains at least 0.8 for every
 later switch. Confidence intervals are cluster-bootstrapped by scene pair.
 
+Because a threshold crossing alone can obscure whether influence accumulates
+uniformly across Euler updates, every curve is also compared with the
+`R(k)=k/S` uniform-step null. Report retention AUC, half-commitment boundary,
+and the marginal retention contributed by the final update. A positive
+`0.5 - AUC` is a late-weighting index, not by itself evidence for a discrete
+internal planning phase.
+
 This is commitment relative to a natural, in-distribution counterfactual—not a
 claim that no arbitrarily large perturbation could ever alter the output.
 
@@ -112,6 +119,12 @@ A pair enters causal analysis only if both unpatched endpoints are successful,
 their measured property contrast exceeds the evaluator's minimum effect size,
 and neither rollout violates simulator safety or validity checks. Exclusion
 counts and reasons are always reported. Selection never uses patched outcomes.
+
+Eligibility is property-specific. For example, an instruction pair whose clean
+chunks both keep the gripper open may be valid for target direction but is not
+evidence about gripper-closure commitment. Normalized effects are never
+interpreted when their clean endpoint denominator is below the frozen pilot
+threshold.
 
 ## 5. Intervention families
 

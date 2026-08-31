@@ -22,7 +22,7 @@ copying or silently modifying it.
 - [x] Pin the official OpenPI implementation.
 - [x] Specify the causal estimands, hypotheses, controls, and analysis rules.
 - [ ] Reproduce the published pi0.5-LIBERO evaluation.
-- [ ] Validate deterministic paired episodes and activation capture.
+- [x] Validate deterministic paired episodes and activation capture.
 - [ ] Run pilot interventions and lock confirmatory pair families.
 - [ ] Run the confirmatory pi0.5 study.
 - [ ] Fine-tune and evaluate the matched pi0 control.
@@ -58,3 +58,28 @@ git submodule update --init --recursive
 OpenPI has its own installation and LIBERO instructions under
 `third_party/openpi`. This repository will keep model-specific patches in a
 small, reviewable adapter rather than editing upstream files.
+
+## Experiment pipeline
+
+The staged tools deliberately keep simulator generation, clean screening,
+intervention, and analysis separate so patched outcomes cannot leak into pair
+selection.
+
+1. `generate_libero_instruction_pairs.py` serializes prompt-only fixtures and
+   enforces byte-exact equality of images, proprioception, simulator state, and
+   object poses. `generate_instruction_pair_grid.sh` enumerates all six target
+   contrasts in the public four-object LIBERO-90 scene.
+2. `screen_instruction_pairs.py` evaluates only clean chunks under shared saved
+   noise and writes a pre-intervention eligibility table.
+3. `run_pair_interventions.py` runs bidirectional flow switches, residual-stream
+   patches, future-token patches, and grouped/scalar `x_t` or `v_t` dimension
+   interchanges. Every run retains raw actions and exact controls.
+4. `serve_noise_policy.py` and `validate_libero_pair_rollouts.py` replay the same
+   noise sequence in both closed-loop task environments and verify the first
+   chunks against offline inference.
+5. `analyze_pair.py` emits machine-readable tables and pilot figures while
+   refusing to assign commitment to properties with inadequate clean endpoint
+   contrast.
+
+Machine-specific checkpoint paths and hosts are CLI arguments and are never
+stored in the repository.

@@ -24,12 +24,18 @@ pair_families:
   - recovery
 
 action_groups:
-  # Exact indices are filled from the LIBERO output transform and frozen after
-  # the pilot audit; never infer them from tensor position alone.
-  translation: null
-  rotation: null
-  gripper: null
-  auxiliary: null
+  # Verified against OpenPI LiberoOutputs and robosuite OSC_POSE semantics.
+  # Indices 7:32 are model padding and are never treated as physical controls.
+  translation: [0, 1, 2]
+  rotation: [3, 4, 5]
+  gripper: [6]
+  auxiliary: []
+
+pilot_eligibility:
+  # Provisional clean-endpoint thresholds. Re-estimate using all 16 pilot
+  # pairs, then freeze before confirmatory data are generated.
+  minimum_action_group_l2: 0.01
+  minimum_target_direction_contrast: 0.01
 
 analysis:
   cluster_unit: scene_pair

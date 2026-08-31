@@ -42,6 +42,33 @@ paper version, not this summary.
 - General causal-abstraction framework: Geiger et al.
   ([paper](https://arxiv.org/abs/2301.04709)).
 
+## VLA interpretability
+
+- **Mechanistic Interpretability for Steering VLAs:** FFN value-vector
+  interpretation and causal activation steering in OpenVLA and pi0/FAST
+  ([paper](https://openreview.net/forum?id=YvsUD8C9QS),
+  [code](https://github.com/Physical-AI-Safety-Institute/mechanistic-steering-vlas)).
+  It establishes that internal interventions can causally steer VLA behavior;
+  our study asks the distinct question of *when* a naturally occurring paired
+  decision becomes fixed across action-expert layers and flow integration.
+- **DR.VLA:** sparse-autoencoder features in pi0.5 PaliGemma and action-expert
+  activations, including per-token analyses and causal steering
+  ([paper](https://arxiv.org/abs/2603.19183),
+  [project/code](https://drvla.github.io/)). Its distinction between general
+  features and episode memorization motivates cross-scene replication rather
+  than interpreting a single high-effect site.
+- **Event-SAE:** event-grounded feature ranking and residual-preserving
+  interventions for OpenVLA and pi0.5
+  ([paper](https://arxiv.org/abs/2605.17204),
+  [code](https://github.com/xc-j/Event-SAE)). Its public kinematic-event and
+  keyframe pipeline is the preferred starting point for grasp, transport, and
+  recovery phase labels; any reused module will be pinned and attribution kept.
+
+These works primarily interpret or steer features at selected layers or rollout
+times. None of them replaces the paired flow-switch experiment here, which
+crosses transformer depth, future-token position, and every flow step while
+holding images, state, and initial action noise fixed.
+
 ## Source-use policy
 
 1. Reuse upstream preprocessing, checkpoint loading, model definitions, and
@@ -52,3 +79,7 @@ paper version, not this summary.
 4. Validate inferred architecture details against both the paper and executable
    source. When they differ, the executable checkpoint path governs the
    experiment and the discrepancy is reported.
+5. Before implementing a new phase detector, activation collector, or rollout
+   evaluator, audit the three public VLA-interpretability codebases above and
+   adapt a pinned implementation when its semantics match the preregistered
+   outcome.
