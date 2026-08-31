@@ -105,6 +105,13 @@ Each pair starts from an identical serialized simulator and robot state. Both
 runs use identical preprocessing and Gaussian action noise. Only one registered
 variable changes.
 
+Candidate task pairs are discovered by canonicalizing the public BDDL scene and
+then requiring the `obj_of_interest` and goal clauses to match after exactly one
+atom substitution. The substituted atom's goal-argument position distinguishes
+a manipulated-object change from a destination/subgoal change; these families
+are never pooled. Public suite-level competence is established first, followed
+by pair-level clean closed-loop validation.
+
 1. **Instruction target:** identical scene with two valid objects; change only
    the target phrase in the instruction.
 2. **Target pose:** identical instruction and distractors; change only the
@@ -119,6 +126,9 @@ A pair enters causal analysis only if both unpatched endpoints are successful,
 their measured property contrast exceeds the evaluator's minimum effect size,
 and neither rollout violates simulator safety or validity checks. Exclusion
 counts and reasons are always reported. Selection never uses patched outcomes.
+An open-loop directional contrast alone is not evidence of target identity: the
+instructed object must be the first task object contacted and the closed-loop
+rollout must complete the task.
 
 Eligibility is property-specific. For example, an instruction pair whose clean
 chunks both keep the gripper open may be valid for target direction but is not
@@ -159,10 +169,13 @@ results are exploratory unless a robot's action semantics justify them a priori.
 Evaluators are deterministic functions versioned with the experiment.
 
 - **Target identity:** signed terminal approach/grasp affinity to the two target
-  objects, plus categorical contacted-object identity in rollout.
+  objects, plus categorical first-contact identity in rollout. The initial
+  direct-line Cartesian projection is retained only as a failed pilot proxy and
+  is not a categorical target-identity gate.
 - **Trajectory direction:** initial end-effector displacement projected onto the
-  base-to-donor contrast; for obstacles, the signed homotopy class around the
-  obstacle.
+  clean base-to-donor trajectory contrast; for obstacles, the signed homotopy
+  class around the obstacle. This contrast need not point directly at either
+  target when collision avoidance or shared approach geometry intervenes.
 - **Grasp orientation:** geodesic wrist-orientation error relative to each
   candidate grasp frame, evaluated over a preregistered pre-contact window.
 - **Gripper closure:** first future position crossing a calibrated closure
@@ -189,6 +202,11 @@ rate. Every estimate is computed in both patch directions.
 Noise seeds are repeated measurements, not independent experimental units.
 They are averaged within a scene pair for nonparametric summaries and modeled
 as nested repeated effects in sensitivity analyses.
+
+Pairs that reuse the same serialized scene state with different target
+contrasts are also dependent. Their simulator-state hash defines an outer
+cluster for resampling or mixed-effects analysis; they are never counted as
+independent scene pairs merely because their prompt pair differs.
 
 ## 8. Controls and falsification tests
 

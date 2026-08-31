@@ -5,6 +5,7 @@ from __future__ import annotations
 import dataclasses
 import hashlib
 import json
+import re
 from pathlib import Path
 from typing import Any
 
@@ -110,6 +111,66 @@ def canonicalize_bddl_scene(text: str) -> str:
     for clause in (":language", ":obj_of_interest", ":goal"):
         scene = _remove_balanced_clause(scene, clause)
     return " ".join(scene.split())
+
+
+def instruction_target_difference(base_text: str, donor_text: str) -> tuple[str, str]:
+    """Return the single object-of-interest substitution across task semantics."""
+
+    base_interest = clause_atoms(base_text, ":obj_of_interest")
+    donor_interest = clause_atoms(donor_text, ":obj_of_interest")
+    base_only = sorted(set(base_interest) - set(donor_interest))
+    donor_only = sorted(set(donor_interest) - set(base_interest))
+    if len(base_only) != 1 or len(donor_only) != 1:
+        raise ValueError("tasks must designate exactly one different object of interest")
+    for clause in (":obj_of_interest", ":goal"):
+        base_normalized = _replace_atom(_balanced_clause(base_text, clause), base_only[0], "__target__")
+        donor_normalized = _replace_atom(_balanced_clause(donor_text, clause), donor_only[0], "__target__")
+        if " ".join(base_normalized.split()) != " ".join(donor_normalized.split()):
+            raise ValueError(f"tasks differ beyond one target substitution in {clause}")
+    return base_only[0], donor_only[0]
+
+
+def instruction_difference_role(text: str, atom: str) -> str:
+    """Classify a substituted goal atom by its argument position."""
+
+    goal = _balanced_clause(text, ":goal")
+    positions = []
+    for match in re.finditer(r"\(([^()]+)\)", goal):
+        tokens = match.group(1).split()
+        positions.extend(index for index, token in enumerate(tokens[1:]) if token == atom)
+    if not positions:
+        raise ValueError(f"goal does not contain substituted atom {atom!r}")
+    if all(position == 0 for position in positions):
+        return "manipulated_object"
+    if all(position > 0 for position in positions):
+        return "destination"
+    return "mixed"
+
+
+def clause_atoms(text: str, clause: str) -> list[str]:
+    """Extract whitespace-separated atoms from one balanced BDDL clause."""
+
+    balanced = _balanced_clause(text, clause)
+    return balanced[len(clause) + 2 : -1].split()
+
+
+def _balanced_clause(text: str, clause: str) -> str:
+    marker = text.find(f"({clause}")
+    if marker < 0:
+        raise ValueError(f"missing BDDL clause {clause}")
+    depth = 0
+    for end in range(marker, len(text)):
+        if text[end] == "(":
+            depth += 1
+        elif text[end] == ")":
+            depth -= 1
+            if depth == 0:
+                return text[marker : end + 1]
+    raise ValueError(f"unbalanced BDDL clause {clause}")
+
+
+def _replace_atom(text: str, atom: str, replacement: str) -> str:
+    return re.sub(rf"(?<![\w]){re.escape(atom)}(?![\w])", replacement, text)
 
 
 def _remove_balanced_clause(text: str, clause: str) -> str:

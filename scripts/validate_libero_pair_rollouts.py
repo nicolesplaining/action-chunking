@@ -31,6 +31,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--resolution", type=int, default=256)
     parser.add_argument("--resize", type=int, default=224)
     parser.add_argument("--expected-clean-trace", type=Path)
+    parser.add_argument("--expected-clean-screen", type=Path)
     return parser.parse_args()
 
 
@@ -49,10 +50,14 @@ def main() -> int:
         "base": Path(source_paths["base_bddl"]),
         "donor": Path(source_paths["donor_bddl"]),
     }
+    if args.expected_clean_trace is not None and args.expected_clean_screen is not None:
+        raise ValueError("provide at most one clean endpoint source")
     expected = None
     if args.expected_clean_trace is not None:
         with np.load(args.expected_clean_trace) as trace:
             expected = {"base": trace["base_actions"], "donor": trace["donor_actions"]}
+    elif args.expected_clean_screen is not None:
+        expected = _clean_screen_actions(args.expected_clean_screen, args.pair_id, args.noise_seed)
 
     results = []
     for side in ("base", "donor"):
@@ -91,6 +96,7 @@ def _rollout(
     rng = np.random.default_rng(args.noise_seed)
     frames = []
     action_chunks = []
+    trajectory_records = []
     contacts: dict[str, int] = {}
     first_chunk_error = None
     try:
@@ -116,14 +122,33 @@ def _rollout(
                 action_chunks.append(chunk.tolist())
                 action_plan.extend(chunk[: args.replan_steps])
                 replans += 1
-            obs, _, done, _ = env.step(action_plan.popleft().tolist())
+            action = np.asarray(action_plan.popleft())
+            obs, _, done, _ = env.step(action.tolist())
             steps += 1
             _update_contacts(env, contacts, steps)
+            trajectory_records.append(
+                {
+                    "episode_num": 0 if side == "base" else 1,
+                    "task_id": -1,
+                    "task_episode_idx": entry["init_index"],
+                    "task_description": prompt,
+                    "prompt_task_description": prompt,
+                    "step_in_episode": steps,
+                    "eef_pos": np.asarray(obs["robot0_eef_pos"]).tolist(),
+                    "eef_quat": np.asarray(obs["robot0_eef_quat"]).tolist(),
+                    "gripper_action": float(action[6]),
+                    "gripper_qpos": np.asarray(obs["robot0_gripper_qpos"]).tolist(),
+                    "done": bool(done),
+                }
+            )
             if done:
                 success = True
                 break
         imageio.mimwrite(args.output / f"{side}.mp4", frames, fps=10)
         (args.output / f"{side}_actions.json").write_text(json.dumps(action_chunks) + "\n")
+        with (args.output / f"{side}_trajectory_records.jsonl").open("w") as stream:
+            for record in trajectory_records:
+                stream.write(json.dumps(record, sort_keys=True) + "\n")
         return {
             "side": side,
             "target": target,
@@ -198,6 +223,22 @@ def _manifest_entry(manifest: dict[str, Any], pair_id: str) -> dict[str, Any]:
     if len(matches) != 1:
         raise ValueError(f"expected one manifest entry for {pair_id!r}, found {len(matches)}")
     return matches[0]
+
+
+def _clean_screen_actions(path: Path, pair_id: str, noise_seed: int) -> dict[str, np.ndarray]:
+    matches = []
+    for line in path.read_text().splitlines():
+        record = json.loads(line)
+        if record["pair_id"] == pair_id and int(record["noise_seed"]) == noise_seed:
+            matches.append(record)
+    if len(matches) != 1:
+        raise ValueError(
+            f"expected one clean-screen record for pair {pair_id!r}, seed {noise_seed}; found {len(matches)}"
+        )
+    return {
+        "base": np.asarray(matches[0]["base_actions"]),
+        "donor": np.asarray(matches[0]["donor_actions"]),
+    }
 
 
 if __name__ == "__main__":

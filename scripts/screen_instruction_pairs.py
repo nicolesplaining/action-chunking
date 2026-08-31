@@ -93,6 +93,7 @@ def main() -> int:
                         "pair_id": entry["pair_id"],
                         "manifest": str(manifest_path),
                         "fixture_sha256": entry["fixture_sha256"],
+                        "scene_state_sha256": entry["identity_hashes"]["sim_state"],
                         "init_index": entry["init_index"],
                         "base_target": entry["base_target"],
                         "donor_target": entry["donor_target"],
@@ -126,6 +127,7 @@ def main() -> int:
         "schema_version": 1,
         "manifests": len(manifest_paths),
         "scene_pairs": len(pair_groups),
+        "independent_serialized_states": len({record["scene_state_sha256"] for record in records}),
         "noise_seeds": seeds,
         "records": len(records),
         "screen_definition": {

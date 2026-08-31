@@ -22,6 +22,8 @@ paper version, not this summary.
 - **LIBERO:** lifelong robot-learning benchmark
   ([paper](https://arxiv.org/abs/2306.03310),
   [code](https://github.com/Lifelong-Robot-Learning/LIBERO)).
+  Exact task-pair discovery reads the pinned public benchmark registry and BDDL
+  files; it does not reconstruct task semantics from filenames.
 
 ## Action chunking and flow policies
 
@@ -63,6 +65,10 @@ paper version, not this summary.
   [code](https://github.com/xc-j/Event-SAE)). Its public kinematic-event and
   keyframe pipeline is the preferred starting point for grasp, transport, and
   recovery phase labels; any reused module will be pinned and attribution kept.
+  The current rollout logger emits its public `trajectory_records.jsonl` field
+  schema directly. The implementation audited for this adapter is commit
+  `f7a000024a32d8b9ee8e92aab5e79694a2f2bc1c`; the AWE threshold will be
+  calibrated on pilot trajectories rather than copied without validation.
 
 These works primarily interpret or steer features at selected layers or rollout
 times. None of them replaces the paired flow-switch experiment here, which

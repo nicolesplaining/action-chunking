@@ -65,18 +65,21 @@ The staged tools deliberately keep simulator generation, clean screening,
 intervention, and analysis separate so patched outcomes cannot leak into pair
 selection.
 
-1. `generate_libero_instruction_pairs.py` serializes prompt-only fixtures and
-   enforces byte-exact equality of images, proprioception, simulator state, and
-   object poses. `generate_instruction_pair_grid.sh` enumerates all six target
-   contrasts in the public four-object LIBERO-90 scene.
+1. `catalog_libero_instruction_pairs.py` audits public BDDL files for strict
+   single-variable task pairs. `generate_libero_instruction_pairs.py` and
+   `run_instruction_pair_generation.sh` then serialize prompt-only fixtures and
+   enforce byte-exact equality of images, proprioception, simulator state, and
+   object poses. `generate_instruction_pair_grid.sh` retains the original
+   six-contrast LIBERO-90 pilot grid.
 2. `screen_instruction_pairs.py` evaluates only clean chunks under shared saved
    noise and writes a pre-intervention eligibility table.
 3. `run_pair_interventions.py` runs bidirectional flow switches, residual-stream
    patches, future-token patches, and grouped/scalar `x_t` or `v_t` dimension
    interchanges. Every run retains raw actions and exact controls.
-4. `serve_noise_policy.py` and `validate_libero_pair_rollouts.py` replay the same
-   noise sequence in both closed-loop task environments and verify the first
-   chunks against offline inference.
+4. `serve_noise_policy.py`, `run_pair_validation.sh`, and
+   `validate_libero_pair_rollouts.py` replay the same noise sequence in both
+   closed-loop task environments and verify the first chunks against clean-only
+   offline inference.
 5. `analyze_pair.py` emits machine-readable tables and pilot figures while
    refusing to assign commitment to properties with inadequate clean endpoint
    contrast.

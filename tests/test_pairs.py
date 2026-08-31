@@ -3,7 +3,12 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from action_chunking.pairs import InstructionPair, canonicalize_bddl_scene
+from action_chunking.pairs import (
+    InstructionPair,
+    canonicalize_bddl_scene,
+    instruction_difference_role,
+    instruction_target_difference,
+)
 
 
 def make_pair() -> InstructionPair:
@@ -53,3 +58,28 @@ def test_canonical_bddl_scene_ignores_only_task_semantics() -> None:
 def test_canonical_bddl_rejects_unbalanced_clause() -> None:
     with pytest.raises(ValueError, match="unbalanced"):
         canonicalize_bddl_scene("(define (:goal (And x)")
+
+
+def test_instruction_target_difference_requires_one_atom_per_side() -> None:
+    alpha = "(define (:obj_of_interest basket alpha) (:goal (And (In alpha basket_region))))"
+    beta = "(define (:obj_of_interest basket beta) (:goal (And (In beta basket_region))))"
+    assert instruction_target_difference(alpha, beta) == ("alpha", "beta")
+    with pytest.raises(ValueError, match="exactly one"):
+        instruction_target_difference(
+            alpha,
+            "(define (:obj_of_interest gamma delta) (:goal (And (In gamma delta_region))))",
+        )
+
+
+def test_instruction_target_difference_rejects_other_goal_changes() -> None:
+    alpha = "(define (:obj_of_interest basket alpha) (:goal (And (In alpha basket_region))))"
+    beta = "(define (:obj_of_interest basket beta) (:goal (And (On beta basket_region))))"
+    with pytest.raises(ValueError, match="beyond one target substitution"):
+        instruction_target_difference(alpha, beta)
+
+
+def test_instruction_difference_role_distinguishes_object_and_destination() -> None:
+    target = "(define (:goal (And (In mug basket_region))))"
+    destination = "(define (:goal (And (In bowl plate))))"
+    assert instruction_difference_role(target, "mug") == "manipulated_object"
+    assert instruction_difference_role(destination, "plate") == "destination"

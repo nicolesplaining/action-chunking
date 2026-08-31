@@ -80,6 +80,15 @@ policy server on either GPU. The baseline launcher records render GPU and policy
 port separately; the initial failed Spatial client completed no episodes and
 was restarted from episode zero.
 
+## 2026-08-31: official LIBERO object baseline
+
+The full pinned OpenPI evaluation protocol completed 50 trials for each of the
+10 `libero_object` tasks. Pi0.5 succeeded in 491/500 episodes (98.2%), exactly
+matching the aggregate result reported in the pinned OpenPI LIBERO README.
+Per-task rates ranged from 96% to 100%. The raw evaluator log was parsed only
+after all 500 success records were present; the versioned parser rejects empty
+or incomplete expected episode counts.
+
 ## 2026-08-31: exact instruction-target fixture
 
 The public LIBERO-90 living-room tasks for alphabet soup and cream cheese share
@@ -127,3 +136,33 @@ target at step 199 and succeeding at step 249. Consequently this pair is
 excluded from a clean first-contact target-identity analysis, while remaining a
 valid recovery/eventual-success case. This exclusion used only clean behavior,
 never patched outcomes.
+
+## 2026-08-31: clean-only target-pair expansion and exclusion audit
+
+All six prompt contrasts among four objects in the same public LIBERO-90 living
+room scene were generated for 16 initialization states and four shared noise
+seeds. The 96 fixtures collapse to 48 independent serialized simulator states,
+which are retained as the outer dependency cluster. Only three fixtures passed
+the provisional all-seed direct-target-direction screen; all were cream-cheese
+to ketchup contrasts at initialization states 0, 8, and 14.
+
+The three survivors were then evaluated closed loop for all four noise seeds.
+Every one of the 24 first chunks reproduced its offline clean endpoint exactly,
+but zero of 12 paired seed jobs succeeded on both prompts. All 12 cream-cheese
+runs succeeded and all 12 ketchup runs failed. Zero of 24 side rollouts first
+contacted its instructed task object. These pairs are therefore excluded from
+target-identity causal analysis. The failed result also falsifies the use of an
+initial five-action Cartesian direction sign as a categorical target-identity
+gate; the raw screen remains preserved as a negative pilot result.
+
+An audit of the pinned public BDDL task registry found 44 strict
+manipulated-object substitutions and three strict destination substitutions in
+LIBERO-90. Across the four official evaluation suites, `libero_goal` contains
+one strict manipulated-object pair and four strict destination pairs; the other
+official suites contain no exact prompt-only target substitution. For the 16
+states of the official goal wine-bottle versus bowl pair, clean translation
+contrasts were large under all seeds (minimum per-state values 1.24--1.92), but
+zero states passed the direct-target sign criterion because both prompts'
+initial actions project toward the bowl direction. This supports replacing the
+invalid direct-line proxy with phase-aligned clean trajectory and contact
+outcomes, not relaxing its threshold after observing interventions.

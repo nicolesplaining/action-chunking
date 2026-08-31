@@ -15,7 +15,14 @@ from libero.libero import benchmark, get_libero_path
 from libero.libero.envs import OffScreenRenderEnv
 from openpi_client import image_tools
 
-from action_chunking.pairs import InstructionPair, array_digest, canonicalize_bddl_scene, file_digest
+from action_chunking.pairs import (
+    InstructionPair,
+    array_digest,
+    canonicalize_bddl_scene,
+    file_digest,
+    instruction_difference_role,
+    instruction_target_difference,
+)
 
 LIBERO_DUMMY_ACTION = [0.0] * 6 + [-1.0]
 
@@ -53,7 +60,13 @@ def main() -> int:
     if base_scene != donor_scene:
         raise ValueError("BDD L files differ outside language, obj_of_interest, or goal clauses")
 
-    base_targets = _task_specific_targets(base_text, donor_text)
+    base_targets = instruction_target_difference(base_text, donor_text)
+    roles = (
+        instruction_difference_role(base_text, base_targets[0]),
+        instruction_difference_role(donor_text, base_targets[1]),
+    )
+    if roles != ("manipulated_object", "manipulated_object"):
+        raise ValueError(f"generator requires a manipulated-object substitution, found roles {roles}")
     initial_states = task_suite.get_task_init_states(base_id)
     stop_index = args.start_index + args.count
     if stop_index > len(initial_states):
@@ -121,8 +134,10 @@ def _validate_with_donor_and_save(
     env = _make_env(task, args.resolution, args.seed)
     entries = []
     try:
-        env.reset()
         for sample in samples:
+            # Reset task-local simulator and renderer state before every
+            # serialized-state interchange, as on the base side.
+            env.reset()
             donor_obs = env.regenerate_obs_from_state(sample["sim_state"])
             donor_input = _model_input(donor_obs, task.language, args.resize)
             donor_sim_state = np.asarray(env.get_sim_state()).copy()
@@ -250,32 +265,6 @@ def _assert_pose_maps_equal(base: dict[str, Any], donor: dict[str, Any]) -> None
         for field in ("pos", "quat"):
             if not np.array_equal(np.asarray(base[name][field]), np.asarray(donor[name][field])):
                 raise ValueError(f"object {name} differs in {field}")
-
-
-def _task_specific_targets(base_text: str, donor_text: str) -> tuple[str, str]:
-    base_interest = _clause_atoms(base_text, ":obj_of_interest")
-    donor_interest = _clause_atoms(donor_text, ":obj_of_interest")
-    base_only = sorted(set(base_interest) - set(donor_interest))
-    donor_only = sorted(set(donor_interest) - set(base_interest))
-    if len(base_only) != 1 or len(donor_only) != 1:
-        raise ValueError("tasks must designate exactly one different object of interest")
-    return base_only[0], donor_only[0]
-
-
-def _clause_atoms(text: str, clause: str) -> list[str]:
-    marker = text.find(f"({clause}")
-    if marker < 0:
-        raise ValueError(f"missing BDDL clause {clause}")
-    depth = 0
-    for end in range(marker, len(text)):
-        if text[end] == "(":
-            depth += 1
-        elif text[end] == ")":
-            depth -= 1
-            if depth == 0:
-                body = text[marker + len(clause) + 1 : end]
-                return body.split()
-    raise ValueError(f"unbalanced BDDL clause {clause}")
 
 
 def _quat2axisangle(quat: np.ndarray) -> np.ndarray:
