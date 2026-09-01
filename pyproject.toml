@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "action-chunking"
 version = "0.1.0"
-description = "Causal interventions for action commitment in flow-matching VLAs"
+description = "Causal interventions for action editability in flow-matching VLAs"
 requires-python = ">=3.11"
 dependencies = [
   "matplotlib>=3.9,<4",

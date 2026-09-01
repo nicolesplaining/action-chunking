@@ -33,6 +33,10 @@ causally editable until late updates. They do not show that the model was
 undecided or lacked an internal plan. A registered inference experiment tests
 whether the measured boundary enables successful retargeting without restarting
 generation, while a matched pi0 control is trained before cross-model claims.
+If its frozen competence and conversion-parity gates pass, the control is run on
+the clean-eligible scene intersection with the same ten flow updates and layer
+sites. Direct position contrasts use indices zero through nine, while a
+ten-bin normalized-chunk-time sensitivity retains pi0's full 50-action horizon.
 
 ## 1. Introduction
 

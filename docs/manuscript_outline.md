@@ -142,6 +142,14 @@ steps, batch size 32, two-device FSDP, and EMA 0.99. After baseline competence
 is established, reuse the accepted manifests, saved Gaussian noise, evaluator
 thresholds, intervention sites, and scene-state clustering.
 
+Run the coarse all-flow-step/all-layer grid and the population action-position
+grid only on the clean-eligible scene intersection. Preserve pi0's native
+50-position action tensor. Compare positions zero through nine directly and use
+ten frozen normalized-chunk-time bins as a sensitivity analysis. Report paired
+scene-state differences in formation, editability, formation-to-editability gap,
+retention AUC, 10--90% transition width, directional-asymmetry AUC, and common
+causal cells with within-metric BH correction.
+
 The two-device pipeline has passed a two-update execution smoke from the public
 base checkpoint (first reported loss 0.1812; finite gradient and parameter
 norms; finalized Orbax checkpoint). This validates the pipeline only. The pi0

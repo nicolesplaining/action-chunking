@@ -59,6 +59,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--checkpoint", type=Path, required=True)
     parser.add_argument("--manifest", type=Path, required=True)
     parser.add_argument("--clean-validation", type=Path, required=True)
+    parser.add_argument("--reference-clean-validation", type=Path)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--mode", choices=tuple(MODES), default="coarse")
     parser.add_argument("--eligibility", choices=("dual_success", "contact_valid"), default="dual_success")
@@ -74,7 +75,12 @@ def main() -> int:
     if args.num_steps <= 0:
         raise ValueError("num-steps must be positive")
     seeds = _seeds(args.noise_seeds)
-    selected = _select_pairs(args.clean_validation, args.eligibility)
+    model_selected = _select_pairs(args.clean_validation, args.eligibility)
+    reference_selected = None
+    selected = model_selected
+    if args.reference_clean_validation is not None:
+        reference_selected = _select_pairs(args.reference_clean_validation, args.eligibility)
+        selected = _intersect_pairs(model_selected, reference_selected)
     mode = MODES[args.mode]
     manifest = json.loads(args.manifest.read_text())
     manifest_ids = {entry["pair_id"] for entry in manifest["pairs"]}
@@ -85,6 +91,14 @@ def main() -> int:
         "schema_version": 1,
         "selection_uses_interventions": False,
         "clean_validation": str(args.clean_validation),
+        "reference_clean_validation": (
+            str(args.reference_clean_validation)
+            if args.reference_clean_validation is not None
+            else None
+        ),
+        "model_clean_eligible_pairs": model_selected,
+        "reference_clean_eligible_pairs": reference_selected,
+        "selection_is_clean_eligible_intersection": args.reference_clean_validation is not None,
         "eligibility": args.eligibility,
         "mode": args.mode,
         "mode_parameters": mode,
@@ -205,6 +219,14 @@ def _select_pairs(root: Path, eligibility: str) -> list[str]:
 def _first_contact_is_target(result: dict[str, Any]) -> bool:
     contacts = result["first_contact_step_by_object"]
     return bool(contacts) and min(contacts, key=contacts.get) == result["target"]
+
+
+def _intersect_pairs(model_pairs: list[str], reference_pairs: list[str]) -> list[str]:
+    reference = set(reference_pairs)
+    intersection = [pair_id for pair_id in model_pairs if pair_id in reference]
+    if not intersection:
+        raise ValueError("model and reference clean validations have no eligible pair intersection")
+    return intersection
 
 
 def _seeds(value: str) -> list[int]:
