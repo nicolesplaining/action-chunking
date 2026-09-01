@@ -33,12 +33,8 @@ def summarize_utility_jobs(
         raise ValueError("primary utility jobs must contain at most one direction per cluster")
 
     valid = [job for job in jobs if job["prediction_valid"]]
-    predicted = np.asarray(
-        [int(job["predicted_last_successful_boundary"]) for job in valid], dtype=np.float64
-    )
-    observed = np.asarray(
-        [int(job["observed_last_successful_boundary"]) for job in valid], dtype=np.float64
-    )
+    predicted = np.asarray([int(job["predicted_last_successful_boundary"]) for job in valid], dtype=np.float64)
+    observed = np.asarray([int(job["observed_last_successful_boundary"]) for job in valid], dtype=np.float64)
     errors = predicted - observed
     baseline_errors = fixed_boundary_baseline - observed
     absolute_error_advantage = np.abs(errors) - np.abs(baseline_errors)
@@ -47,25 +43,29 @@ def summarize_utility_jobs(
     )
     prediction_sample_size_gate_passed = len(valid) >= minimum_valid_predictions
 
-    restart_composite = [
-        bool(job["restart_new_target_first"] and job["restart_new_task_success"])
-        for job in jobs
-    ]
-    boundary7_composite = [
-        bool(job["boundary7_new_target_first"] and job["boundary7_new_task_success"])
-        for job in jobs
-    ]
-    paired_losses = sum(
-        restart and not continued
-        for restart, continued in zip(restart_composite, boundary7_composite, strict=True)
-    )
-    paired_gains = sum(
-        continued and not restart
-        for restart, continued in zip(restart_composite, boundary7_composite, strict=True)
-    )
-    upper_bound = (
-        binomial_upper_bound(paired_losses, len(jobs), alpha) if jobs else None
-    )
+    outcome_pairs = {
+        "target_first": (
+            [bool(job["restart_new_target_first"]) for job in jobs],
+            [bool(job["boundary7_new_target_first"]) for job in jobs],
+        ),
+        "task_success": (
+            [bool(job["restart_new_task_success"]) for job in jobs],
+            [bool(job["boundary7_new_task_success"]) for job in jobs],
+        ),
+        "composite": (
+            [bool(job["restart_new_target_first"] and job["restart_new_task_success"]) for job in jobs],
+            [bool(job["boundary7_new_target_first"] and job["boundary7_new_task_success"]) for job in jobs],
+        ),
+    }
+    noninferiority = {
+        name: _paired_loss_noninferiority(
+            restart,
+            continued,
+            margin=noninferiority_margin,
+            alpha=alpha,
+        )
+        for name, (restart, continued) in outcome_pairs.items()
+    }
 
     latency_savings = np.asarray(
         [
@@ -79,15 +79,19 @@ def summarize_utility_jobs(
         np.asarray([job["restart_post_event_total_ms"] for job in jobs], dtype=np.float64) <= 0
     ):
         raise ValueError("post-event latency must be finite and strictly positive")
-    latency_interval = _cluster_bootstrap_median(
-        latency_savings, bootstrap_samples, bootstrap_seed
-    )
+    latency_interval = _cluster_bootstrap_median(latency_savings, bootstrap_samples, bootstrap_seed)
     expected_boundary7_evaluations = 3
     evaluation_counts_exact = all(
-        int(job["boundary7_post_event_velocity_evaluations"])
-        == expected_boundary7_evaluations
+        int(job["boundary7_post_event_velocity_evaluations"]) == expected_boundary7_evaluations
         and int(job["restart_post_event_velocity_evaluations"]) == 10
         for job in jobs
+    )
+    latency_positive = bool(latency_interval is not None and latency_interval[0] > 0.0)
+    practical_gate_passed = bool(
+        jobs
+        and all(result["noninferior"] for result in noninferiority.values())
+        and evaluation_counts_exact
+        and latency_positive
     )
 
     predicted_boundary_success = []
@@ -97,9 +101,7 @@ def summarize_utility_jobs(
     for job in valid:
         boundary = int(job["predicted_last_successful_boundary"])
         curve = [bool(value) for value in job["success_curve"]]
-        first_chunk_old_events = [
-            bool(value) for value in job["first_chunk_old_event_curve"]
-        ]
+        first_chunk_old_events = [bool(value) for value in job["first_chunk_old_event_curve"]]
         predicted_boundary_success.append(curve[boundary])
         predicted_boundary_first_chunk_old_event.append(first_chunk_old_events[boundary])
         if boundary < 10:
@@ -117,9 +119,7 @@ def summarize_utility_jobs(
         ):
             if old_first:
                 key = "none" if replan_index is None else str(int(replan_index))
-                wrong_target_failure_replan_histogram[key] = (
-                    wrong_target_failure_replan_histogram.get(key, 0) + 1
-                )
+                wrong_target_failure_replan_histogram[key] = wrong_target_failure_replan_histogram.get(key, 0) + 1
             elif not success:
                 eventual_failures_after_new_target_first += 1
 
@@ -129,15 +129,9 @@ def summarize_utility_jobs(
         "valid_predictions": len(valid),
         "prediction_minimum_valid_clusters": minimum_valid_predictions,
         "prediction_sample_size_gate_passed": prediction_sample_size_gate_passed,
-        "prediction_exact_rate": _mean_boolean(
-            [job["prediction_exact"] for job in valid]
-        ),
-        "prediction_within_one_rate": (
-            float(np.mean(np.abs(errors) <= 1)) if len(errors) else None
-        ),
-        "prediction_mean_absolute_error": (
-            float(np.mean(np.abs(errors))) if len(errors) else None
-        ),
+        "prediction_exact_rate": _mean_boolean([job["prediction_exact"] for job in valid]),
+        "prediction_within_one_rate": (float(np.mean(np.abs(errors) <= 1)) if len(errors) else None),
+        "prediction_mean_absolute_error": (float(np.mean(np.abs(errors))) if len(errors) else None),
         "prediction_fixed_boundary_baseline": fixed_boundary_baseline,
         "prediction_fixed_boundary_baseline_exact_rate": (
             float(np.mean(baseline_errors == 0)) if len(baseline_errors) else None
@@ -149,60 +143,37 @@ def summarize_utility_jobs(
             float(np.mean(np.abs(baseline_errors))) if len(baseline_errors) else None
         ),
         "prediction_mae_difference_vs_fixed_boundary": (
-            float(np.mean(absolute_error_advantage))
-            if len(absolute_error_advantage)
-            else None
+            float(np.mean(absolute_error_advantage)) if len(absolute_error_advantage) else None
         ),
-        "prediction_mae_difference_vs_fixed_boundary_ci95": (
-            absolute_error_advantage_interval
-        ),
+        "prediction_mae_difference_vs_fixed_boundary_ci95": (absolute_error_advantage_interval),
         "prediction_beats_fixed_boundary_mae": (
-            bool(
-                prediction_sample_size_gate_passed
-                and absolute_error_advantage_interval[1] < 0.0
-            )
+            bool(prediction_sample_size_gate_passed and absolute_error_advantage_interval[1] < 0.0)
             if absolute_error_advantage_interval is not None
             else None
         ),
         "prediction_spearman_rho": _spearman(predicted, observed),
-        "predicted_boundary_composite_success_rate": _mean_boolean(
-            predicted_boundary_success
-        ),
+        "predicted_boundary_composite_success_rate": _mean_boolean(predicted_boundary_success),
         "next_boundary_composite_failure_rate": _mean_boolean(next_boundary_failure),
-        "predicted_boundary_first_chunk_old_event_rate": _mean_boolean(
-            predicted_boundary_first_chunk_old_event
-        ),
-        "next_boundary_first_chunk_old_event_rate": _mean_boolean(
-            next_boundary_first_chunk_old_event
-        ),
-        "wrong_target_failure_first_contact_replan_histogram": (
-            wrong_target_failure_replan_histogram
-        ),
-        "eventual_failures_without_wrong_target_first": (
-            eventual_failures_after_new_target_first
-        ),
-        "boundary7_restart_composite_successes": sum(restart_composite),
-        "boundary7_continue_composite_successes": sum(boundary7_composite),
-        "boundary7_paired_losses": int(paired_losses),
-        "boundary7_paired_gains": int(paired_gains),
-        "boundary7_first_chunk_old_events": sum(
-            bool(job["boundary7_first_chunk_old_event"]) for job in jobs
-        ),
-        "restart_first_chunk_old_events": sum(
-            bool(job["restart_first_chunk_old_event"]) for job in jobs
-        ),
-        "boundary7_clean_replanning_rescues": sum(
-            bool(job["boundary7_clean_replanning_rescue"]) for job in jobs
-        ),
-        "restart_clean_replanning_rescues": sum(
-            bool(job["restart_clean_replanning_rescue"]) for job in jobs
-        ),
-        "boundary7_paired_loss_upper_bound_one_sided": upper_bound,
+        "predicted_boundary_first_chunk_old_event_rate": _mean_boolean(predicted_boundary_first_chunk_old_event),
+        "next_boundary_first_chunk_old_event_rate": _mean_boolean(next_boundary_first_chunk_old_event),
+        "wrong_target_failure_first_contact_replan_histogram": (wrong_target_failure_replan_histogram),
+        "eventual_failures_without_wrong_target_first": (eventual_failures_after_new_target_first),
+        **{
+            f"boundary7_{name}_{key}": value for name, result in noninferiority.items() for key, value in result.items()
+        },
+        # Backward-compatible aliases for the primary composite outcome.
+        "boundary7_restart_composite_successes": noninferiority["composite"]["restart_successes"],
+        "boundary7_continue_composite_successes": noninferiority["composite"]["continue_successes"],
+        "boundary7_paired_losses": noninferiority["composite"]["paired_losses"],
+        "boundary7_paired_gains": noninferiority["composite"]["paired_gains"],
+        "boundary7_first_chunk_old_events": sum(bool(job["boundary7_first_chunk_old_event"]) for job in jobs),
+        "restart_first_chunk_old_events": sum(bool(job["restart_first_chunk_old_event"]) for job in jobs),
+        "boundary7_clean_replanning_rescues": sum(bool(job["boundary7_clean_replanning_rescue"]) for job in jobs),
+        "restart_clean_replanning_rescues": sum(bool(job["restart_clean_replanning_rescue"]) for job in jobs),
+        "boundary7_paired_loss_upper_bound_one_sided": noninferiority["composite"]["paired_loss_upper_bound_one_sided"],
         "noninferiority_margin": noninferiority_margin,
         "noninferiority_alpha_one_sided": alpha,
-        "boundary7_noninferior": (
-            bool(upper_bound < noninferiority_margin) if upper_bound is not None else None
-        ),
+        "boundary7_noninferior": noninferiority["composite"]["noninferior"],
         "boundary7_velocity_evaluation_counts_exact": evaluation_counts_exact,
         "boundary7_post_event_velocity_evaluation_savings_fraction": (
             0.7 if evaluation_counts_exact and jobs else None
@@ -211,8 +182,39 @@ def summarize_utility_jobs(
             float(np.median(latency_savings)) if len(latency_savings) else None
         ),
         "boundary7_median_latency_savings_ci95": latency_interval,
+        "boundary7_latency_savings_positive": latency_positive,
+        "boundary7_practical_gate_requires": [
+            "target_first_noninferior",
+            "task_success_noninferior",
+            "composite_noninferior",
+            "exact_velocity_evaluation_counts",
+            "latency_savings_ci95_low_above_zero",
+        ],
+        "boundary7_practical_gate_passed": practical_gate_passed,
         "latency_bootstrap_samples": bootstrap_samples,
         "latency_bootstrap_seed": bootstrap_seed,
+    }
+
+
+def _paired_loss_noninferiority(
+    restart: list[bool],
+    continued: list[bool],
+    *,
+    margin: float,
+    alpha: float,
+) -> dict[str, int | float | bool | None]:
+    if len(restart) != len(continued):
+        raise ValueError("paired outcomes must have equal lengths")
+    paired_losses = sum(control and not intervention for control, intervention in zip(restart, continued, strict=True))
+    paired_gains = sum(intervention and not control for control, intervention in zip(restart, continued, strict=True))
+    upper_bound = binomial_upper_bound(paired_losses, len(restart), alpha) if restart else None
+    return {
+        "restart_successes": sum(restart),
+        "continue_successes": sum(continued),
+        "paired_losses": int(paired_losses),
+        "paired_gains": int(paired_gains),
+        "paired_loss_upper_bound_one_sided": upper_bound,
+        "noninferior": bool(upper_bound < margin) if upper_bound is not None else None,
     }
 
 
@@ -220,9 +222,7 @@ def _mean_boolean(values: list[bool]) -> float | None:
     return sum(bool(value) for value in values) / len(values) if values else None
 
 
-def _cluster_bootstrap_median(
-    values: np.ndarray, samples: int, seed: int
-) -> list[float] | None:
+def _cluster_bootstrap_median(values: np.ndarray, samples: int, seed: int) -> list[float] | None:
     if not len(values):
         return None
     rng = np.random.default_rng(seed)
@@ -231,9 +231,7 @@ def _cluster_bootstrap_median(
     return [float(np.quantile(medians, 0.025)), float(np.quantile(medians, 0.975))]
 
 
-def _cluster_bootstrap_mean(
-    values: np.ndarray, samples: int, seed: int
-) -> list[float] | None:
+def _cluster_bootstrap_mean(values: np.ndarray, samples: int, seed: int) -> list[float] | None:
     if not len(values):
         return None
     rng = np.random.default_rng(seed)

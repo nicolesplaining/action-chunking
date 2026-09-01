@@ -24,9 +24,15 @@ def test_cluster_summary_reports_prediction_and_noninferiority_statistics() -> N
     assert result["prediction_mae_difference_vs_fixed_boundary"] == 0.5
     assert result["prediction_beats_fixed_boundary_mae"] is False
     assert result["boundary7_paired_losses"] == 0
+    assert result["boundary7_target_first_paired_losses"] == 0
+    assert result["boundary7_task_success_paired_losses"] == 0
+    assert result["boundary7_composite_paired_losses"] == 0
     assert result["boundary7_velocity_evaluation_counts_exact"] is True
     assert result["boundary7_post_event_velocity_evaluation_savings_fraction"] == 0.7
     assert result["boundary7_noninferior"] is False
+    assert result["boundary7_target_first_noninferior"] is False
+    assert result["boundary7_task_success_noninferior"] is False
+    assert result["boundary7_practical_gate_passed"] is False
     assert result["boundary7_first_chunk_old_events"] == 0
     assert result["wrong_target_failure_first_contact_replan_histogram"] == {"0": 6}
 
@@ -60,16 +66,37 @@ def test_cluster_summary_detects_prediction_advantage_over_fixed_boundary() -> N
 
 
 def test_prediction_advantage_requires_frozen_sample_size() -> None:
-    jobs = [
-        _job(f"cluster-{index}", predicted=2, observed=2)
-        for index in range(10)
-    ]
+    jobs = [_job(f"cluster-{index}", predicted=2, observed=2) for index in range(10)]
 
     result = summarize_utility_jobs(jobs, bootstrap_samples=100)
 
     assert result["prediction_mae_difference_vs_fixed_boundary_ci95"][1] < 0.0
     assert result["prediction_sample_size_gate_passed"] is False
     assert result["prediction_beats_fixed_boundary_mae"] is False
+
+
+def test_practical_gate_requires_each_behavioral_outcome_and_latency() -> None:
+    jobs = [_job(f"cluster-{index}") for index in range(100)]
+    passing = summarize_utility_jobs(jobs, bootstrap_samples=1_000)
+
+    assert passing["boundary7_target_first_noninferior"] is True
+    assert passing["boundary7_task_success_noninferior"] is True
+    assert passing["boundary7_composite_noninferior"] is True
+    assert passing["boundary7_latency_savings_positive"] is True
+    assert passing["boundary7_practical_gate_passed"] is True
+
+    jobs[0]["boundary7_new_target_first"] = False
+    jobs[0]["boundary7_new_task_success"] = True
+    failing = summarize_utility_jobs(
+        jobs,
+        bootstrap_samples=1_000,
+        noninferiority_margin=0.04,
+    )
+
+    assert failing["boundary7_target_first_noninferior"] is False
+    assert failing["boundary7_task_success_noninferior"] is True
+    assert failing["boundary7_composite_noninferior"] is False
+    assert failing["boundary7_practical_gate_passed"] is False
 
 
 def _job(

@@ -284,8 +284,12 @@ close to a donor vector. The existing target curve freezes boundaries
 negative controls. At `k=7`, continue executes three post-event velocity
 evaluations versus ten for restart. A practical claim requires held-out scene
 states, byte-exact `k=0` equivalence, a five-percentage-point paired
-noninferiority margin for both target-first contact and task success, and lower
-measured post-event latency.
+noninferiority margin for target-first contact, task success, and their primary
+composite, exact velocity-evaluation accounting, and a scene-bootstrap latency-
+savings interval strictly above zero. Each noninferiority test uses the one-
+sided exact upper bound on the conservative paired-loss probability. No utility
+decision is emitted until every cluster selected by the frozen endpoint gate is
+complete.
 
 Held-out candidates use the latest five-action replan boundary strictly before
 the source clean target contact. Because robosuite controller and interpolator

@@ -10,6 +10,7 @@ _module = runpy.run_path(
 _boolean = _module["_boolean"]
 _candidate_manifests = _module["_candidate_manifests"]
 _select_primary_directions = _module["_select_primary_directions"]
+_utility_decision = _module["_utility_decision"]
 
 
 def test_strict_serialized_boolean_parser() -> None:
@@ -50,3 +51,24 @@ def test_reads_frozen_candidate_index(tmp_path: Path) -> None:
     )
 
     assert _candidate_manifests(None, index) == {"pair": manifest}
+
+
+def test_utility_decision_is_withheld_until_every_cluster_finishes() -> None:
+    statistics = {
+        "prediction_beats_fixed_boundary_mae": True,
+        "boundary7_practical_gate_passed": True,
+    }
+
+    pending = _utility_decision(statistics, 99, 100)
+    positive = _utility_decision(statistics, 100, 100)
+
+    assert pending == {
+        "study_complete": False,
+        "prediction_utility_positive": None,
+        "practical_utility_positive": None,
+        "utility_inference_status": "pending",
+    }
+    assert positive["study_complete"] is True
+    assert positive["prediction_utility_positive"] is True
+    assert positive["practical_utility_positive"] is True
+    assert positive["utility_inference_status"] == "positive"
