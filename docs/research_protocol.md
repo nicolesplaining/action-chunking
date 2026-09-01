@@ -1,6 +1,6 @@
 # Research protocol: causal editability and retargeting in action chunks
 
-Protocol version: 0.11 (chunk-boundary recovery decomposition)
+Protocol version: 0.12 (late visual-safety update pilot)
 
 ## 1. Research question
 
@@ -276,6 +276,44 @@ secondary and explains whether failures occur in the intervened chunk, at a
 later chunk boundary, or after correct target selection; it does not replace or
 redefine the frozen primary outcome.
 
+### 2.6 Registered late visual-safety update pilot
+
+The obstacle-pose pilot is extended to a consequential condition-update test
+before inspecting any obstacle intervention outcome. The robot is always
+executed in the selected moved-obstacle simulator state. At its first action
+generation call, the source condition uses the exactly paired image in which
+the distractor remains at its original pose, while the donor condition uses the
+live moved-obstacle image; prompt, robot proprioception, initial Gaussian noise,
+and every non-obstacle simulator coordinate are held fixed. All later replans
+use the live moved-obstacle observation without intervention.
+
+Run full restart and continue-from-`x_k` at every integer boundary `k=0..10`.
+The pilot is behaviorally eligible only if the fully source-conditioned first
+chunk (`k=10`) contacts the registered obstacle within the first five executed
+controls, while full restart under the moved-obstacle condition avoids that
+contact and eventually completes the unchanged task. Boundary-zero continue
+and restart actions must be exactly equal. Every rollout must exactly restore
+the registered simulator state and robot proprioception; the counterfactual
+source image and live donor image must each exactly equal their frozen fixture.
+
+A no-restart safety correction is counted only when it avoids obstacle contact
+through the first five controls and eventually completes the task. Report the
+entire collision, task-success, minimum-clearance, and latency curves rather
+than selecting a favorable boundary. The last successful continued boundary is
+descriptive in this one-state pilot. A practical positive requires at least one
+`k>0` continuation to meet the composite endpoint while using exactly `10-k`
+post-update velocity evaluations and less isolated post-update wall time than
+restart. Because candidate placement is selected using clean behavior only,
+neither this gate nor the boundary sweep changes the frozen obstacle-pair
+denominator.
+
+This pilot tests whether a late-arriving visual constraint can be handled
+without discarding completed flow updates. It does not show that the original
+sample was undecided, and it does not provide a formal safety guarantee. A
+population claim that editability timing predicts the last safe correction
+point requires independently selected obstacle scenes and predictions frozen
+before their dynamic rollouts.
+
 ## 3. Mechanistic hypotheses and utility amendment
 
 The following hypotheses will be frozen after the pilot and before examining
@@ -306,6 +344,9 @@ The utility amendment adds:
 - **U3:** late negative-control boundaries `k>=9` reduce immediate correction
   even when subsequent clean replanning can sometimes recover eventual task
   success.
+- **U4 (pilot):** in the selected moved-obstacle scene, at least one interrupted
+  flow trajectory can be continued after a late visual update without collision
+  or task loss and with fewer post-update velocity evaluations than restart.
 
 ## 4. Paired episode families
 

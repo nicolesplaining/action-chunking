@@ -70,6 +70,43 @@ paper version, not this summary.
   the later obstacle/safety correction experiment; we do not claim its formal
   barrier guarantees for OpenPI.
 
+## Inference-time steering and warm starts
+
+- **DynaGuide:** steers a frozen diffusion policy during denoising with gradients
+  from a separately trained latent dynamics model
+  ([paper](https://arxiv.org/abs/2506.13922),
+  [code](https://github.com/MaxDu17/DynaGuide)). It is the closest public
+  precedent for changing an action sample during iterative generation. Our
+  conditioning switch requires neither a learned dynamics model nor an
+  auxiliary objective, but it can only express goals already understood by the
+  VLA.
+- **DSRL:** adapts diffusion and flow policies through reinforcement learning in
+  latent-noise space and includes a public pi0 implementation
+  ([paper](https://arxiv.org/abs/2506.15799),
+  [code](https://github.com/nakamotoo/dsrl_pi0)). It establishes a strong pi0
+  steering baseline, while our experiment changes the instruction condition of
+  a fixed sample and makes no policy update.
+- **Guided Action Flow:** applies learned Q-guidance to a frozen flow-matching
+  VLA during sampling and evaluates on LIBERO
+  ([paper](https://arxiv.org/abs/2607.02092),
+  [code](https://github.com/ylhaichen/guided-action-flow)). Its critic-guided
+  sampler is a natural future baseline for the obstacle/safety extension. The
+  present target-retargeting test intentionally asks first whether the VLA's own
+  instruction pathway can provide a useful correction without a critic.
+- **STEP:** warm-starts diffusion-policy inference with a learned
+  spatiotemporal consistency predictor and refines the proposal with a small
+  number of denoising steps
+  ([paper](https://arxiv.org/abs/2602.08245),
+  [code](https://github.com/Kimho666/STEP)). It motivates treating continuation
+  quality and saved neural-function evaluations as a joint Pareto question, not
+  interpreting fewer updates as useful without closed-loop success.
+- **Consistency Policy:** distills a diffusion policy into a single- or
+  few-step policy for low-latency visuomotor inference
+  ([paper](https://arxiv.org/abs/2405.07503),
+  [code](https://github.com/Aaditya-Prasad/Consistency-Policy)). Distillation is
+  complementary to our training-free reuse of updates already computed before
+  an instruction changes.
+
 ## Causal methodology
 
 - Interchange interventions and causal abstraction: Geiger et al.

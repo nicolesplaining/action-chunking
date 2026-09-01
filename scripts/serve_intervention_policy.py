@@ -20,6 +20,7 @@ from openpi.training import config as training_config
 from openpi_client import base_policy
 from typing_extensions import override
 
+from action_chunking.condition_switch import pop_donor_observation
 from action_chunking.retargeting import retarget_plan
 from action_chunking.sampling import PreparedCondition, SamplingTrace, prepare_condition, sample_actions
 from action_chunking.tracing import PatchSpec, ResidualTrace, ResidualTracer
@@ -40,6 +41,7 @@ class InterventionPolicy(base_policy.BasePolicy):
         request = dict(obs)
         noise_array = np.asarray(request.pop("_action_noise"), dtype=np.float32)
         donor_prompt = request.pop("_donor_prompt", None)
+        donor_observation = pop_donor_observation(request)
         raw_spec = request.pop("_intervention", None)
         noise = torch.from_numpy(noise_array).to(self.device)[None, ...]
         source, source_transformed = _condition(self.policy, request, self.device)
@@ -58,6 +60,8 @@ class InterventionPolicy(base_policy.BasePolicy):
             if not isinstance(donor_prompt, str) or not donor_prompt.strip():
                 raise ValueError("an intervention request requires a nonempty _donor_prompt")
             donor_request = {**request, "prompt": donor_prompt}
+            if donor_observation is not None:
+                donor_request.update(donor_observation)
             family = str(raw_spec.get("family"))
             if family == "dynamic_retarget":
                 actions_t, output_transformed, retarget_diagnostics = self._dynamic_retarget(
@@ -239,6 +243,7 @@ class InterventionPolicy(base_policy.BasePolicy):
                 "dynamic_retarget",
             ],
             "dynamic_retarget_strategies": ["continue", "restart"],
+            "accepts_donor_observation": True,
             "flow_steps": self.num_steps,
             "action_expert_layers": len(self.layers),
             "action_horizon": self.model.config.action_horizon,

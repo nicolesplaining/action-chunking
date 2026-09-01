@@ -67,21 +67,21 @@ def main() -> int:
         }
     )
 
-    _plot_formation_and_commitment(
+    _plot_formation_and_editability(
         _read_csv(inputs["formation_curve"]),
         _read_csv(inputs["flow_curve"]),
         _read_csv(inputs["target_curve"]),
-        args.output / "fig1_formation_and_commitment",
+        args.output / "fig1_formation_and_editability",
     )
     _plot_causal_localization(
         _read_csv(inputs["residual_cells"]),
         _read_csv(inputs["dimension_cells"]),
         args.output / "fig2_causal_localization",
     )
-    _plot_behavioral_commitment(
+    _plot_behavioral_editability(
         _read_csv(inputs["target_curve"]),
         _read_csv(inputs["destination_curve"]),
-        args.output / "fig3_behavioral_commitment",
+        args.output / "fig3_behavioral_editability",
     )
     _plot_closure_token_case(
         _read_csv(inputs["closure_position_cells"]),
@@ -93,9 +93,9 @@ def main() -> int:
         "outputs": [
             f"fig{index}_{name}.{suffix}"
             for index, name in (
-                (1, "formation_and_commitment"),
+                (1, "formation_and_editability"),
                 (2, "causal_localization"),
-                (3, "behavioral_commitment"),
+                (3, "behavioral_editability"),
                 (4, "closure_token_case"),
             )
             for suffix in ("pdf", "png")
@@ -107,7 +107,7 @@ def main() -> int:
     return 0
 
 
-def _plot_formation_and_commitment(
+def _plot_formation_and_editability(
     formation_rows: list[dict[str, str]],
     flow_rows: list[dict[str, str]],
     target_rows: list[dict[str, str]],
@@ -137,7 +137,7 @@ def _plot_formation_and_commitment(
         axes[1].fill_between(x, low, high, color=COLORS[metric], alpha=0.12, linewidth=0)
     axes[1].axhline(0.8, color="0.35", linestyle="--", linewidth=1)
     axes[1].set(
-        title="b  Continuous action commitment",
+        title="b  Continuous action editability",
         xlabel="source-conditioned updates before switch",
         ylabel="source retention",
         xticks=range(11),
@@ -145,7 +145,7 @@ def _plot_formation_and_commitment(
     )
 
     _plot_categorical_curve(axes[2], target_rows)
-    axes[2].set(title="c  Behavioral target commitment", ylabel="endpoint probability")
+    axes[2].set(title="c  Behavioral target editability", ylabel="endpoint probability")
     axes[2].legend(frameon=False, loc="center left")
     for axis in axes:
         axis.spines[["top", "right"]].set_visible(False)
@@ -231,7 +231,7 @@ def _plot_causal_localization(
     _save(figure, stem)
 
 
-def _plot_behavioral_commitment(
+def _plot_behavioral_editability(
     target_rows: list[dict[str, str]], destination_rows: list[dict[str, str]], stem: Path
 ) -> None:
     figure, axes = plt.subplots(1, 2, figsize=(7.6, 3.15), sharey=True, constrained_layout=True)

@@ -109,6 +109,15 @@ allowed only if the measured editability boundary predicts the last successful
 continue boundary and `k=7` is noninferior to restart while using three rather
 than ten post-event velocity evaluations.
 
+Position this as training-free reuse of an interrupted flow trajectory, not as
+a general steering algorithm. DynaGuide and Guided Action Flow add learned
+guidance during iterative generation; DSRL learns a latent-noise policy; STEP
+learns a warm-start predictor; Consistency Policy distills the sampler. Our
+question is narrower and complementary: when the pretrained VLA already
+understands both instructions, can its measured conditional-editability region
+identify which completed velocity evaluations can be safely retained after the
+instruction changes?
+
 Decompose failures by whether the old event occurs in the five intervened
 actions, the first registered contact occurs only after a later clean replan,
 or task failure follows correct target-first contact. Report the first-contact
@@ -175,6 +184,15 @@ pair must preserve exact restoration, target-first dual success, and first-chunk
 obstacle avoidance while the unmodified trajectory would intersect the moved
 obstacle corridor. Interpret its causal grid as obstacle-sensitive trajectory
 editability, not yet as successful response to a late safety constraint.
+
+The registered dynamic follow-up always executes in the moved-obstacle world.
+It compares restart with continuation from every interrupted flow state after
+switching from the paired original-pose image to the live obstacle image. Call
+this a consequential safety result only if the old-condition chunk causes the
+registered collision, restart avoids it and completes the task, and at least
+one `k>0` continuation also avoids it and succeeds with fewer post-update
+velocity evaluations. Report the full boundary curve and label a one-scene
+result as a pilot, not a prediction claim or formal safety guarantee.
 
 ## Required figures
 
