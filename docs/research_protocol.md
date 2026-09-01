@@ -130,6 +130,19 @@ is lower. Scene state is the inference cluster. Full-restart success, exact
 initial-state restoration, and byte-exact `k=0` equivalence are eligibility
 gates selected without viewing continued outcomes.
 
+The first 16-state out-of-sample block is a utility pilot, not the
+noninferiority population. For the frozen five-percentage-point margin, even
+zero continuation losses require at least 59 independent eligible scene
+clusters for the exact one-sided 95% Clopper--Pearson upper bound on the paired
+loss rate to fall below 0.05. This requirement is computed by the versioned
+design utility and cannot be met by treating directions, noise seeds, or action
+tokens as independent. The confirmatory screen therefore proceeds through
+additional exact-scene instruction pairs in the clean public-catalog order
+(canonical-scene hash, then task IDs) until at least 59 eligible scene clusters
+are frozen. All screened clusters remain in the denominator of the screening
+report. If the public catalog is exhausted first, U2 remains a pilot estimate
+and no five-point noninferiority claim is made.
+
 For each accepted state, the separately measured first-chunk editability
 boundary predicts the last continued boundary that preserves new-target-first
 contact and eventual task success. Association is reported with paired
@@ -139,14 +152,20 @@ mechanistic states alone.
 
 The state-level predictor is frozen before inspecting any intermediate
 continuation outcome. On the exact eligible fixture and shared noise, run the
-offline source-to-new-condition flow switch and compute direction-specific
-target-approach retention. The endpoint target-affinity contrast must be at
+action-only source-to-new-condition flow switch without taking an environment
+step, and compute direction-specific target-approach retention over the five
+actions that would be executed. The endpoint target-affinity contrast must be at
 least 0.01. Let `k*` be the earliest boundary whose isotonic retention reaches
 0.8 and remains there; the preregistered predicted last successful continued
 boundary is `k* - 1`. Predictions, including invalid contrasts, are serialized
 before the closed-loop boundary sweep. The symmetric population curve remains
 the primary mechanistic summary, but it is not substituted for this
 direction-matched utility predictor.
+
+U1 evaluates all eleven integer boundaries from 0 through 10 so that the last
+successful correction is identifiable. U2 remains the primary efficiency test
+at boundaries 0 and 7, while boundaries 9 and 10 remain U3's negative controls;
+the dense grid is not used to replace those preregistered comparisons.
 
 ### 2.5 Post-pilot behavioral-sensitivity amendment
 
