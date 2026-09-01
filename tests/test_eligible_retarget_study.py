@@ -90,6 +90,7 @@ def test_completed_sweep_requires_every_condition_and_exact_control() -> None:
         "all_controller_replays_exact": True,
         "all_retargets_only_at_first_replan": True,
         "boundary_zero_continue_restart_actions_exact": True,
+        "boundary_zero_continue_restart_behavior_exact": True,
     }
 
     _validate_completed_sweep(summary, "pair")

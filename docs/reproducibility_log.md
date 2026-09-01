@@ -1,5 +1,40 @@
 # Reproducibility log
 
+## 2026-09-01: sealed-confirmation figure path fixed before completion
+
+While the 500-pair confirmation was incomplete, a separate publication figure
+generator was added for its final artifact. It accepts either a positive or a
+negative decision and must display every task stratum, all four paired outcome
+categories, and the full paired latency distribution. Before rendering, it
+reconstructs success counts, losses, gains, the exact loss bound, latency
+median, and the registered decision from all 500 rows. This prevents a failed
+confirmation from being silently replaced by the earlier positive pilot.
+
+## 2026-09-01: boundary-zero behavioral identity added before utility outcomes
+
+Protocol version 0.25 strengthens the future continue-versus-restart identity
+control. Byte-exact boundary-zero actions were already mandatory; the sweep
+must now also reproduce contact identity and timing, first-chunk events,
+eventual task success, clean-replanning rescue status, and episode length.
+The utility handoff independently requires this aggregate flag before analyzing
+any boundary. The population summarizer also reconstructs the observed last
+successful boundary and exact-prediction flag from each complete eleven-point
+curve and cross-checks the registered boundary-zero and boundary-seven cells.
+No held-out continuation outcome existed when these controls and regression
+tests were added. No utility estimator or decision threshold changed.
+
+## 2026-09-01: matched-control output lineage independently reconstructed
+
+Protocol version 0.24 adds a final fail-closed audit to the future matched-pi0
+intervention run. Before any repaired pi0 parity or intervention outcome, the
+audit was written to recompute the exact converted-checkpoint binding, clean
+validation hashes, ordered dual-success intersection, job identities and
+metadata, analysis populations, and all 14 files consumed by the cross-model
+comparison. It also requires the coarse and 50-position grids to contain the
+same ordered set of at least 12 independent scene states. The launcher can no
+longer finish without a passing `final_audit.json`. This changes no model,
+intervention, threshold, or statistic.
+
 ## 2026-09-01: protocol and future-run artifact gates independently audited
 
 Protocol version 0.23 synchronizes the machine-readable study constants with

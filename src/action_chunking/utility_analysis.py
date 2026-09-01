@@ -31,6 +31,7 @@ def summarize_utility_jobs(
     cluster_ids = [str(job["cluster_id"]) for job in jobs]
     if len(cluster_ids) != len(set(cluster_ids)):
         raise ValueError("primary utility jobs must contain at most one direction per cluster")
+    _validate_derived_job_fields(jobs)
 
     valid = [job for job in jobs if job["prediction_valid"]]
     predicted = np.asarray([int(job["predicted_last_successful_boundary"]) for job in valid], dtype=np.float64)
@@ -216,6 +217,66 @@ def _paired_loss_noninferiority(
         "paired_loss_upper_bound_one_sided": upper_bound,
         "noninferior": bool(upper_bound < margin) if upper_bound is not None else None,
     }
+
+
+def _validate_derived_job_fields(jobs: list[dict[str, Any]]) -> None:
+    """Reconstruct prediction targets and registered curve cells before inference."""
+    boolean_curves = (
+        "success_curve",
+        "first_chunk_old_event_curve",
+        "old_target_first_curve",
+        "clean_replanning_rescue_curve",
+    )
+    for job in jobs:
+        for field in boolean_curves:
+            curve = job.get(field)
+            if (
+                not isinstance(curve, list)
+                or len(curve) != 11
+                or any(type(value) is not bool for value in curve)
+            ):
+                raise ValueError(f"utility job {field} must contain 11 booleans")
+        replan_curve = job.get("first_contact_replan_index_curve")
+        if (
+            not isinstance(replan_curve, list)
+            or len(replan_curve) != 11
+            or any(value is not None and (type(value) is not int or value < 0) for value in replan_curve)
+        ):
+            raise ValueError("utility job first-contact replan curve is invalid")
+
+        success_curve = job["success_curve"]
+        observed = max((boundary for boundary, success in enumerate(success_curve) if success), default=None)
+        if observed is None or job.get("observed_last_successful_boundary") != observed:
+            raise ValueError("observed last successful boundary differs from the success curve")
+        prediction_valid = job.get("prediction_valid")
+        if type(prediction_valid) is not bool:
+            raise ValueError("utility job prediction-valid flag must be boolean")
+        predicted = job.get("predicted_last_successful_boundary")
+        if prediction_valid:
+            if type(predicted) is not int or not 0 <= predicted <= 10:
+                raise ValueError("valid utility prediction must be an integer boundary in 0..10")
+        elif predicted is not None:
+            raise ValueError("invalid utility prediction must not contain a boundary")
+        if job.get("prediction_exact") is not bool(prediction_valid and predicted == observed):
+            raise ValueError("serialized prediction-exact flag differs from reconstructed value")
+
+        boundary7_composite = bool(
+            job.get("boundary7_new_target_first")
+            and job.get("boundary7_new_task_success")
+        )
+        restart_composite = bool(
+            job.get("restart_new_target_first")
+            and job.get("restart_new_task_success")
+        )
+        if (
+            success_curve[7] is not boundary7_composite
+            or success_curve[0] is not restart_composite
+            or job["first_chunk_old_event_curve"][7]
+            is not job.get("boundary7_first_chunk_old_event")
+            or job["clean_replanning_rescue_curve"][7]
+            is not job.get("boundary7_clean_replanning_rescue")
+        ):
+            raise ValueError("registered boundary-zero or boundary-seven fields differ from curves")
 
 
 def _mean_boolean(values: list[bool]) -> float | None:

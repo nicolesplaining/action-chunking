@@ -113,3 +113,11 @@ env PYTHONPATH="$repo_root/src" \
   --pi05-position-analysis "$pi05_position_analysis" \
   --pi0-position-analysis "$output/analysis/population_positions" \
   --output "$output/comparison"
+
+env PYTHONPATH="$repo_root/src" \
+  "$repo_root/.venv/bin/python" "$repo_root/scripts/audit_pi0_intervention_control.py" \
+  --output-root "$output" \
+  --parity-summary "$parity_summary" \
+  --pytorch-checkpoint "$checkpoint" \
+  --manifest "$manifest" \
+  --output "$output/final_audit.json"

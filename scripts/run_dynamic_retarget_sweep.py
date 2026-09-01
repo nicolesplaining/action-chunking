@@ -12,6 +12,9 @@ from typing import Any
 
 import numpy as np
 
+from action_chunking.retarget_controls import (
+    boundary_zero_behavior_exact as _boundary_zero_behavior_exact,
+)
 from action_chunking.retarget_eligibility import controller_replay_summary_exact
 
 FIRST_CHUNK_EXECUTION_HORIZON = 5
@@ -216,6 +219,7 @@ def _write_tables(
         if all(path.is_file() for path in boundary_zero_paths)
         else None
     )
+    boundary_zero_behavior_exact = _boundary_zero_behavior_exact(rows, sides)
     summary = {
         "schema_version": 1,
         "pair_id": pair_id,
@@ -229,6 +233,7 @@ def _write_tables(
             row["applied_only_at_first_replan"] for row in rows
         ),
         "boundary_zero_continue_restart_actions_exact": boundary_zero_actions_exact,
+        "boundary_zero_continue_restart_behavior_exact": boundary_zero_behavior_exact,
         "restart_new_target_first_rate": _rate(restart, "new_target_first"),
         "restart_new_task_success_rate": _rate(restart, "eventual_new_task_success"),
         "continuation": [

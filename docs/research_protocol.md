@@ -1,6 +1,6 @@
 # Research protocol: causal editability and retargeting in action chunks
 
-Protocol version: 0.23 (artifact and utility-gate audit)
+Protocol version: 0.25 (boundary-zero behavioral identity control)
 
 ## 1. Research question
 
@@ -157,9 +157,10 @@ only if new-target-first contact, eventual task success, and their primary
 composite each pass the conservative paired-loss noninferiority test within a
 frozen five-percentage-point margin, evaluation counts are exact, and the
 scene-bootstrap latency-savings interval lies strictly above zero. Scene state
-is the inference cluster. Full-restart success, exact
-initial-state restoration, and byte-exact `k=0` equivalence are eligibility
-gates selected without viewing continued outcomes.
+is the inference cluster. Full-restart success, exact initial-state
+restoration, byte-exact `k=0` action equivalence, and exact `k=0` equality of
+contact identity/timing, success, rescue status, and episode length are
+eligibility gates selected without viewing later-boundary outcomes.
 
 The first 16-state out-of-sample block is a utility pilot, not the
 noninferiority population. For the frozen five-percentage-point margin, even
@@ -442,6 +443,15 @@ composite in 14/15, all replan compute counts are exact, and median paired
 first-replan latency savings are 30.0%. The result opens the confirmation; it
 does not alter its denominator, margin, pairing, or stopping rule.
 
+The sealed confirmation is visualized identically whether its registered gate
+passes or fails. Its publication figure must show all ten 50-trial task strata,
+the four paired outcome categories (both, full-only loss, early-only gain, and
+neither), and the complete 500-pair first-replan latency-savings distribution.
+The figure generator independently reconstructs aggregate successes, paired
+losses/gains, the exact loss bound, latency median, and the final decision from
+the row-level artifact. A negative result is therefore not replaced by the
+earlier positive pilot figure.
+
 ## 3. Mechanistic hypotheses and utility amendment
 
 The following hypotheses will be frozen after the pilot and before examining
@@ -559,6 +569,15 @@ normalized-position cell differences use scene-cluster bootstrap intervals,
 exact sign-flip tests when at most 20 clusters are eligible, and BH correction
 within each metric family. This is a model-level comparison, not an isolated
 architectural causal effect.
+
+After the comparison is written, an independent final audit recomputes the
+passed conversion/checkpoint binding, both clean-validation summary maps, the
+ordered common-state intersection, all job identities and metadata, both
+analysis populations, and all 14 comparison-source digests. Coarse and
+position grids must use the same ordered set of at least 12 independent scene
+states. The launcher writes a passing `final_audit.json` only after every check
+succeeds; a missing or failed audit makes the matched-control result
+unreportable.
 
 1. **Instruction target:** identical scene with two valid objects; change only
    the target phrase in the instruction.
