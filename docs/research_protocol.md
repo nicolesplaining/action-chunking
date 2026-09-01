@@ -1,6 +1,6 @@
 # Research protocol: causal editability and retargeting in action chunks
 
-Protocol version: 0.2 (construct-validity amendment before utility outcomes)
+Protocol version: 0.3 (post-pilot behavioral-sensitivity amendment)
 
 ## 1. Research question
 
@@ -136,6 +136,30 @@ contact and eventual task success. Association is reported with paired
 state-level accuracy and Spearman correlation; the useful claim requires
 out-of-sample scene states and cannot be established from the original 15
 mechanistic states alone.
+
+### 2.5 Post-pilot behavioral-sensitivity amendment
+
+This amendment was added after inspecting the state-zero dynamic-retargeting
+pilot and before selecting or evaluating held-out utility states. In that pilot,
+boundaries 0, 7, 8, 9, and 10 all reached the new target first and eventually
+succeeded. Because boundary 10 includes no new-instruction velocity update, the
+initial-state episode was not sensitive to first-chunk editability: five benign
+old-conditioned actions were followed by successful clean replanning.
+
+Held-out utility states must therefore pass a failure-induction gate that is
+independent of continued boundary outcomes. From the same exact pre-contact
+state and shared noise, executing the registered five-action horizon from the
+fully old-conditioned chunk must cause the old-target contact or registered
+safety event, while a full restart under the new instruction must avoid that
+event and preserve clean task competence. States are screened using only these
+two endpoint controls. Intermediate continuation boundaries remain sealed until
+eligibility is frozen. All screened states and exclusion reasons are retained.
+
+The primary five-action horizon is unchanged. Executing a longer portion of the
+chunk may be reported as a sensitivity analysis but cannot replace the primary
+endpoint. U1 and U3 are evaluated only in eligible states; the state-zero pilot
+is reported as a negative sensitivity result for those hypotheses and a
+positive engineering pilot for U2's compute and latency components.
 
 ## 3. Mechanistic hypotheses and utility amendment
 

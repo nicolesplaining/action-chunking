@@ -33,6 +33,48 @@ first-replan-only application are mandatory exact controls. No dynamic-
 retargeting behavioral or latency result had been generated when this amendment
 was written.
 
+## 2026-08-31: dynamic-retargeting latency and behavioral pilot
+
+The frozen dynamic-retargeting adapter was evaluated on the original state-zero
+wine-bottle-versus-bowl pair with shared noise seed zero. This state is part of
+the mechanistic pilot set and is not held-out confirmatory evidence. A latency
+microbenchmark used both directions, one warmup, and five measured repetitions
+per strategy and boundary. All restart actions were exactly invariant to the
+simulated event boundary, and boundary-zero continuation was action-identical
+to restart. At boundary 7, continuation used three rather than ten post-event
+velocity evaluations and reduced median synchronized post-event time from
+378.95 ms to 191.67 ms, a 49.0% reduction. New-condition preparation was
+included in both measurements and accounts for the fixed latency floor.
+
+The closed-loop pilot then treated the new instruction as the actual task,
+applied retargeting only at the first replan, and used the new instruction for
+all later clean replans. Exact initial observations and simulator states were
+restored in every run. Restart reached the new object first and completed the
+new task in both directions. Boundary-7 continuation also achieved 2/2
+new-target-first contacts and 2/2 task successes with three post-event velocity
+evaluations; mean post-event time was 179.69 ms versus 400.84 ms for restart, a
+55.2% reduction. Completion took 76 and 72 environment steps versus 81 and 81
+for restart. This is a positive inference-efficiency pilot, not a population
+noninferiority result.
+
+Crucially, continuation at boundaries 8, 9, and 10 also achieved 2/2
+new-target-first contacts and 2/2 eventual successes. Boundary 10 performs no
+new-instruction velocity evaluation, so its success shows that the first five
+executed actions from the old-conditioned chunk were behaviorally benign and
+later clean replanning was sufficient. The initial-state design therefore does
+not establish that the measured editability boundary predicts the last
+successful correction point. Treat this as a sensitivity failure for U1 and
+U3, not as evidence that all late samples remain editable.
+
+Before confirmatory utility outcomes are inspected, add an episode-level
+failure-induction gate: at the intervention state, the fully old-conditioned
+chunk must produce the registered old-target or safety event, while a clean
+restart under the new instruction must avoid that event and remain task
+competent. Candidate states will be screened near pre-contact decision points;
+screening outcomes and excluded states will be retained. The five-action
+execution horizon remains frozen for the primary receding-horizon comparison,
+with longer execution horizons reported only as sensitivity analyses.
+
 ## 2026-08-31: official pi0.5-LIBERO baseline replication
 
 The unchanged official OpenPI evaluator completed 500 episodes per suite for

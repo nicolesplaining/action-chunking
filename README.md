@@ -41,9 +41,14 @@ clean action difference is formed near the start of denoising but remains
 causally editable until the last one or two flow updates; a two-state-block
 destination intervention whose four directional curves all switch between flow
 boundaries 7 and 8; and a clean target-pose gripper contrast whose categorical
-closure time loses editability at boundary 7. These are positive pilot results, not yet
-confirmatory population claims. Exact controls, exclusions, intervals, and
-negative pilots are recorded in `docs/reproducibility_log.md`.
+closure time loses editability at boundary 7. A one-state dynamic-retargeting
+pilot also matched restart success at boundary 7 with 70% fewer post-change
+velocity evaluations and about half the measured latency. However, boundaries
+8--10 also succeeded because subsequent clean replanning recovered from a benign
+first chunk, so this pilot does not show that editability timing predicts the
+last successful recovery point. These are pilot results, not confirmatory
+population claims. Exact controls, exclusions, intervals, and negative pilots
+are recorded in `docs/reproducibility_log.md`.
 
 The preregistered protocol is in
 [`docs/research_protocol.md`](docs/research_protocol.md). Source provenance is

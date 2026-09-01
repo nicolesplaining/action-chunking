@@ -130,12 +130,21 @@ def _write_tables(output: Path, pair_id: str, entry: dict[str, Any], noise_seed:
 
     restart = [row for row in rows if row["strategy"] == "restart" and row["switch_after_steps"] == 0]
     continuation = [row for row in rows if row["strategy"] == "continue"]
-    boundary_zero_actions_exact = all(
-        np.array_equal(
-            _first_chunk(output / "restart_after_0" / f"{side}_actions.json"),
-            _first_chunk(output / "continue_after_0" / f"{side}_actions.json"),
-        )
+    boundary_zero_paths = [
+        output / strategy / f"{side}_actions.json"
+        for strategy in ("restart_after_0", "continue_after_0")
         for side in ("base", "donor")
+    ]
+    boundary_zero_actions_exact = (
+        all(
+            np.array_equal(
+                _first_chunk(output / "restart_after_0" / f"{side}_actions.json"),
+                _first_chunk(output / "continue_after_0" / f"{side}_actions.json"),
+            )
+            for side in ("base", "donor")
+        )
+        if all(path.is_file() for path in boundary_zero_paths)
+        else None
     )
     summary = {
         "schema_version": 1,

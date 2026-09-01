@@ -109,6 +109,18 @@ allowed only if the measured editability boundary predicts the last successful
 continue boundary and `k=7` is noninferior to restart while using three rather
 than ten post-event velocity evaluations.
 
+The first state-zero pilot gives a qualified positive result. At `k=7`, both
+directions reached the newly instructed object first and completed the new task,
+matching restart while using 3/10 post-event velocity evaluations. Median
+microbenchmark latency fell from 378.95 ms to 191.67 ms; closed-loop mean
+post-event latency fell from 400.84 ms to 179.69 ms. All exactness controls
+passed. But `k=8,9,10` also succeeded in both directions, including `k=10`,
+which performs no new-instruction velocity evaluation. Subsequent clean
+replanning rescued a benign first chunk, so this initial-state pilot supports
+an inference-efficiency demonstration but not the claim that the measured
+boundary predicts the last successful recovery point. Require a pre-contact
+failure-induction gate before the held-out test.
+
 ## Matched pi0 control
 
 The control uses the public pi0 base architecture and upstream `pi0_libero`
