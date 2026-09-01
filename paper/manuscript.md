@@ -88,7 +88,8 @@ all heatmap families receive Benjamini--Hochberg correction.
 The principal mechanistic finding is a temporal dissociation. Geometric contrasts are
 present in the first clean estimate but remain causally editable through most
 or all of the ten-step flow trajectory. Behavioral target identity and a
-post-grasp destination become fixed only during the last two or three updates.
+post-grasp destination lose conditional editability only during the last two
+or three updates.
 Late action-state coordinates carry large property-matched effects, whereas
 single residual-layer patches are smaller and include both positive and
 counter-directed transfer. A future-token closure result is sharply localized
