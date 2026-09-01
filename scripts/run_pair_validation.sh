@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-if [[ $# -lt 6 || $# -gt 13 ]]; then
-  echo "usage: $0 <manifest> <pair-id> <gpu> <port> <noise-seed> <output-dir> [clean-screen-jsonl] [initial-input-mode] [save-sim-states] [intervention-json] [intervene-replans] [stop-after-first-task-contact] [stop-after-registered-destination]" >&2
+if [[ $# -lt 6 || $# -gt 15 ]]; then
+  echo "usage: $0 <manifest> <pair-id> <gpu> <port> <noise-seed> <output-dir> [clean-screen-jsonl] [initial-input-mode] [save-sim-states] [intervention-json] [intervene-replans] [stop-after-first-task-contact] [stop-after-registered-destination] [dynamic-retarget-strategy] [dynamic-retarget-boundary]" >&2
   exit 2
 fi
 
@@ -22,6 +22,8 @@ intervention="${10:-}"
 intervene_replans="${11:-0}"
 stop_after_first_task_contact="${12:-false}"
 stop_after_registered_destination="${13:-false}"
+dynamic_retarget_strategy="${14:-}"
+dynamic_retarget_boundary="${15:-}"
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 mkdir -p "$output_dir"
@@ -37,6 +39,7 @@ sim_state_args=()
 intervention_args=()
 contact_args=()
 destination_args=()
+retarget_args=()
 if [[ -n "$clean_screen" ]]; then
   clean_screen="$(realpath "$clean_screen")"
   extra_mounts+=(--volume "$(dirname "$clean_screen"):/screen:ro")
@@ -46,6 +49,20 @@ if [[ -n "$intervention" ]]; then
   intervention="$(realpath "$intervention")"
   extra_mounts+=(--volume "$(dirname "$intervention"):/intervention:ro")
   intervention_args=(--intervention "/intervention/$(basename "$intervention")" --intervene-replans "$intervene_replans")
+fi
+if [[ -n "$dynamic_retarget_strategy" || -n "$dynamic_retarget_boundary" ]]; then
+  if [[ -z "$dynamic_retarget_strategy" || -z "$dynamic_retarget_boundary" ]]; then
+    echo "dynamic retargeting requires both strategy and boundary" >&2
+    exit 2
+  fi
+  if [[ -n "$intervention" ]]; then
+    echo "dynamic retargeting cannot be combined with an intervention file" >&2
+    exit 2
+  fi
+  retarget_args=(
+    --dynamic-retarget-strategy "$dynamic_retarget_strategy"
+    --dynamic-retarget-boundary "$dynamic_retarget_boundary"
+  )
 fi
 if [[ "$stop_after_first_task_contact" == "true" ]]; then
   contact_args=(--stop-after-first-task-contact)
@@ -90,4 +107,5 @@ fi
     ${sim_state_args[*]} \
     ${intervention_args[*]} \
     ${contact_args[*]} \
-    ${destination_args[*]}"
+    ${destination_args[*]} \
+    ${retarget_args[*]}"

@@ -122,9 +122,11 @@ generation, deterministic evaluators, and analysis.
 
 The official evaluator runs 50 trials for each of ten tasks in every LIBERO
 suite. Completed logs are accepted only if they contain exactly ten task names,
-50 completed trials per task, and 500 episodes per suite. At manuscript freeze,
-the exact counts and four-suite aggregate will be inserted from the strict
-machine-readable summaries; partial suite results are not used as the final
+50 completed trials per task, and 500 episodes per suite. The reproduced counts
+are 493/500 for Spatial (98.6%), 491/500 for Object (98.2%), 490/500 for Goal
+(98.0%), and 465/500 for LIBERO-10 (93.0%). Thus the strict four-suite aggregate
+is 1,939/2,000 (96.95%; micro Wilson 95% interval 96.1--97.6%), compared with
+96.85% in the pinned OpenPI table. Partial suite results are not used as a
 competence claim.
 
 ### 3.2 Paired episodes and eligibility
