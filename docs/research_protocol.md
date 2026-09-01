@@ -1,6 +1,6 @@
 # Research protocol: causal editability and retargeting in action chunks
 
-Protocol version: 0.13 (fixed-order obstacle scene expansion)
+Protocol version: 0.14 (public-catalog obstacle expansion)
 
 ## 1. Research question
 
@@ -500,6 +500,19 @@ and clean-invalid placements remain in the denominator, and screening stops at
 the first clean-eligible placement. No patched, dynamic-continuation, or timing
 outcome may be read during this scan. The geometry and clean thresholds are not
 relaxed.
+
+That 16-state family was subsequently exhausted: all `16 x 9 = 144` placements
+failed the same pre-policy target--obstacle bounding-sphere exclusion, and zero
+policy outcomes were generated. Before screening any other obstacle scene, the
+search expands to the already frozen public manipulated-object rows in
+`catalogs/retarget_screening_plan.json`. The source-plan hash, exclusions, task
+pairs, and initialization states are unchanged. To avoid spending the early
+screen entirely on many initializations of one object contrast, the obstacle
+plan uses a frozen task-diverse order: first occurrence defines target-pair
+rank, then rows are ordered by `(init_index, target-pair rank)`. This order is
+serialized and hashed before execution. The same nine placements and all
+geometry and clean-behavior thresholds remain unchanged; the first clean-pass
+rule and complete exclusion denominator are retained.
 
 Selection then uses clean closed-loop behavior only. Both paired rollouts must
 restore their fixture exactly, contact the unchanged instructed target first,

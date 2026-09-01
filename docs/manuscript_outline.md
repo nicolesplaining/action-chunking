@@ -190,6 +190,12 @@ The registered expansion scans the original 16 exact target-pair states in
 manifest order, preserving the grid, all exclusions, and the first-clean-pass
 stop rule. Report state 0 and every later screened row in the denominator.
 
+All 144 wine/bowl placements were ultimately geometry-invalid, with no policy
+call. The broader search therefore reuses the frozen public manipulated-object
+catalog in a serialized task-diverse round-robin order while changing no
+placement or eligibility threshold. Retain the complete wine/bowl and broader
+catalog denominators in the supplement.
+
 The registered dynamic follow-up always executes in the moved-obstacle world.
 It compares restart with continuation from every interrupted flow state after
 switching from the paired original-pose image to the live obstacle image. Call
