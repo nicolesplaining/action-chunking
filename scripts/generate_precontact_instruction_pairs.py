@@ -17,6 +17,7 @@ from action_chunking.pairs import (
     file_digest,
     load_action_chunk,
     load_instruction_pair,
+    load_replan_input,
     replan_snapshot_step,
 )
 
@@ -88,6 +89,13 @@ def main() -> int:
             if source_replan_index is not None
             else None
         )
+        source_replan_input = (
+            load_replan_input(
+                args.rollout / f"{origin}_replan_inputs.npz", source_replan_index
+            )
+            if source_replan_index is not None
+            else None
+        )
         restored = {
             side: _restore_side(
                 side,
@@ -100,14 +108,38 @@ def main() -> int:
             for side in ("base", "donor")
         }
         pair = InstructionPair(
-            base_image=restored["base"]["input"]["image"],
-            base_wrist_image=restored["base"]["input"]["wrist_image"],
-            base_state=restored["base"]["input"]["state"],
+            base_image=(
+                source_replan_input["image"]
+                if source_replan_input is not None
+                else restored["base"]["input"]["image"]
+            ),
+            base_wrist_image=(
+                source_replan_input["wrist_image"]
+                if source_replan_input is not None
+                else restored["base"]["input"]["wrist_image"]
+            ),
+            base_state=(
+                source_replan_input["state"]
+                if source_replan_input is not None
+                else restored["base"]["input"]["state"]
+            ),
             base_sim_state=restored["base"]["sim_state"],
             base_prompt=source_pair.base_prompt,
-            donor_image=restored["donor"]["input"]["image"],
-            donor_wrist_image=restored["donor"]["input"]["wrist_image"],
-            donor_state=restored["donor"]["input"]["state"],
+            donor_image=(
+                source_replan_input["image"]
+                if source_replan_input is not None
+                else restored["donor"]["input"]["image"]
+            ),
+            donor_wrist_image=(
+                source_replan_input["wrist_image"]
+                if source_replan_input is not None
+                else restored["donor"]["input"]["wrist_image"]
+            ),
+            donor_state=(
+                source_replan_input["state"]
+                if source_replan_input is not None
+                else restored["donor"]["input"]["state"]
+            ),
             donor_sim_state=restored["donor"]["sim_state"],
             donor_prompt=source_pair.donor_prompt,
         )
@@ -142,6 +174,14 @@ def main() -> int:
                 "precontact_offset_steps": precontact_offset,
                 "source_replan_index": source_replan_index,
                 "source_action_chunk_sha256": source_action_chunk_sha256,
+                "source_replan_input_sha256": (
+                    {
+                        key: array_digest(value)
+                        for key, value in source_replan_input.items()
+                    }
+                    if source_replan_input is not None
+                    else None
+                ),
                 "fixture": pair_path.name,
                 "fixture_sha256": file_digest(pair_path),
                 "base_prompt": pair.base_prompt,

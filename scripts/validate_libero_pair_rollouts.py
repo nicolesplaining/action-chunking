@@ -163,6 +163,7 @@ def _rollout(
     action_chunks = []
     trajectory_records = []
     simulator_states = []
+    replan_inputs = []
     contacts: dict[str, int] = {}
     first_chunk_error = None
     first_chunk_closure_position = None
@@ -204,6 +205,16 @@ def _rollout(
                 policy_input = fixture_initial if replans == 0 and args.initial_input_mode == "fixture" else model_input
                 if dynamic_retarget is not None and replans == 0:
                     policy_input = {**policy_input, "prompt": old_prompt}
+                if args.save_sim_states:
+                    replan_inputs.append(
+                        {
+                            "image": np.asarray(policy_input["observation/image"]).copy(),
+                            "wrist_image": np.asarray(
+                                policy_input["observation/wrist_image"]
+                            ).copy(),
+                            "state": np.asarray(policy_input["observation/state"]).copy(),
+                        }
+                    )
                 request = {**policy_input, "_action_noise": noise}
                 if dynamic_retarget is not None and replans == 0:
                     request["_donor_prompt"] = prompt
@@ -283,6 +294,15 @@ def _rollout(
                 step_indices=np.arange(len(simulator_states), dtype=np.int64),
                 sim_states=np.stack(simulator_states),
             )
+            np.savez_compressed(
+                args.output / f"{side}_replan_inputs.npz",
+                replan_indices=np.arange(len(replan_inputs), dtype=np.int64),
+                images=np.stack([record["image"] for record in replan_inputs]),
+                wrist_images=np.stack(
+                    [record["wrist_image"] for record in replan_inputs]
+                ),
+                states=np.stack([record["state"] for record in replan_inputs]),
+            )
         destination_evaluation = _destination_evaluation(env, entry, target)
         return {
             "side": side,
@@ -296,8 +316,10 @@ def _rollout(
             "first_chunk_gripper_closure_position": first_chunk_closure_position,
             "restored_sim_state_max_abs_error": 0.0,
             "initial_input_mode": args.initial_input_mode,
+            "first_policy_input_is_fixture": args.initial_input_mode == "fixture",
             "live_initial_input_diagnostics": initial_input_diagnostics,
             "saved_simulator_states": len(simulator_states),
+            "saved_replan_inputs": len(replan_inputs),
             "intervention_replans_applied": applied_replans,
             "retarget_diagnostics": retarget_diagnostics,
             "terminated_after_first_task_contact": terminated_after_first_task_contact,

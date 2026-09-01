@@ -44,6 +44,26 @@ def test_event_gate_rejects_nonreproduced_source_chunk() -> None:
     assert row["event_gate_pass"] is False
 
 
+def test_event_gate_rejects_nonreproduced_source_input() -> None:
+    event = _summary(old_step=4, restart_old_step=None, success=False)
+    row = eligibility_row(_entry(), event, 5, source_input_exact=False)
+
+    assert row["source_input_exact"] is False
+    assert row["event_gate_pass"] is False
+
+
+def test_fixture_policy_input_is_exact_even_if_live_regeneration_differs() -> None:
+    event = _summary(old_step=4, restart_old_step=None, success=False)
+    for result in event["results"]:
+        result["initial_input_mode"] = "fixture"
+        result["first_policy_input_is_fixture"] = True
+        result["live_initial_input_diagnostics"]["observation/image"]["array_equal"] = False
+    row = eligibility_row(_entry(), event, 5)
+
+    assert row["event_exact_initial_state"] is True
+    assert row["event_gate_pass"] is True
+
+
 def _entry() -> dict:
     return {
         "pair_id": "pair_precontact_base_010",

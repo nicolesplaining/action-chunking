@@ -1,5 +1,31 @@
 # Reproducibility log
 
+## 2026-08-31: exact clean-replan input correction
+
+The first protocol-0.4 aligned candidate was screened using endpoint controls
+only. Its simulator state, fixture-relative live inputs, and indexed seed-zero
+noise were exact, but its old-condition first chunk differed from saved clean
+chunk 8 (maximum absolute action difference 0.00913). It was therefore rejected
+by the source-chunk identity gate before competence or any intermediate
+continuation boundary was run. This was a construct-control failure, not a
+negative recovery outcome.
+
+Inspection showed that the candidate fixture contained observations regenerated
+from the saved MuJoCo flat state rather than the exact observations used by the
+clean policy at that replan. Equality between a newly generated fixture and a
+new live regeneration cannot establish equality to the historical clean policy
+input. Protocol version 0.5 therefore records exact external image, wrist image,
+and proprioception arrays at every clean replan. A valid fork uses these arrays
+for its first policy call, restores the saved simulator state for execution,
+advances to the matching clean noise draw, verifies registered input hashes,
+and reproduces the saved old action chunk byte-for-byte. Later replans use live
+observations normally.
+
+The protocol-0.4 candidate generator was stopped after this failure; its partial
+fixtures and one endpoint-only screen are retained as rejected diagnostics. No
+intermediate continuation outcome was produced. Clean trajectories are rerun
+to create versioned exact-replan input traces before aligned screening resumes.
+
 ## 2026-08-31: replan-alignment correction before held-out interventions
 
 Before any held-out intermediate-boundary continuation was generated, an audit

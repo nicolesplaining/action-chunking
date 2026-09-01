@@ -77,14 +77,18 @@ def _job_record(
     if not exact:
         raise ValueError("clean validation failed exact initial-state restoration")
     traces_present = all((output / f"{side}_sim_states.npz").is_file() for side in ("base", "donor"))
-    if args.save_sim_states and not traces_present:
-        raise ValueError("clean validation omitted requested simulator-state traces")
+    replan_inputs_present = all(
+        (output / f"{side}_replan_inputs.npz").is_file() for side in ("base", "donor")
+    )
+    if args.save_sim_states and (not traces_present or not replan_inputs_present):
+        raise ValueError("clean validation omitted requested simulator or replan-input traces")
     return {
         "pair_id": entry["pair_id"],
         "init_index": int(entry["init_index"]),
         "both_successful": bool(summary["both_successful"]),
         "exact_initial_state": exact,
         "simulator_traces_present": traces_present,
+        "replan_input_traces_present": replan_inputs_present,
         "summary": str(output / "summary.json"),
     }
 
@@ -103,7 +107,11 @@ def _write_summary(
         "dual_success_pairs": sum(job["both_successful"] for job in jobs),
         "all_initial_states_exact": all(job["exact_initial_state"] for job in jobs),
         "all_requested_traces_present": (
-            not args.save_sim_states or all(job["simulator_traces_present"] for job in jobs)
+            not args.save_sim_states
+            or all(
+                job["simulator_traces_present"] and job["replan_input_traces_present"]
+                for job in jobs
+            )
         ),
         "jobs": jobs,
     }

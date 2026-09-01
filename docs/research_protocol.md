@@ -1,6 +1,6 @@
 # Research protocol: causal editability and retargeting in action chunks
 
-Protocol version: 0.4 (replan-aligned utility-fork amendment)
+Protocol version: 0.5 (exact clean-replan input amendment)
 
 ## 1. Research question
 
@@ -188,12 +188,17 @@ eligibility is frozen. All screened states and exclusion reasons are retained.
 The pre-contact state is the latest clean receding-horizon replan boundary
 strictly before first instructed-target contact, rather than an arbitrary
 step offset. If that state is at environment step `5j`, the fork uses Gaussian
-noise draw `j` from the clean seed-zero sequence. The old-condition endpoint's
+noise draw `j` from the clean seed-zero sequence. Clean validation saves the
+exact external image, wrist image, and proprioceptive array actually supplied
+to the policy at every replan. The fork's first policy call uses those saved
+arrays rather than a renderer reconstruction from MuJoCo's flat state. Their
+hashes must match the registered fixture, and the old-condition endpoint's
 first action chunk must be byte-exact to saved clean chunk `j`; otherwise the
 candidate is construct-invalid and cannot enter the failure-induction gate.
-This alignment makes continue, restart, and the clean counterfactual alternative
-computations from the same action-generation event, not merely the same broad
-trajectory neighborhood.
+The physical rollout separately requires exact restoration of the saved
+simulator state. This alignment makes continue, restart, and the clean
+counterfactual computations from the same action-generation event, not merely
+the same broad trajectory neighborhood.
 
 The primary five-action horizon is unchanged. Executing a longer portion of the
 chunk may be reported as a sensitivity analysis but cannot replace the primary

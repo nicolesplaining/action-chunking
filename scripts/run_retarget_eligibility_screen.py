@@ -12,7 +12,7 @@ from typing import Any
 
 import numpy as np
 
-from action_chunking.pairs import array_digest
+from action_chunking.pairs import array_digest, load_instruction_pair
 from action_chunking.retarget_eligibility import eligibility_row
 
 
@@ -60,11 +60,15 @@ def main() -> int:
                 noise_start_index=int(entry.get("source_replan_index") or 0),
             )
             source_chunk_exact = _source_chunk_exact(entry, job_root / "event_horizon")
+            source_input_exact = _source_input_exact(
+                entry, manifest_path.parent / entry["fixture"]
+            )
             row = eligibility_row(
                 entry,
                 event_summary,
                 args.execution_horizon,
                 source_chunk_exact=source_chunk_exact,
+                source_input_exact=source_input_exact,
             )
             if row["event_gate_pass"]:
                 competence_summary = _run_endpoint(
@@ -83,6 +87,7 @@ def main() -> int:
                     args.execution_horizon,
                     competence_summary,
                     source_chunk_exact=source_chunk_exact,
+                    source_input_exact=source_input_exact,
                 )
             records.append(row)
             _write_outputs(args.output, records, len(manifests))
@@ -111,7 +116,7 @@ def _run_endpoint(
             str(args.noise_seed),
             str(output),
             "",
-            "strict",
+            "fixture",
             "false",
             "",
             "0",
@@ -145,6 +150,24 @@ def _source_chunk_exact(entry: dict[str, Any], event_output: Path) -> bool:
     if len(chunks) != 1:
         raise ValueError("bounded event screen must sample exactly one source action chunk")
     return array_digest(np.asarray(chunks[0], dtype=np.float64)) == expected
+
+
+def _source_input_exact(entry: dict[str, Any], fixture_path: Path) -> bool:
+    expected = entry.get("source_replan_input_sha256")
+    if expected is None:
+        return True
+    pair = load_instruction_pair(fixture_path)
+    arrays = {
+        "image": pair.base_image,
+        "wrist_image": pair.base_wrist_image,
+        "state": pair.base_state,
+    }
+    if any(
+        not np.array_equal(value, getattr(pair, f"donor_{key}"))
+        for key, value in arrays.items()
+    ):
+        return False
+    return {key: array_digest(value) for key, value in arrays.items()} == expected
 
 
 def _write_outputs(output: Path, rows: list[dict[str, Any]], manifest_count: int) -> None:

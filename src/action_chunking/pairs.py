@@ -50,6 +50,28 @@ def load_action_chunk(path: Path, replan_index: int) -> NDArray[np.float64]:
     return chunk
 
 
+def load_replan_input(path: Path, replan_index: int) -> dict[str, NDArray[Any]]:
+    """Load the exact model observation used for one saved clean replan."""
+    if replan_index < 0:
+        raise ValueError("replan index must be nonnegative")
+    with np.load(path, allow_pickle=False) as trace:
+        indices = np.asarray(trace["replan_indices"], dtype=np.int64)
+        if not np.array_equal(indices, np.arange(len(indices))):
+            raise ValueError("saved replan inputs must have contiguous zero-based indices")
+        if replan_index >= len(indices):
+            raise IndexError(f"replan index {replan_index} is absent from {path}")
+        result = {
+            "image": np.asarray(trace["images"][replan_index]).copy(),
+            "wrist_image": np.asarray(trace["wrist_images"][replan_index]).copy(),
+            "state": np.asarray(trace["states"][replan_index]).copy(),
+        }
+    if result["image"].ndim != 3 or result["wrist_image"].ndim != 3:
+        raise ValueError(f"saved replan input has invalid image shape in {path}")
+    if result["state"].ndim != 1:
+        raise ValueError(f"saved replan input has invalid state shape in {path}")
+    return result
+
+
 @dataclasses.dataclass(frozen=True)
 class InstructionPair:
     """Model-ready inputs for one explicitly registered paired intervention."""
