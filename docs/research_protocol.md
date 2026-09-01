@@ -452,6 +452,12 @@ losses/gains, the exact loss bound, latency median, and the final decision from
 the row-level artifact. A negative result is therefore not replaced by the
 earlier positive pilot figure.
 
+Promotion into `paper/results` is a separate fail-closed step. It requires the
+original and hardened summaries to have passed exact comparison, the 1,505-file
+source digest to match, the figure manifest to bind the hardened summary, and
+both rendered figure hashes to remain unchanged. The promoted bundle retains
+the frozen run commit and the later audit-analysis commit separately.
+
 ## 3. Mechanistic hypotheses and utility amendment
 
 The following hypotheses will be frozen after the pilot and before examining

@@ -128,12 +128,17 @@ Policy distills a diffusion controller and reports both task success and action
 frequency [@wang2025onedp], while One-Step Flow Policy applies self-distillation
 to flow policies and includes a pi0.5 integration [@li2026ofp]. Streaming Flow
 Policy instead trains flow states to be executable actions during integration,
-supporting tighter receding-horizon control [@jiang2025streaming]. Our practical
-experiment neither retrains nor changes the released flow semantics: it emits a
-predicted clean endpoint from a partial ordinary pi0.5 trajectory. It addresses
-a different online event: when an instruction changes after some flow
-evaluations are already sunk, can the current action state be reused rather
-than restarted?
+supporting tighter receding-horizon control [@jiang2025streaming]. A1 jointly
+early-exits the VLM backbone and warm-starts truncated flow matching across
+intermediate layers [@zhang2026a1]. FASTER instead uses a horizon-aware schedule
+to prioritize near-term action positions and streams them for low reaction time
+[@lu2026faster]. These are the closest adaptive-VLA precedents. Our practical
+experiment neither retrains nor changes the released flow semantics or schedule:
+it emits a predicted clean endpoint from a partial ordinary pi0.5 trajectory.
+Its distinct question is whether causal localization on an unmodified public
+VLA can select a reusable inference prefix before sealed closed-loop evaluation,
+including when an instruction changes after some flow evaluations are already
+sunk.
 
 Adaptive generative inference provides closer computational precedents. AdaDiff
 learns uncertainty-guided layer exits within diffusion steps [@tang2023adadiff],

@@ -1,5 +1,23 @@
 # Reproducibility log
 
+## 2026-09-01: closest adaptive-vla precedents added
+
+The related-work audit now includes A1 and FASTER with their public papers and
+official code. A1 learns intermediate-layer exits and cross-layer truncated
+flow warm starts; FASTER changes the flow schedule to prioritize near-term
+actions. The manuscript correspondingly narrows novelty to causal selection of
+an executable prefix in an unchanged released pi0.5 sampler, followed by sealed
+closed-loop validation. No experiment, threshold, or outcome changed.
+
+## 2026-09-01: confirmation paper promotion made hash-gated
+
+Before the sealed confirmation completed, its future paper promotion was made
+a distinct immutable step. The promoter requires exact original/hardened audit
+agreement, the hardened 1,505-file source digest, a figure manifest bound to
+that hardened summary, and unchanged PDF/PNG hashes. It copies both run and
+audit code identities and refuses to overwrite an existing result directory.
+Positive and negative confirmations use the same path and artifact schema.
+
 ## 2026-09-01: sealed-confirmation figure path fixed before completion
 
 While the 500-pair confirmation was incomplete, a separate publication figure
