@@ -51,7 +51,16 @@ def test_dynamic_obstacle_requires_induced_collision_and_isolated_speedup(tmp_pa
     assert summary["last_successful_continued_boundary"] == 7
     assert summary["efficient_continued_boundaries"] == list(range(1, 8))
     assert summary["practical_positive"] is True
+    assert summary["whole_robot_collision_measured"] is False
     assert summary["population_timing_claim_allowed"] is False
+
+    (tmp_path / "continue_after_0" / "donor_actions.json").write_text(
+        json.dumps([[[9.0, 2.0]]])
+    )
+    _write_tables(tmp_path, entry, 0, True)
+    summary = json.loads((tmp_path / "summary.json").read_text())
+    assert summary["boundary_zero_continue_restart_actions_exact"] is False
+    assert summary["practical_positive"] is False
 
     _write_tables(tmp_path, entry, 0, False)
     summary = json.loads((tmp_path / "summary.json").read_text())

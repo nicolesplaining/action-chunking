@@ -152,7 +152,10 @@ rollouts.
 SafeDiffuser embeds constraints into iterative diffusion planning and separates
 safety satisfaction from planning quality and overhead
 [@xiao2025safediffuser]. We adopt that measurement separation for the planned
-obstacle study without claiming formal barrier guarantees.
+obstacle study without claiming formal barrier guarantees. Our simulator event
+is explicitly gripper-geometry contact with the moved object, accompanied by an
+end-effector planar-clearance proxy; it is not a whole-arm or whole-robot
+collision certificate.
 
 Interchange interventions replace an internal variable in one computation with
 its value from a counterfactual computation, providing a test of causal
