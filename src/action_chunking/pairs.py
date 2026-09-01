@@ -37,6 +37,17 @@ def advance_action_noise(rng: Any, replan_index: int, shape: tuple[int, int]) ->
         rng.standard_normal(shape, dtype=np.float32)
 
 
+def action_noise_shape(
+    metadata: dict[str, Any], default: tuple[int, int] = (10, 32)
+) -> tuple[int, int]:
+    """Read a model-native action-noise shape from server metadata."""
+    horizon = int(metadata.get("action_horizon", default[0]))
+    dimension = int(metadata.get("action_dim", default[1]))
+    if horizon <= 0 or dimension <= 0:
+        raise ValueError("server action horizon and dimension must be positive")
+    return horizon, dimension
+
+
 def load_action_chunk(path: Path, replan_index: int) -> NDArray[np.float64]:
     """Load one saved clean action chunk without changing its numeric values."""
     if replan_index < 0:

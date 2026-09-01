@@ -241,6 +241,8 @@ class InterventionPolicy(base_policy.BasePolicy):
             "dynamic_retarget_strategies": ["continue", "restart"],
             "flow_steps": self.num_steps,
             "action_expert_layers": len(self.layers),
+            "action_horizon": self.model.config.action_horizon,
+            "action_dim": self.model.config.action_dim,
         }
 
     @override

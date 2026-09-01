@@ -18,8 +18,10 @@ from typing_extensions import override
 class NoiseAwarePolicy(base_policy.BasePolicy):
     """Minimal transport adapter; model and transforms remain upstream-owned."""
 
-    def __init__(self, policy):
+    def __init__(self, policy, action_horizon: int, action_dim: int):
         self.policy = policy
+        self.action_horizon = action_horizon
+        self.action_dim = action_dim
 
     @override
     def infer(self, obs):
@@ -31,7 +33,12 @@ class NoiseAwarePolicy(base_policy.BasePolicy):
 
     @property
     def metadata(self):
-        return {**self.policy.metadata, "accepts_action_noise": True}
+        return {
+            **self.policy.metadata,
+            "accepts_action_noise": True,
+            "action_horizon": self.action_horizon,
+            "action_dim": self.action_dim,
+        }
 
     @override
     def reset(self) -> None:
@@ -52,7 +59,11 @@ def main() -> None:
     config = training_config.get_config(args.config)
     config = dataclasses.replace(config, model=dataclasses.replace(config.model, pytorch_compile_mode=None))
     policy = policy_config.create_trained_policy(config, args.checkpoint, pytorch_device=args.device)
-    wrapped = NoiseAwarePolicy(policy)
+    wrapped = NoiseAwarePolicy(
+        policy,
+        action_horizon=config.model.action_horizon,
+        action_dim=config.model.action_dim,
+    )
     server = websocket_policy_server.WebsocketPolicyServer(
         policy=wrapped,
         host="0.0.0.0",

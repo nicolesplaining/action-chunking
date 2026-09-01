@@ -4,10 +4,18 @@ import numpy as np
 import pytest
 
 from action_chunking.pairs import (
+    action_noise_shape,
     advance_action_noise,
     advance_reset_sequence,
     replan_snapshot_step,
 )
+
+
+def test_action_noise_shape_uses_model_metadata() -> None:
+    assert action_noise_shape({"action_horizon": 50, "action_dim": 32}) == (50, 32)
+    assert action_noise_shape({}) == (10, 32)
+    with pytest.raises(ValueError, match="must be positive"):
+        action_noise_shape({"action_horizon": 0, "action_dim": 32})
 
 
 def test_nonzero_pair_generation_advances_environment_reset_sequence() -> None:

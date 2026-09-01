@@ -16,7 +16,7 @@ from libero.libero.envs import OffScreenRenderEnv
 from openpi_client import image_tools, websocket_client_policy
 
 from action_chunking.metrics import gripper_closure_position
-from action_chunking.pairs import advance_action_noise, load_instruction_pair
+from action_chunking.pairs import action_noise_shape, advance_action_noise, load_instruction_pair
 
 
 def parse_args() -> argparse.Namespace:
@@ -64,6 +64,7 @@ def main() -> int:
     server_metadata = client.get_server_metadata()
     if not server_metadata.get("accepts_action_noise"):
         raise ValueError("server does not advertise explicit action-noise support")
+    noise_shape = action_noise_shape(server_metadata)
     intervention = json.loads(args.intervention.read_text()) if args.intervention is not None else None
     if intervention is not None and not server_metadata.get("accepts_causal_intervention"):
         raise ValueError("server does not advertise causal-intervention support")
@@ -102,6 +103,7 @@ def main() -> int:
             intervention,
             intervention_replans,
             dynamic_retarget,
+            noise_shape,
             args,
         )
         results.append(result)
@@ -111,6 +113,7 @@ def main() -> int:
         "noise_seed": args.noise_seed,
         "noise_start_index": args.noise_start_index,
         "shared_noise_by_replan_index": True,
+        "action_noise_shape": list(noise_shape),
         "requested_sides": sides,
         "all_successful": all(result["success"] for result in results),
         "both_successful": all(result["success"] for result in results),
@@ -145,6 +148,7 @@ def _rollout(
     intervention: dict[str, Any] | None,
     intervention_replans: set[int] | None,
     dynamic_retarget: dict[str, Any] | None,
+    noise_shape: tuple[int, int],
     args: argparse.Namespace,
 ) -> dict[str, Any]:
     env = OffScreenRenderEnv(
@@ -158,7 +162,7 @@ def _rollout(
     other_side = "donor" if side == "base" else "base"
     old_prompt = getattr(pair, f"{other_side}_prompt") if dynamic_retarget is not None else prompt
     rng = np.random.default_rng(args.noise_seed)
-    advance_action_noise(rng, args.noise_start_index, (10, 32))
+    advance_action_noise(rng, args.noise_start_index, noise_shape)
     frames = []
     action_chunks = []
     trajectory_records = []
@@ -201,7 +205,7 @@ def _rollout(
             model_input = _model_input(obs, prompt, args.resize)
             frames.append(model_input["observation/image"])
             if not action_plan:
-                noise = rng.standard_normal((10, 32), dtype=np.float32)
+                noise = rng.standard_normal(noise_shape, dtype=np.float32)
                 policy_input = fixture_initial if replans == 0 and args.initial_input_mode == "fixture" else model_input
                 if dynamic_retarget is not None and replans == 0:
                     policy_input = {**policy_input, "prompt": old_prompt}

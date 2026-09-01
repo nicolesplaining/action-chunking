@@ -1,10 +1,10 @@
 study:
-  name: pi05_libero_action_commitment
-  protocol_version: "0.1"
+  name: pi05_libero_conditional_editability
+  protocol_version: "0.5"
   pilot_pairs_per_family: 16
-  confirmatory_pairs_per_family: 50
-  noise_seeds_per_pair: 4
-  commitment_retention_threshold: 0.8
+  primary_noise_seed: 0
+  robustness_noise_seeds_per_pair: 4
+  editability_retention_threshold: 0.8
 
 upstream:
   openpi_commit: 215abfb217dbac7d5f1273282331b9b1866c0479
@@ -14,8 +14,21 @@ upstream:
 
 inference:
   flow_steps: 10
+  receding_horizon_steps: 5
   shared_noise: true
   deterministic_algorithms: true
+
+retarget_utility:
+  snapshot_rule: latest_replan_strictly_before_first_target_contact
+  requires_saved_clean_replan_input: true
+  requires_exact_source_action_chunk: true
+  event_horizon_actions: 5
+  dense_prediction_boundaries: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+  primary_efficiency_boundary: 7
+  negative_control_boundaries: [9, 10]
+  paired_noninferiority_margin: 0.05
+  minimum_eligible_scene_clusters: 59
+  stop_rule: public_catalog_exhaustion
 
 pair_families:
   - instruction_target

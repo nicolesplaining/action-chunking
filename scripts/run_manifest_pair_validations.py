@@ -82,6 +82,17 @@ def _job_record(
     )
     if args.save_sim_states and (not traces_present or not replan_inputs_present):
         raise ValueError("clean validation omitted requested simulator or replan-input traces")
+    by_side = {result["side"]: result for result in summary["results"]}
+    instructed_target_first = bool(
+        set(by_side) == {"base", "donor"}
+        and all(
+            _first_contact(by_side[side]) == entry[f"{side}_target"]
+            for side in ("base", "donor")
+        )
+    )
+    exact_dual_success_target_first = bool(
+        exact and summary["both_successful"] and instructed_target_first
+    )
     return {
         "pair_id": entry["pair_id"],
         "init_index": int(entry["init_index"]),
@@ -89,6 +100,8 @@ def _job_record(
         "exact_initial_state": exact,
         "simulator_traces_present": traces_present,
         "replan_input_traces_present": replan_inputs_present,
+        "instructed_target_first_both": instructed_target_first,
+        "exact_dual_success_target_first": exact_dual_success_target_first,
         "summary": str(output / "summary.json"),
     }
 
@@ -105,6 +118,9 @@ def _write_summary(
         "expected_pairs": expected,
         "completed_pairs": len(jobs),
         "dual_success_pairs": sum(job["both_successful"] for job in jobs),
+        "exact_dual_success_target_first_pairs": sum(
+            job["exact_dual_success_target_first"] for job in jobs
+        ),
         "all_initial_states_exact": all(job["exact_initial_state"] for job in jobs),
         "all_requested_traces_present": (
             not args.save_sim_states
@@ -119,9 +135,15 @@ def _write_summary(
         json.dumps(payload, indent=2, sort_keys=True) + "\n"
     )
     print(
-        f"validated {len(jobs)}/{expected}: {payload['dual_success_pairs']} dual-success",
+        f"validated {len(jobs)}/{expected}: {payload['dual_success_pairs']} dual-success, "
+        f"{payload['exact_dual_success_target_first_pairs']} exact target-first",
         flush=True,
     )
+
+
+def _first_contact(result: dict[str, Any]) -> str | None:
+    contacts = result.get("first_contact_step_by_object", {})
+    return min(contacts, key=contacts.get) if contacts else None
 
 
 if __name__ == "__main__":
