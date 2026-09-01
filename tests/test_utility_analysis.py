@@ -47,6 +47,25 @@ def test_cluster_summary_requires_valid_fixed_boundary_baseline() -> None:
         summarize_utility_jobs([_job("a")], fixed_boundary_baseline=11)
 
 
+def test_cluster_summary_reconstructs_serialized_prediction_targets() -> None:
+    job = _job("a", predicted=7, observed=7)
+    job["observed_last_successful_boundary"] = 8
+    with pytest.raises(ValueError, match="differs from the success curve"):
+        summarize_utility_jobs([job], bootstrap_samples=10)
+
+    job = _job("a", predicted=7, observed=7)
+    job["prediction_exact"] = False
+    with pytest.raises(ValueError, match="prediction-exact"):
+        summarize_utility_jobs([job], bootstrap_samples=10)
+
+
+def test_cluster_summary_rejects_curve_and_registered_boundary_mismatch() -> None:
+    job = _job("a", predicted=7, observed=7)
+    job["boundary7_new_task_success"] = False
+    with pytest.raises(ValueError, match="boundary-zero or boundary-seven"):
+        summarize_utility_jobs([job], bootstrap_samples=10)
+
+
 def test_cluster_summary_detects_prediction_advantage_over_fixed_boundary() -> None:
     jobs = [
         _job(f"cluster-{index}", predicted=observed, observed=observed)
@@ -87,6 +106,9 @@ def test_practical_gate_requires_each_behavioral_outcome_and_latency() -> None:
 
     jobs[0]["boundary7_new_target_first"] = False
     jobs[0]["boundary7_new_task_success"] = True
+    jobs[0]["success_curve"][7] = False
+    jobs[0]["observed_last_successful_boundary"] = 6
+    jobs[0]["prediction_exact"] = False
     failing = summarize_utility_jobs(
         jobs,
         bootstrap_samples=1_000,
@@ -104,11 +126,12 @@ def _job(
     *,
     predicted: int = 7,
     observed: int = 7,
-    boundary7: bool = True,
+    boundary7: bool | None = None,
     latency: float = 180.0,
 ) -> dict:
     curve = [boundary <= observed for boundary in range(11)]
     old_target_first = [not value for value in curve]
+    boundary7 = curve[7] if boundary7 is None else boundary7
     return {
         "cluster_id": cluster,
         "prediction_valid": True,
@@ -122,7 +145,7 @@ def _job(
         "first_contact_replan_index_curve": [1 if value else 0 for value in curve],
         "boundary7_new_target_first": boundary7,
         "boundary7_new_task_success": boundary7,
-        "boundary7_first_chunk_old_event": False,
+        "boundary7_first_chunk_old_event": old_target_first[7],
         "boundary7_clean_replanning_rescue": False,
         "boundary7_post_event_velocity_evaluations": 3,
         "boundary7_post_event_total_ms": latency,

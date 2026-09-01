@@ -7,8 +7,11 @@ control. Byte-exact boundary-zero actions were already mandatory; the sweep
 must now also reproduce contact identity and timing, first-chunk events,
 eventual task success, clean-replanning rescue status, and episode length.
 The utility handoff independently requires this aggregate flag before analyzing
-any boundary. No held-out continuation outcome existed when the control and its
-regression test were added. No utility estimator or decision threshold changed.
+any boundary. The population summarizer also reconstructs the observed last
+successful boundary and exact-prediction flag from each complete eleven-point
+curve and cross-checks the registered boundary-zero and boundary-seven cells.
+No held-out continuation outcome existed when these controls and regression
+tests were added. No utility estimator or decision threshold changed.
 
 ## 2026-09-01: matched-control output lineage independently reconstructed
 
