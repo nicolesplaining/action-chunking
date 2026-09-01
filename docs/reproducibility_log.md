@@ -479,6 +479,19 @@ contrast-valid subset from producing a nominally narrow but publication-weak
 predictive-positive claim. All smaller subsets and invalid predictions remain
 reportable, but cannot pass U1.
 
+## 2026-09-01: confirmation independent-audit hardening
+
+After 15/500 pair-atomic confirmation rows existed but before any task stratum
+or confirmatory result was complete, the post-run analyzer was strengthened
+without changing an estimand, threshold, denominator, or outcome. The hardened
+audit independently reconciles every progress job and aggregate counter against
+the 500 pair files, revalidates the exact pilot gate and its SHA-256 binding,
+checks the run's commit binding, and requires the preflight record to contain
+the two distinct H100s. Because the active run remains bound to the earlier
+commit, its original analyzer will run first; after completion, the hardened
+analyzer is rerun on the immutable pair artifacts and both summaries are
+retained.
+
 ## 2026-09-01: population action-token grid frozen
 
 Before any population target-token intervention was generated, the missing

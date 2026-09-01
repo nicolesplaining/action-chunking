@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import csv
 import hashlib
 import json
 import re
@@ -37,6 +38,8 @@ def main() -> int:
     pairs = _load_pairs(args.root)
     rows, summary = analyze_confirmation(pairs)
     progress = json.loads((args.root / "progress.json").read_text())
+    _validate_progress(progress, rows, summary)
+    _validate_run_binding(args.root, summary["code_commit"])
     if int(progress.get("warmup_sessions", -1)) != len(warmups):
         raise ValueError("confirmation progress has the wrong warm-up session count")
     warmup_commits = {str(session["code_commit"]) for session in warmups}
@@ -79,6 +82,76 @@ def _load_pairs(root: Path) -> list[dict[str, Any]]:
     if {str(pair.get("code_commit")) for pair in pairs} != {str(progress["code_commit"])}:
         raise ValueError("confirmation progress and pairs use different code commits")
     return pairs
+
+
+def _validate_progress(
+    progress: dict[str, Any],
+    rows: list[dict[str, Any]],
+    summary: dict[str, Any],
+) -> None:
+    expected_counts = {
+        "completed_pairs": EXPECTED,
+        "completed_condition_rollouts": 2 * EXPECTED,
+        "early_exit_successes_so_far": summary["early_exit_successes"],
+        "full_control_successes_so_far": summary["full_control_successes"],
+        "paired_losses_so_far": summary["paired_losses"],
+    }
+    mismatched = {
+        key: {"expected": expected, "actual": progress.get(key)}
+        for key, expected in expected_counts.items()
+        if progress.get(key) != expected
+    }
+    if mismatched:
+        raise ValueError(f"confirmation progress counters differ from pair files: {mismatched}")
+    row_by_key = {row["pair_key"]: row for row in rows}
+    jobs = progress.get("jobs", [])
+    if len(jobs) != EXPECTED or {job.get("pair_key") for job in jobs} != set(row_by_key):
+        raise ValueError("confirmation progress jobs do not match the pair grid")
+    for job in jobs:
+        key = str(job["pair_key"])
+        row = row_by_key[key]
+        expected_summary = f"/data/pairs/{key}/pair_summary.json"
+        if (
+            int(job.get("task_id", -1)) != int(row["task_id"])
+            or int(job.get("trial_index", -1)) != int(row["trial_index"])
+            or job.get("condition_order") != row["condition_order"]
+            or job.get("early_exit_success") is not row["early_exit_success"]
+            or job.get("full_control_success") is not row["full_control_success"]
+            or job.get("paired_loss") is not row["paired_loss"]
+            or job.get("pair_summary") != expected_summary
+        ):
+            raise ValueError(f"confirmation progress job differs from pair file: {key}")
+
+
+def _validate_run_binding(root: Path, code_commit: str) -> None:
+    if (root / "code_commit.txt").read_text().strip() != code_commit:
+        raise ValueError("confirmation code-commit binding differs from pair files")
+
+    pilot_line = (root / "pilot_summary.sha256").read_text().strip()
+    match = re.fullmatch(r"([0-9a-f]{64})\s+(.+)", pilot_line)
+    if match is None:
+        raise ValueError("confirmation pilot-summary binding is malformed")
+    expected_digest, pilot_name = match.groups()
+    pilot_path = Path(pilot_name)
+    if not pilot_path.is_file() or file_digest(pilot_path) != expected_digest:
+        raise ValueError("confirmation pilot-summary binding changed")
+    pilot = json.loads(pilot_path.read_text())
+    if (
+        pilot.get("pilot_positive") is not True
+        or int(pilot.get("eligible_scene_clusters", -1)) != 15
+        or int(pilot.get("composite_preserved_clusters", -1)) < 14
+        or pilot.get("all_compute_counts_exact") is not True
+    ):
+        raise ValueError("confirmation pilot no longer passes its frozen gate")
+
+    with (root / "gpu_preflight.csv").open(newline="") as stream:
+        gpu_rows = list(csv.DictReader(stream, skipinitialspace=True))
+    if (
+        len(gpu_rows) != 2
+        or len({row.get("uuid") for row in gpu_rows}) != 2
+        or any("H100" not in str(row.get("name")) for row in gpu_rows)
+    ):
+        raise ValueError("confirmation GPU preflight does not record two distinct H100s")
 
 
 def analyze_confirmation(

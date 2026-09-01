@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import runpy
+from pathlib import Path
 
 import numpy as np
 import pytest
@@ -110,6 +112,43 @@ def test_runner_rejects_full_control_without_exact_sampler_flag() -> None:
         runner["_validate_diagnostic"](diagnostic, 10)
 
 
+def test_independent_analysis_rejects_progress_counter_drift() -> None:
+    rows, summary = analyze_confirmation(_pairs(losses=4))
+    progress = _progress(rows, summary)
+    progress["paired_losses_so_far"] = 3
+
+    with pytest.raises(ValueError, match="progress counters"):
+        analysis["_validate_progress"](progress, rows, summary)
+
+
+def test_independent_analysis_validates_run_binding(tmp_path: Path) -> None:
+    pilot = tmp_path / "pilot.json"
+    pilot.write_text(
+        json.dumps(
+            {
+                "pilot_positive": True,
+                "eligible_scene_clusters": 15,
+                "composite_preserved_clusters": 14,
+                "all_compute_counts_exact": True,
+            }
+        )
+    )
+    digest = hashlib.sha256(pilot.read_bytes()).hexdigest()
+    (tmp_path / "pilot_summary.sha256").write_text(f"{digest}  {pilot}\n")
+    (tmp_path / "code_commit.txt").write_text(CODE_COMMIT + "\n")
+    (tmp_path / "gpu_preflight.csv").write_text(
+        "index, uuid, name, driver_version, memory.total [MiB]\n"
+        "0, GPU-a, NVIDIA H100 80GB HBM3, 570.1, 81559 MiB\n"
+        "1, GPU-b, NVIDIA H100 80GB HBM3, 570.1, 81559 MiB\n"
+    )
+
+    analysis["_validate_run_binding"](tmp_path, CODE_COMMIT)
+
+    (tmp_path / "code_commit.txt").write_text("b" * 40 + "\n")
+    with pytest.raises(ValueError, match="code-commit binding"):
+        analysis["_validate_run_binding"](tmp_path, CODE_COMMIT)
+
+
 def _pairs(*, losses: int) -> list[dict]:
     pairs = []
     loss_keys = {(0, trial) for trial in range(losses)}
@@ -183,5 +222,28 @@ def _condition(
                 "full_step_output_exact": after_steps == 10,
                 "full_step_estimate_max_abs_error": (1e-7 if after_steps == 10 else None),
             }
+        ],
+    }
+
+
+def _progress(rows: list[dict], summary: dict) -> dict:
+    return {
+        "completed_pairs": 500,
+        "completed_condition_rollouts": 1000,
+        "early_exit_successes_so_far": summary["early_exit_successes"],
+        "full_control_successes_so_far": summary["full_control_successes"],
+        "paired_losses_so_far": summary["paired_losses"],
+        "jobs": [
+            {
+                "pair_key": row["pair_key"],
+                "task_id": row["task_id"],
+                "trial_index": row["trial_index"],
+                "condition_order": row["condition_order"],
+                "early_exit_success": row["early_exit_success"],
+                "full_control_success": row["full_control_success"],
+                "paired_loss": row["paired_loss"],
+                "pair_summary": f"/data/pairs/{row['pair_key']}/pair_summary.json",
+            }
+            for row in rows
         ],
     }
