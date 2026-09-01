@@ -4,6 +4,8 @@ import hashlib
 import runpy
 from pathlib import Path
 
+import pytest
+
 _module = runpy.run_path(
     str(Path(__file__).parents[1] / "scripts" / "run_eligible_retarget_study.py")
 )
@@ -11,6 +13,7 @@ _boolean = _module["_boolean"]
 _candidate_manifests = _module["_candidate_manifests"]
 _select_primary_directions = _module["_select_primary_directions"]
 _utility_decision = _module["_utility_decision"]
+_validate_completed_sweep = _module["_validate_completed_sweep"]
 
 
 def test_strict_serialized_boolean_parser() -> None:
@@ -72,3 +75,24 @@ def test_utility_decision_is_withheld_until_every_cluster_finishes() -> None:
     assert positive["prediction_utility_positive"] is True
     assert positive["practical_utility_positive"] is True
     assert positive["utility_inference_status"] == "positive"
+
+
+def test_completed_sweep_requires_every_condition_and_exact_control() -> None:
+    summary = {
+        "schema_version": 1,
+        "pair_id": "pair",
+        "noise_seed": 0,
+        "registered_boundaries": list(range(11)),
+        "directions": 1,
+        "source_summaries": 12,
+        "all_initial_inputs_exact": True,
+        "all_simulator_states_exact": True,
+        "all_controller_replays_exact": True,
+        "all_retargets_only_at_first_replan": True,
+        "boundary_zero_continue_restart_actions_exact": True,
+    }
+
+    _validate_completed_sweep(summary, "pair")
+    summary["boundary_zero_continue_restart_actions_exact"] = False
+    with pytest.raises(ValueError, match="exact controls"):
+        _validate_completed_sweep(summary, "pair")

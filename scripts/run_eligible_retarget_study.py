@@ -32,6 +32,8 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> int:
     args = parse_args()
+    if args.noise_seed != 0:
+        raise ValueError("registered retarget utility requires noise seed zero")
     gate = json.loads(args.gate_summary.read_text())
     if gate.get("selection_uses_continuation_outcomes") is not False:
         raise ValueError("eligibility selection must explicitly exclude continuation outcomes")
@@ -229,6 +231,8 @@ def _job_summary(
     prediction_entries: list[dict[str, Any]],
     orientation_path: Path,
 ) -> dict[str, Any]:
+    sweep_summary = json.loads((rollout_output / "summary.json").read_text())
+    _validate_completed_sweep(sweep_summary, gate_row["pair_id"])
     with (rollout_output / "rollouts.csv").open(newline="") as stream:
         rows = list(csv.DictReader(stream))
     continuation = [row for row in rows if row["strategy"] == "continue"]
@@ -291,6 +295,27 @@ def _job_summary(
         "orientation_curve_complete": orientation["all_boundaries_have_registered_target_contact"],
         "orientation_correct_target_first_curve": [bool(row["correct_target_first"]) for row in orientation["rows"]],
     }
+
+
+def _validate_completed_sweep(summary: dict[str, Any], pair_id: str) -> None:
+    required_true = (
+        "all_initial_inputs_exact",
+        "all_simulator_states_exact",
+        "all_controller_replays_exact",
+        "all_retargets_only_at_first_replan",
+        "boundary_zero_continue_restart_actions_exact",
+    )
+    if summary.get("schema_version") != 1 or summary.get("pair_id") != pair_id:
+        raise ValueError("completed retarget sweep has the wrong identity")
+    if int(summary.get("noise_seed", -1)) != 0:
+        raise ValueError("completed retarget sweep has the wrong noise seed")
+    if summary.get("registered_boundaries") != list(range(11)):
+        raise ValueError("completed retarget sweep lacks a registered boundary")
+    if int(summary.get("directions", -1)) != 1 or int(summary.get("source_summaries", -1)) != 12:
+        raise ValueError("completed retarget sweep has the wrong condition count")
+    failed = [field for field in required_true if summary.get(field) is not True]
+    if failed:
+        raise ValueError(f"completed retarget sweep failed exact controls: {failed}")
 
 
 def _optional_int(value: str) -> int | None:
