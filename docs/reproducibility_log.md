@@ -1,5 +1,17 @@
 # Reproducibility log
 
+## 2026-09-01: partial catalog resume repaired
+
+The resumed public obstacle screen lost its websocket connection while writing
+row 37. Its clean pair validator correctly retained a partial summary, but the
+outer catalog driver treated summary-file existence as catalog completion and
+the downstream obstacle gate failed on a missing pair. No row result or
+top-level selection was written: the frozen obstacle denominator remains 37
+processed source rows, 20 clean-screened obstacle pairs, and no selected pair.
+Both target and obstacle catalog drivers now always call the idempotent pair
+validator for an unfinished row; it validates existing pair artifacts and runs
+only missing pairs. This is a resume fix and changes no selection rule.
+
 ## 2026-09-01: paired early-exit confirmation execution frozen
 
 Protocol version 0.20 was frozen after the 15-cluster pilot passed and before
