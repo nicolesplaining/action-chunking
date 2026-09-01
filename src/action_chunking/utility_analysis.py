@@ -17,6 +17,7 @@ def summarize_utility_jobs(
     alpha: float = 0.05,
     bootstrap_samples: int = 10_000,
     bootstrap_seed: int = 0,
+    minimum_valid_predictions: int = 59,
 ) -> dict[str, Any]:
     """Summarize one frozen direction per independent scene cluster."""
     if not 0 <= fixed_boundary_baseline <= 10:
@@ -25,6 +26,8 @@ def summarize_utility_jobs(
         raise ValueError("noninferiority margin must lie strictly between zero and one")
     if bootstrap_samples <= 0:
         raise ValueError("bootstrap samples must be positive")
+    if minimum_valid_predictions <= 0:
+        raise ValueError("minimum valid predictions must be positive")
     cluster_ids = [str(job["cluster_id"]) for job in jobs]
     if len(cluster_ids) != len(set(cluster_ids)):
         raise ValueError("primary utility jobs must contain at most one direction per cluster")
@@ -42,6 +45,7 @@ def summarize_utility_jobs(
     absolute_error_advantage_interval = _cluster_bootstrap_mean(
         absolute_error_advantage, bootstrap_samples, bootstrap_seed
     )
+    prediction_sample_size_gate_passed = len(valid) >= minimum_valid_predictions
 
     restart_composite = [
         bool(job["restart_new_target_first"] and job["restart_new_task_success"])
@@ -123,6 +127,8 @@ def summarize_utility_jobs(
         "analysis_unit": "independent_scene_cluster",
         "independent_clusters": len(jobs),
         "valid_predictions": len(valid),
+        "prediction_minimum_valid_clusters": minimum_valid_predictions,
+        "prediction_sample_size_gate_passed": prediction_sample_size_gate_passed,
         "prediction_exact_rate": _mean_boolean(
             [job["prediction_exact"] for job in valid]
         ),
@@ -151,7 +157,10 @@ def summarize_utility_jobs(
             absolute_error_advantage_interval
         ),
         "prediction_beats_fixed_boundary_mae": (
-            bool(absolute_error_advantage_interval[1] < 0.0)
+            bool(
+                prediction_sample_size_gate_passed
+                and absolute_error_advantage_interval[1] < 0.0
+            )
             if absolute_error_advantage_interval is not None
             else None
         ),

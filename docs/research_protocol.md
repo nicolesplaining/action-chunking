@@ -230,9 +230,13 @@ donor control in that pilot. Report both predictors' exact rate, within-one
 rate, and mean absolute error. The primary comparative statistic is the paired
 scene-cluster difference `abs(state prediction - observed) - abs(7 - observed)`.
 A predictive positive requires the upper endpoint of its 10,000-resample,
-seed-zero scene-cluster bootstrap 95% interval to be below zero. Correlation or
-accuracy without improvement over this fixed rule is not called useful timing
-prediction.
+seed-zero scene-cluster bootstrap 95% interval to be below zero and at least 59
+valid action-only predictions from independent scene clusters. This reuses the
+conservative independent-cluster floor already fixed for U2 and prevents a
+nominal bootstrap interval over a small validity-selected subset from licensing
+a predictive claim. Smaller valid subsets remain descriptive. Correlation or
+accuracy without both sample-size sufficiency and improvement over this fixed
+rule is not called useful timing prediction.
 
 U2 uses a paired composite endpoint requiring both new-target-first contact and
 eventual new-task success. A paired loss is a cluster where restart passes this

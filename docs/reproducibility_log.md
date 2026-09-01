@@ -462,6 +462,17 @@ noise, 0.02 maximum-error threshold, and 0.999 cosine threshold must be rerun in
 a new output directory. The original failure is never overwritten; if the
 lossless rerun fails, pi0 remains conversion-limited.
 
+## 2026-09-01: utility-prediction sample-size gate
+
+Before any public-catalog continuation rollout or action-only prediction
+outcome, U1's comparative decision rule was completed with a minimum of 59
+valid independent scene-cluster predictions. The paired bootstrap upper
+endpoint must still be below zero relative to fixed boundary seven. This uses
+the independent-cluster floor already justified for U2 and prevents a small
+contrast-valid subset from producing a nominally narrow but publication-weak
+predictive-positive claim. All smaller subsets and invalid predictions remain
+reportable, but cannot pass U1.
+
 ## 2026-09-01: population action-token grid frozen
 
 Before any population target-token intervention was generated, the missing

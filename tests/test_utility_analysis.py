@@ -17,6 +17,7 @@ def test_cluster_summary_reports_prediction_and_noninferiority_statistics() -> N
     assert result["prediction_exact_rate"] == 0.5
     assert result["prediction_within_one_rate"] == 1.0
     assert result["prediction_mean_absolute_error"] == 0.5
+    assert result["prediction_sample_size_gate_passed"] is False
     assert result["prediction_fixed_boundary_baseline"] == 7
     assert result["prediction_fixed_boundary_baseline_exact_rate"] == 1.0
     assert result["prediction_fixed_boundary_baseline_mean_absolute_error"] == 0.0
@@ -46,12 +47,29 @@ def test_cluster_summary_detects_prediction_advantage_over_fixed_boundary() -> N
         for index, observed in enumerate([2, 3, 4, 5, 9, 10] * 3)
     ]
 
-    result = summarize_utility_jobs(jobs, bootstrap_samples=1_000)
+    result = summarize_utility_jobs(
+        jobs,
+        bootstrap_samples=1_000,
+        minimum_valid_predictions=len(jobs),
+    )
 
     assert result["prediction_mean_absolute_error"] == 0.0
     assert result["prediction_fixed_boundary_baseline_mean_absolute_error"] > 0.0
     assert result["prediction_mae_difference_vs_fixed_boundary_ci95"][1] < 0.0
     assert result["prediction_beats_fixed_boundary_mae"] is True
+
+
+def test_prediction_advantage_requires_frozen_sample_size() -> None:
+    jobs = [
+        _job(f"cluster-{index}", predicted=2, observed=2)
+        for index in range(10)
+    ]
+
+    result = summarize_utility_jobs(jobs, bootstrap_samples=100)
+
+    assert result["prediction_mae_difference_vs_fixed_boundary_ci95"][1] < 0.0
+    assert result["prediction_sample_size_gate_passed"] is False
+    assert result["prediction_beats_fixed_boundary_mae"] is False
 
 
 def _job(
