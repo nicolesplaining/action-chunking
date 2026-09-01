@@ -1,6 +1,6 @@
 study:
   name: pi05_libero_conditional_editability
-  protocol_version: "0.24"
+  protocol_version: "0.25"
   pilot_pairs_per_family: 16
   primary_noise_seed: 0
   robustness_noise_seeds_per_pair: 4
@@ -39,6 +39,7 @@ retarget_utility:
   prediction_bootstrap_seed: 0
   practical_gate_requires_complete_frozen_population: true
   practical_gate_requires_exact_boundary_zero: true
+  practical_gate_requires_boundary_zero_behavior_equivalence: true
   practical_gate_requires_latency_ci_low_above_zero: true
 
 early_exit_confirmation:

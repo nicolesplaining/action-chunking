@@ -1,6 +1,6 @@
 # Research protocol: causal editability and retargeting in action chunks
 
-Protocol version: 0.24 (matched-control output-lineage audit)
+Protocol version: 0.25 (boundary-zero behavioral identity control)
 
 ## 1. Research question
 
@@ -157,9 +157,10 @@ only if new-target-first contact, eventual task success, and their primary
 composite each pass the conservative paired-loss noninferiority test within a
 frozen five-percentage-point margin, evaluation counts are exact, and the
 scene-bootstrap latency-savings interval lies strictly above zero. Scene state
-is the inference cluster. Full-restart success, exact
-initial-state restoration, and byte-exact `k=0` equivalence are eligibility
-gates selected without viewing continued outcomes.
+is the inference cluster. Full-restart success, exact initial-state
+restoration, byte-exact `k=0` action equivalence, and exact `k=0` equality of
+contact identity/timing, success, rescue status, and episode length are
+eligibility gates selected without viewing later-boundary outcomes.
 
 The first 16-state out-of-sample block is a utility pilot, not the
 noninferiority population. For the frozen five-percentage-point margin, even

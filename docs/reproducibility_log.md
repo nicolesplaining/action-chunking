@@ -1,5 +1,15 @@
 # Reproducibility log
 
+## 2026-09-01: boundary-zero behavioral identity added before utility outcomes
+
+Protocol version 0.25 strengthens the future continue-versus-restart identity
+control. Byte-exact boundary-zero actions were already mandatory; the sweep
+must now also reproduce contact identity and timing, first-chunk events,
+eventual task success, clean-replanning rescue status, and episode length.
+The utility handoff independently requires this aggregate flag before analyzing
+any boundary. No held-out continuation outcome existed when the control and its
+regression test were added. No utility estimator or decision threshold changed.
+
 ## 2026-09-01: matched-control output lineage independently reconstructed
 
 Protocol version 0.24 adds a final fail-closed audit to the future matched-pi0

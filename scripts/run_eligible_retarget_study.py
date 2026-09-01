@@ -12,6 +12,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
+from action_chunking.retarget_controls import boundary_zero_behavior_exact
 from action_chunking.utility_analysis import summarize_utility_jobs
 from action_chunking.utility_prediction import validate_eligible_retarget_row
 
@@ -235,6 +236,8 @@ def _job_summary(
     _validate_completed_sweep(sweep_summary, gate_row["pair_id"])
     with (rollout_output / "rollouts.csv").open(newline="") as stream:
         rows = list(csv.DictReader(stream))
+    if boundary_zero_behavior_exact(rows, [str(gate_row["new_side"])]) is not True:
+        raise ValueError("boundary-zero behavior differs between continue and restart rows")
     continuation = [row for row in rows if row["strategy"] == "continue"]
     by_boundary = {int(row["switch_after_steps"]): row for row in continuation}
     if set(by_boundary) != set(range(11)):
@@ -304,6 +307,7 @@ def _validate_completed_sweep(summary: dict[str, Any], pair_id: str) -> None:
         "all_controller_replays_exact",
         "all_retargets_only_at_first_replan",
         "boundary_zero_continue_restart_actions_exact",
+        "boundary_zero_continue_restart_behavior_exact",
     )
     if summary.get("schema_version") != 1 or summary.get("pair_id") != pair_id:
         raise ValueError("completed retarget sweep has the wrong identity")

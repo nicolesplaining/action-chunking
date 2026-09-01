@@ -13,6 +13,7 @@ _module = runpy.run_path(
 _write_tables = _module["_write_tables"]
 _sides = _module["_sides"]
 _validate_run = _module["_validate_run"]
+_boundary_zero_behavior_exact = _module["_boundary_zero_behavior_exact"]
 
 
 def test_dynamic_retarget_summary_preserves_compute_and_behavior_controls(tmp_path) -> None:
@@ -49,6 +50,7 @@ def test_dynamic_retarget_summary_preserves_compute_and_behavior_controls(tmp_pa
     summary = json.loads((tmp_path / "summary.json").read_text())
 
     assert summary["boundary_zero_continue_restart_actions_exact"] is True
+    assert summary["boundary_zero_continue_restart_behavior_exact"] is True
     assert summary["restart_new_target_first_rate"] == 1.0
     assert summary["restart_new_task_success_rate"] == 1.0
     by_boundary = {row["switch_after_steps"]: row for row in summary["continuation"]}
@@ -86,12 +88,39 @@ def test_dynamic_retarget_summary_allows_restart_only_partial_result(tmp_path) -
     summary = json.loads((tmp_path / "summary.json").read_text())
 
     assert summary["boundary_zero_continue_restart_actions_exact"] is None
+    assert summary["boundary_zero_continue_restart_behavior_exact"] is None
     assert summary["restart_new_task_success_rate"] == 1.0
     assert summary["continuation"] == []
 
 
 def test_dynamic_retarget_side_parser_accepts_one_direction() -> None:
     assert _sides("donor") == ["donor"]
+
+
+def test_boundary_zero_behavior_control_detects_downstream_divergence() -> None:
+    fields = {
+        "first_contact_object": "bowl",
+        "first_contact_step": 7,
+        "first_contact_replan_index": 1,
+        "new_target_contact_step": 7,
+        "old_target_contact_step": None,
+        "new_target_first": True,
+        "old_target_first": False,
+        "first_chunk_new_target_contact": False,
+        "first_chunk_old_event": False,
+        "no_registered_contact_first_chunk": True,
+        "eventual_new_task_success": True,
+        "clean_replanning_rescue": True,
+        "first_chunk_correction_survives": False,
+        "completion_steps": 80,
+    }
+    rows = [
+        {**fields, "strategy": strategy, "switch_after_steps": 0, "side": "donor"}
+        for strategy in ("restart", "continue")
+    ]
+    assert _boundary_zero_behavior_exact(rows, ["donor"]) is True
+    rows[1]["eventual_new_task_success"] = False
+    assert _boundary_zero_behavior_exact(rows, ["donor"]) is False
 
 
 def test_dynamic_retarget_requires_registered_controller_replay(tmp_path) -> None:
