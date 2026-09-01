@@ -39,8 +39,7 @@ def prepare_catalog_handoff(
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     if catalog.get("selection_uses_continuation_outcomes") is not False:
         raise ValueError("catalog screen must explicitly exclude continuation outcomes")
-    if not (catalog.get("stop_threshold_reached") or catalog.get("catalog_exhausted")):
-        raise ValueError("catalog handoff requires the frozen stop rule or catalog exhaustion")
+    minimum = _validate_catalog_accounting(catalog)
 
     rows = []
     manifest_by_pair: dict[str, str] = {}
@@ -58,8 +57,16 @@ def prepare_catalog_handoff(
         eligible = [row for row in source_gate["rows"] if row["eligible"]]
         if len(eligible) != int(job["eligible_directions"]):
             raise ValueError("catalog job and source gate eligible counts differ")
+        if {str(row["pair_id"]) for row in eligible} != {
+            str(pair_id) for pair_id in job["eligible_pair_ids"]
+        }:
+            raise ValueError("catalog job and source gate eligible pair ids differ")
         for row in eligible:
             validate_eligible_retarget_row(row)
+            if int(row.get("noise_seed", -1)) != 0 or int(row.get("execution_horizon", -1)) != 5:
+                raise ValueError("catalog eligibility must use frozen seed zero and horizon five")
+            if row.get("source_pair_id") != job.get("source_pair_id"):
+                raise ValueError("catalog eligibility row has the wrong source-pair lineage")
         source_gates.append(
             {
                 "plan_index": int(job["plan_index"]),
@@ -90,7 +97,12 @@ def prepare_catalog_handoff(
             manifest_sha256_by_pair[pair_id] = file_digest(path)
 
     eligible_clusters = len({row["cluster_id"] for row in rows})
-    minimum = int(catalog["minimum_eligible_clusters"])
+    row_keys = [
+        (str(row["cluster_id"]), str(row["pair_id"]), str(row["new_side"]))
+        for row in rows
+    ]
+    if len(row_keys) != len(set(row_keys)):
+        raise ValueError("catalog handoff contains duplicate eligible directions")
     gate = {
         "schema_version": 1,
         "selection_uses_continuation_outcomes": False,
@@ -114,6 +126,47 @@ def prepare_catalog_handoff(
         "manifest_sha256_by_pair": manifest_sha256_by_pair,
     }
     return gate, candidate_index
+
+
+def _validate_catalog_accounting(catalog: dict[str, Any]) -> int:
+    jobs = catalog.get("jobs", [])
+    minimum = int(catalog.get("minimum_eligible_clusters", 0))
+    planned = int(catalog.get("planned_rows", -1))
+    processed = int(catalog.get("processed_rows", -1))
+    if minimum <= 0 or planned < 0 or processed != len(jobs) or processed > planned:
+        raise ValueError("catalog summary has inconsistent progress counts")
+    for index, job in enumerate(jobs):
+        if int(job.get("plan_index", -1)) != index:
+            raise ValueError("catalog jobs are not a contiguous frozen prefix")
+    if len({str(job.get("screen_id")) for job in jobs}) != len(jobs):
+        raise ValueError("catalog jobs contain duplicate screen ids")
+    eligible_jobs = [job for job in jobs if int(job.get("eligible_directions", 0)) > 0]
+    eligible_clusters = {str(job["cluster_id"]) for job in eligible_jobs}
+    eligible_directions = sum(int(job.get("eligible_directions", 0)) for job in jobs)
+    if (
+        int(catalog.get("eligible_clusters", -1)) != len(eligible_clusters)
+        or int(catalog.get("eligible_directions", -1)) != eligible_directions
+        or sorted(str(value) for value in catalog.get("eligible_cluster_ids", []))
+        != sorted(eligible_clusters)
+    ):
+        raise ValueError("catalog eligibility totals disagree with its ordered jobs")
+    stop_reached = len(eligible_clusters) >= minimum
+    exhausted = processed == planned
+    if bool(catalog.get("stop_threshold_reached")) != stop_reached:
+        raise ValueError("catalog stop flag disagrees with recomputed eligible clusters")
+    if bool(catalog.get("catalog_exhausted")) != exhausted:
+        raise ValueError("catalog exhaustion flag disagrees with progress counts")
+    if not (stop_reached or exhausted):
+        raise ValueError("catalog handoff requires the frozen stop rule or catalog exhaustion")
+    if stop_reached and jobs:
+        prior_clusters = {
+            str(job["cluster_id"])
+            for job in jobs[:-1]
+            if int(job.get("eligible_directions", 0)) > 0
+        }
+        if len(prior_clusters) >= minimum:
+            raise ValueError("catalog continued after the first stop-threshold crossing")
+    return minimum
 
 
 def _candidate_manifests(root: Path) -> dict[str, Path]:
