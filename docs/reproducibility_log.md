@@ -1,5 +1,17 @@
 # Reproducibility log
 
+## 2026-09-01: matched-control output lineage independently reconstructed
+
+Protocol version 0.24 adds a final fail-closed audit to the future matched-pi0
+intervention run. Before any repaired pi0 parity or intervention outcome, the
+audit was written to recompute the exact converted-checkpoint binding, clean
+validation hashes, ordered dual-success intersection, job identities and
+metadata, analysis populations, and all 14 files consumed by the cross-model
+comparison. It also requires the coarse and 50-position grids to contain the
+same ordered set of at least 12 independent scene states. The launcher can no
+longer finish without a passing `final_audit.json`. This changes no model,
+intervention, threshold, or statistic.
+
 ## 2026-09-01: protocol and future-run artifact gates independently audited
 
 Protocol version 0.23 synchronizes the machine-readable study constants with

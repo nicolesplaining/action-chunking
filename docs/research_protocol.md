@@ -1,6 +1,6 @@
 # Research protocol: causal editability and retargeting in action chunks
 
-Protocol version: 0.23 (artifact and utility-gate audit)
+Protocol version: 0.24 (matched-control output-lineage audit)
 
 ## 1. Research question
 
@@ -559,6 +559,15 @@ normalized-position cell differences use scene-cluster bootstrap intervals,
 exact sign-flip tests when at most 20 clusters are eligible, and BH correction
 within each metric family. This is a model-level comparison, not an isolated
 architectural causal effect.
+
+After the comparison is written, an independent final audit recomputes the
+passed conversion/checkpoint binding, both clean-validation summary maps, the
+ordered common-state intersection, all job identities and metadata, both
+analysis populations, and all 14 comparison-source digests. Coarse and
+position grids must use the same ordered set of at least 12 independent scene
+states. The launcher writes a passing `final_audit.json` only after every check
+succeeds; a missing or failed audit makes the matched-control result
+unreportable.
 
 1. **Instruction target:** identical scene with two valid objects; change only
    the target phrase in the instruction.
