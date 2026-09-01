@@ -1,19 +1,20 @@
-# Formation is not commitment: causal timing of action chunks in a flow-matching vision-language-action model
+# When can a VLA action sample still be retargeted? Causal editability of flow-matching action chunks
 
 ## Abstract
 
 Action-chunking vision-language-action (VLA) policies predict multiple future
 controls in one inference call, but it is unclear when semantic and geometric
-properties of the chunk become causally fixed. We study the public pi0.5-LIBERO
+properties of the chunk remain conditionally editable. We study the public pi0.5-LIBERO
 policy using paired episodes that share images, robot and simulator state, and
 Gaussian action noise while differing in one registered variable. We distinguish
 *formation*, when a clean intermediate action estimate resembles the final
-paired contrast, from *commitment*, when switching the conditioning for the
-remaining flow updates no longer redirects the output. Across 15 dual-success
+paired contrast, from *conditional editability*, measured by whether switching
+the conditioning for the remaining flow updates redirects the output. Across 15 dual-success
 scene states for a wine-bottle-versus-bowl instruction contrast, full-action and
 translation contrasts satisfy the frozen formation criterion at the first flow
-estimate, yet commit only at the final update in the aggregate. The within-state
-formation-to-commitment gap is positive in all 15 states (mean 9.53 of 10 flow
+estimate, yet lose conditional editability only at the final update in the
+aggregate. The within-state formation-to-boundary gap is positive in all 15
+states (mean 9.53 of 10 flow
 updates for both full action and translation; scene-cluster 95% intervals
 9.27--9.80). Repeated closed-loop interventions yield 30/30 monotonic target
 curves: behavioral target identity remains fully donor-controlled through seven
@@ -23,13 +24,15 @@ action-expert layer and final flow step (normalized causal transfer 0.095--0.099
 across full action, translation, and rotation), while property-matched final-step
 action-state swaps transfer 0.537 of translation and 0.900 of rotation. A
 post-grasp destination contrast replicates across two independently selected
-physical-state blocks, committing at boundaries seven or eight. A closure-time
+physical-state blocks, losing editability at boundaries seven or eight. A closure-time
 case localizes completely to future action position nine, but only one of four
 noise modes is eligible and therefore supports no population claim. These
-results reject a simple readout account in which early appearance implies an
-already fixed plan: properties can be legible throughout integration while
-remaining causally editable until late updates. A registered, matched pi0
-control is being trained before cross-model claims are made.
+results show that early appearance does not imply loss of counterfactual
+control: properties can be legible throughout integration while remaining
+causally editable until late updates. They do not show that the model was
+undecided or lacked an internal plan. A registered inference experiment tests
+whether the measured boundary enables successful retargeting without restarting
+generation, while a matched pi0 control is trained before cross-model claims.
 
 ## 1. Introduction
 
@@ -41,18 +44,20 @@ is iteratively constructed from noise [@chi2023diffusionpolicy;
 computational coordinates: transformer depth, future position within the chunk,
 and flow-integration time. Existing VLA work demonstrates that internal features
 can be interpreted or causally steered [@haon2025mechanistic;
-@swann2026drvla; @jin2026eventsae], but does not establish when a naturally
-occurring paired decision becomes irreversible during action generation.
+@swann2026drvla; @jin2026eventsae], but does not establish when natural
+counterfactual conditioning ceases to redirect an action sample.
 
-We ask: **when does a flow-matching VLA commit to each property of its action
-chunk?** A clean intermediate prediction may already point toward the final
+We ask: **when can each property of a flow-matching VLA action sample still be
+retargeted?** A clean intermediate prediction may already point toward the final
 object or trajectory, yet later conditioning can still redirect it. We therefore
-separate descriptive formation from causal commitment. Formation measures the
+separate descriptive formation from conditional editability. Formation measures the
 agreement of the intermediate clean-action contrast with the final contrast.
-Commitment uses a suffix conditioning switch: early flow updates use one member
+Editability uses a suffix conditioning switch: early flow updates use one member
 of a minimally different episode pair and all remaining updates use the other.
-This intervention directly tests whether the prefix has already fixed the final
-property.
+This intervention tests whether natural paired conditioning still has causal
+control over the final property. Successful redirection is compatible with an
+already formed but overwritable plan and can reflect strong instruction
+following; it is not evidence of indecision or representational absence.
 
 Our initial study uses the public pi0.5-LIBERO checkpoint
 [@physicalintelligence2025pi05] and the public LIBERO simulator and task
@@ -63,7 +68,7 @@ full-donor controls are exact, normalized effects are withheld when clean
 endpoints do not differ, uncertainty is clustered by physical scene state, and
 all heatmap families receive Benjamini--Hochberg correction.
 
-The principal finding is a temporal dissociation. Geometric contrasts are
+The principal mechanistic finding is a temporal dissociation. Geometric contrasts are
 present in the first clean estimate but remain causally editable through most
 or all of the ten-step flow trajectory. Behavioral target identity and a
 post-grasp destination become fixed only during the last two or three updates.
@@ -71,7 +76,10 @@ Late action-state coordinates carry large property-matched effects, whereas
 single residual-layer patches are smaller and include both positive and
 counter-directed transfer. A future-token closure result is sharply localized
 but noise conditional, illustrating why mechanistic case studies and
-population conclusions must remain separate.
+population conclusions must remain separate. The consequential question is
+therefore evaluated separately: whether this boundary predicts the last point
+at which a newly instructed task can be reached by continuing the current
+sample with fewer post-update flow evaluations than a full restart.
 
 ## 2. Related work
 
@@ -89,6 +97,18 @@ of action sequences with receding-horizon execution [@chi2023diffusionpolicy].
 Our question is complementary: rather than comparing policy classes, we resolve
 where and when a fixed trained model causally constructs a chunk.
 
+Iterative action generation also creates a latency problem. One-Step Diffusion
+Policy distills a diffusion controller and reports both task success and action
+frequency [@wang2025onedp], while One-Step Flow Policy applies self-distillation
+to flow policies and includes a pi0.5 integration [@li2026ofp]. Our practical
+experiment does not distill or retrain the model. It addresses a different
+online event: when an instruction changes after some flow evaluations are
+already sunk, can the current action state be reused rather than restarted?
+SafeDiffuser embeds constraints into iterative diffusion planning and separates
+safety satisfaction from planning quality and overhead
+[@xiao2025safediffuser]. We adopt that measurement separation for the planned
+obstacle study without claiming formal barrier guarantees.
+
 Interchange interventions replace an internal variable in one computation with
 its value from a counterfactual computation, providing a test of causal
 abstraction rather than correlation [@geiger2022iit;
@@ -104,7 +124,7 @@ Recent VLA interpretability studies causally steer FFN vectors
 [@jin2026eventsae]. Those results motivate causal VLA analysis and cross-scene
 replication. Our contribution is an intervention grid crossing every flow step,
 action-expert depth, action-state group, and—within an eligible case—future
-action position, together with a separate behavioral commitment estimand.
+action position, together with a separate behavioral editability estimand.
 
 ## 3. Methods
 
@@ -168,7 +188,7 @@ clean contrast. Formation is the earliest step whose relative contrast error is
 at most 0.20 and remains within tolerance at every later step. Formation is a
 descriptive property of the clean computation and is never labeled causal.
 
-### 3.4 Commitment by suffix conditioning switch
+### 3.4 Conditional editability by suffix conditioning switch
 
 For a pair `A, B`, a switch at boundary `k` integrates the same initial noise
 under condition `A` for the first `k` Euler updates and condition `B` for all
@@ -179,11 +199,11 @@ source retention is
 R(k) = 1 - <Y_switch(k) - Y_A, Y_B - Y_A> / ||Y_B - Y_A||^2.
 ```
 
-The reported curve averages the two directions after orientation. Commitment is
-the earliest boundary at which isotonic source retention is at least 0.80 and
-remains so thereafter. We also report retention AUC; `0.5 - AUC` measures late
-weighting relative to a uniform-update reference but does not imply a discrete
-planning stage.
+The reported curve averages the two directions after orientation. The
+editability boundary is the earliest boundary at which isotonic source
+retention is at least 0.80 and remains so thereafter. We also report retention
+AUC; `0.5 - AUC` measures late weighting relative to a uniform-update reference
+but does not imply a discrete planning stage.
 
 Behavioral target identity is evaluated online. The same boundary intervention
 is applied at every replan until first task-object contact, producing source,
@@ -192,7 +212,29 @@ phase-aligned held-object state using the final live object position relative to
 registered endpoints. LIBERO's source-task success flag is not used to label a
 crossed donor destination.
 
-### 3.5 Layer, action-state, and token interventions
+### 3.5 Retargeting without restarting generation
+
+The practical experiment simulates a new instruction arriving after `k` flow
+evaluations under the old instruction. A *continue* strategy retains the live
+action state `x_k`, prepares the new image--language condition, and evaluates
+only the remaining velocity fields. A *restart* strategy discards `x_k` and
+regenerates from the same original Gaussian noise under the new instruction.
+The new instruction defines the evaluated LIBERO task and every subsequent
+clean replan. Outcomes are new-target-first contact, eventual task success,
+completion steps, synchronized post-event latency including condition
+preparation, and post-event velocity evaluations.
+
+This construct is deliberately independent of whether the hybrid action is
+close to a donor vector. The existing target curve freezes boundaries
+`k in {0, 7, 8, 9, 10}` before utility outcomes: 0 is the full-restart ceiling,
+7 is the predicted safe continuation point, 8 is the transition, and 9--10 are
+negative controls. At `k=7`, continue executes three post-event velocity
+evaluations versus ten for restart. A practical claim requires held-out scene
+states, byte-exact `k=0` equivalence, a five-percentage-point paired
+noninferiority margin for both target-first contact and task success, and lower
+measured post-event latency.
+
+### 3.6 Layer, action-state, and token interventions
 
 At flow step `s` and action-expert layer `l`, residual interchange replaces all
 action-token post-layer residuals in the recipient with their donor values. At
@@ -212,7 +254,7 @@ not clipped. Every patch is run in both directions. Identity patches must match
 the clean action exactly, and full-donor interventions define the transfer
 ceiling.
 
-### 3.6 Statistics
+### 3.7 Statistics
 
 The physical scene-state hash is the resampling cluster. Primary intervals use
 10,000 scene-cluster bootstrap replicates with frozen seeds. Cellwise two-sided
@@ -225,30 +267,31 @@ inference; such results are labeled descriptive.
 
 ## 4. Results
 
-### 4.1 Clean formation precedes causal commitment
+### 4.1 Clean formation precedes loss of conditional editability
 
 All 15 primary scene states are eligible for full action, translation, rotation,
 and target direction. Full-action, translation, and rotation contrasts satisfy
 the aggregate formation criterion at step 0 with bootstrap intervals 0--0;
 target direction also forms at step 0 in the aggregate, with interval 0--3.
-Nevertheless, continuous commitment occurs at step 10 for full action,
+Nevertheless, the continuous editability boundary occurs at step 10 for full action,
 translation, and target direction, and step 9 for rotation. Retention AUC is
 0.232, 0.220, 0.159, and 0.310, respectively.
 
 The state-paired timing gap is positive in all 15 states for all four properties.
-Mean commitment-minus-formation gaps are 9.53 updates for full action (95%
+Mean editability-boundary-minus-formation gaps are 9.53 updates for full action (95%
 interval 9.27--9.80), 9.53 for translation (9.27--9.80), 8.80 for rotation
 (8.60--9.00), and 8.20 for target direction (6.80--9.40). Thus early clean
 contrast alignment does not mean that the corresponding output is fixed.
 
-### 4.2 Behavioral target identity fixes in the last integration quarter
+### 4.2 Behavioral target identity remains conditionally editable late
 
 The 15-state online experiment yields 30 directional curves, all monotonic. Full
 donor controls transfer target identity in every direction and full source
 controls retain it in every direction. Source retention is exactly zero through
 boundary 7, rises to 0.600 at boundary 8 (scene-cluster interval 0.433--0.767),
-and is exactly one at boundaries 9 and 10. Eighteen directional curves commit at
-boundary 8 and 12 at boundary 9, giving median 8 and interquartile range 8--9.
+and is exactly one at boundaries 9 and 10. Eighteen directional curves cross
+the editability threshold at boundary 8 and 12 at boundary 9, giving median 8
+and interquartile range 8--9.
 One boundary-1 rollout contacts neither registered target; it remains in the raw
 table rather than being relabeled. Donor transfer at that boundary is therefore
 0.967 while source retention is zero.
@@ -278,7 +321,7 @@ planning site.
 Both independently selected held-bowl state blocks pass all clean endpoint
 controls. In all four directional curves, boundaries 0--6 select the donor
 destination, boundary 7 splits by direction, and boundaries 8--10 select the
-source destination. Each block independently produces commitment boundaries 7
+source destination. Each block independently produces editability boundaries 7
 and 8; combined median is 7.5 with interquartile range 7--8 and AUC 0.300. The
 replication shows that a post-grasp subgoal remains editable until late
 integration. Because the target and destination experiments begin at different
@@ -288,7 +331,7 @@ rollout phases, their boundary difference is not a universal semantic ordering.
 
 In the registered seed-0 target-pose case, the unshifted clean chunk first closes
 at future action position 9 while the shifted chunk is right-censored at the
-ten-position horizon. Closure forms and commits at flow step 7. Swapping only
+ten-position horizon. Closure forms and loses editability at flow step 7. Swapping only
 the gripper coordinate of `x_t` at step 6 fully transfers categorical closure
 time in both directions; translation and rotation swaps do not.
 
@@ -312,12 +355,24 @@ A two-update, two-H100 FSDP smoke completed with finite first-reported loss
 checkpoint. The 30,000-update training and competence evaluation must complete
 before any pi0-versus-pi0.5 timing contrast is inserted here.
 
+### 4.7 Registered inference-utility experiment
+
+Dynamic-retargeting outcomes are not yet reported. The continuation and restart
+paths, compute accounting, latency instrumentation, eligibility gates, tested
+boundaries, and noninferiority margin were frozen after the construct-validity
+critique but before running held-out retargeting episodes. This section will
+report negative as well as positive outcomes, including the possibility that
+the editability boundary predicts immediate target correction but not eventual
+success after subsequent clean replanning.
+
 ## 5. Discussion
 
 The results support a distinction between *representation* and *control*. The
 paired action contrast is already close to its final form in the first clean
 estimate, yet replacing the remaining conditioning can redirect the output for
-most of integration. In this system, early legibility is not commitment.
+most of integration. This establishes retained counterfactual control, not
+indecision: an existing plan may remain overwritable, and late redirection may
+be a desirable instruction-following capability.
 
 The largest causal effects occur in late action-state coordinates, consistent
 with iterative geometric instantiation. Residual-stream patches identify a
@@ -346,8 +401,8 @@ state blocks, one task contrast, and one noise seed. Gripper closure has no
 noise-robust eligible state and remains descriptive.
 
 Rotation of the action command is not yet equivalent to a grasp-frame outcome;
-a phase-aligned grasp-orientation evaluator remains required before claiming
-grasp-orientation commitment. The registered obstacle-position and closed-loop
+a phase-aligned grasp-orientation evaluator remains required before claiming a
+grasp-orientation editability boundary. The registered obstacle-position and closed-loop
 recovery families are also pending. In an initial first-replan recovery pilot,
 all exactness controls passed and all patched rollouts eventually succeeded, but
 zero of two directions had a donor-first contact that was induced relative to

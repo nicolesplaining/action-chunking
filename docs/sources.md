@@ -40,6 +40,30 @@ paper version, not this summary.
   ([paper](https://arxiv.org/abs/2303.04137),
   [code](https://github.com/real-stanford/diffusion_policy)).
 
+## Efficient and constrained generative control
+
+- **One-Step Diffusion Policy:** distills an iterative visuomotor diffusion
+  policy to one action-generation step and evaluates success together with
+  action-prediction frequency
+  ([paper](https://arxiv.org/abs/2410.21257),
+  [project](https://research.nvidia.com/labs/cosmos-lab/onedp/)). Its explicit
+  neural-function-evaluation and latency reporting motivate our paired
+  post-update compute accounting. We do not reuse its distillation objective
+  because the present experiment tests training-free continuation of a fixed
+  public VLA.
+- **One-Step Flow Policy:** self-distills flow policies and includes a pi0.5
+  integration, providing a direct contemporary reference for the practical cost
+  of iterative VLA sampling ([paper](https://arxiv.org/abs/2603.12480)). Our
+  continuation method is complementary: it saves only already-completed updates
+  after a late instruction change and requires no retraining.
+- **SafeDiffuser:** inserts control-barrier constraints into iterative diffusion
+  planning and evaluates safety jointly with planning quality
+  ([paper](https://arxiv.org/abs/2306.00148),
+  [code](https://github.com/Weixy21/SafeDiffuser)). We use its separation of
+  constraint satisfaction, task performance, and per-step overhead to structure
+  the later obstacle/safety correction experiment; we do not claim its formal
+  barrier guarantees for OpenPI.
+
 ## Causal methodology
 
 - Interchange interventions and causal abstraction: Geiger et al.
@@ -56,8 +80,8 @@ paper version, not this summary.
   ([paper](https://openreview.net/forum?id=YvsUD8C9QS),
   [code](https://github.com/Physical-AI-Safety-Institute/mechanistic-steering-vlas)).
   It establishes that internal interventions can causally steer VLA behavior;
-  our study asks the distinct question of *when* a naturally occurring paired
-  decision becomes fixed across action-expert layers and flow integration.
+  our study asks the distinct question of *when* natural paired conditioning
+  loses causal control across action-expert layers and flow integration.
 - **DR.VLA:** sparse-autoencoder features in pi0.5 PaliGemma and action-expert
   activations, including per-token analyses and causal steering
   ([paper](https://arxiv.org/abs/2603.19183),

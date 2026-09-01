@@ -53,6 +53,34 @@ def test_dynamic_retarget_summary_preserves_compute_and_behavior_controls(tmp_pa
     assert summary["all_simulator_states_exact"] is True
 
 
+def test_dynamic_retarget_summary_allows_restart_only_partial_result(tmp_path) -> None:
+    root = tmp_path / "restart_after_0"
+    root.mkdir()
+    results = []
+    for side, target in (("base", "wine"), ("donor", "bowl")):
+        results.append(_result(side, target, 10, False))
+        (root / f"{side}_actions.json").write_text(json.dumps([[[1.0, 2.0]]]))
+    (root / "summary.json").write_text(
+        json.dumps(
+            {
+                "dynamic_retarget": {
+                    "family": "dynamic_retarget",
+                    "strategy": "restart",
+                    "switch_after_steps": 0,
+                },
+                "results": results,
+            }
+        )
+    )
+
+    _write_tables(tmp_path, "pair", {"base_target": "wine", "donor_target": "bowl"}, 0)
+    summary = json.loads((tmp_path / "summary.json").read_text())
+
+    assert summary["boundary_zero_continue_restart_actions_exact"] is None
+    assert summary["restart_new_task_success_rate"] == 1.0
+    assert summary["continuation"] == []
+
+
 def _result(side: str, target: str, post: int, discarded: bool) -> dict:
     return {
         "side": side,

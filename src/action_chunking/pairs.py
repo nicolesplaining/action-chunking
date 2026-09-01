@@ -13,6 +13,14 @@ import numpy as np
 from numpy.typing import NDArray
 
 
+def advance_reset_sequence(env: Any, start_index: int) -> None:
+    """Match task-local renderer state when generating a nonzero index range."""
+    if start_index < 0:
+        raise ValueError("start_index must be nonnegative")
+    for _ in range(start_index):
+        env.reset()
+
+
 @dataclasses.dataclass(frozen=True)
 class InstructionPair:
     """Model-ready inputs for one explicitly registered paired intervention."""
