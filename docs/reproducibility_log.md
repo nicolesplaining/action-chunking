@@ -477,6 +477,11 @@ the original converted config/weight hashes. The new parity summary embeds the
 prior summary hash and failure metrics. The pi0 intervention gate requires this
 binding in addition to 32/32 lossless parity, preventing an apparent repair
 from changing the checkpoint, case set, or comparison thresholds.
+The committed preflight was then executed read-only against the real remote
+artifacts and passed all checks. The preserved failed-summary SHA-256 is
+`d6712dc48f783bf9815c536152157f5296a7ae03abe38375d699b125013a0d4d`;
+its original converted config and weight hashes are retained in the preflight
+record. No lossless checkpoint or parity output was created during this check.
 
 ## 2026-09-01: utility-prediction sample-size gate
 
