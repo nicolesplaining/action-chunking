@@ -13,6 +13,12 @@ exact velocity-evaluation savings intervals to lie above zero against both,
 with at least 59 valid predictions. This reuses the already registered dense
 sweeps and adds no outcome-driven cell selection.
 
+The remote preflight also showed that the required root `.venv` is a symlink,
+while the ignore rule matched only directories. The strict clean-worktree gate
+would therefore have rejected the future pi0 intervention launcher. The ignore
+rule now covers both a directory and a symlink named `.venv`; no environment
+contents are tracked, and the sealed confirmation checkout is unchanged.
+
 ## 2026-09-01: matched-control figures bound to audited outputs
 
 Protocol version 0.33 closes a future publication-lineage gap before any

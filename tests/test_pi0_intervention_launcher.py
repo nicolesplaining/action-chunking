@@ -15,3 +15,9 @@ def test_pi0_launcher_uses_two_isolated_gpus_and_fail_closed_resume() -> None:
     assert 'wait "$position_pid"' in launcher
     assert "status --porcelain=v1 --untracked-files=all" in launcher
     assert '[[ -e "$output" && ! -f "$output/code_commit.txt" ]]' in launcher
+
+
+def test_required_remote_virtualenv_symlink_is_ignored() -> None:
+    rules = Path(".gitignore").read_text().splitlines()
+
+    assert ".venv" in rules
