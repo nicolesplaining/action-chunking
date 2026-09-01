@@ -161,18 +161,21 @@ replan-index histogram rather than collapsing all failures into eventual
 success alone.
 
 The confirmatory population expands in the frozen public-catalog order until 59
-independent endpoint-eligible scene clusters are available or the catalog is
-exhausted, regardless of whether the 16-state pilot is eligible. Select the first
-endpoint-eligible direction in frozen gate order within each cluster and retain
-all additional directions only in the audit trail. Freeze every selected
-action-only prediction before the first continuation rollout in that population.
+independent endpoint-eligible scene clusters and 59 valid action-only
+predictions are available, or the catalog is exhausted, regardless of whether
+the 16-state pilot is eligible. Predictor validity is computed without any
+closed-loop continuation outcome. Select the first endpoint-eligible direction
+in frozen gate order within each cluster and retain all additional directions
+only in the audit trail. Freeze every selected action-only prediction and its
+complete action arrays before the first continuation rollout, and reconstruct
+the prediction from those arrays during the final audit.
 Report exact and within-one-boundary prediction accuracy, mean absolute error,
 Spearman correlation, success at the predicted boundary, and failure at its
 successor. For boundary seven, report the one-sided exact upper confidence bound
 on paired composite losses, with one scene cluster per trial, alongside median
 paired latency savings and its frozen cluster-bootstrap interval.
 
-For execution only, screen two adjacent outcome-independent catalog rows on
+For execution only, screen two adjacent closed-loop-outcome-independent catalog rows on
 isolated GPU/port workers. Preserve the inferential population as the exact
 contiguous frozen prefix; retain and label at most one concurrently completed
 successor as speculative and exclude it from selection. Do not reuse the prior

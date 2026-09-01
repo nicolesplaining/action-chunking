@@ -1,5 +1,21 @@
 # Reproducibility log
 
+## 2026-09-01: catalog stop rule guarantees the predictive sample size
+
+Protocol version 0.40 corrects the confirmatory catalog before the fresh screen
+or any closed-loop continuation outcome. The exact contiguous prefix now stops
+only after it contains both 59 endpoint-eligible clusters and 59 valid
+action-only scene predictions, or the public catalog is exhausted. Predictor
+validity is computed from frozen action arrays without continuation rollouts;
+invalid predictions remain in every denominator with restart fallback. Each
+prediction is reconstructed from its arrays and target geometry before it can
+affect the stop count or final audit. The versioned plan is
+`catalogs/retarget_screening_plan_protocol040.json`, SHA-256
+`3706d8da03391a5efe6a3261008c4ad4f7b98b0dfb424c1e9797e9d7e9793a3d`.
+The legacy plan remains byte-identical because the completed obstacle study is
+bound to its earlier digest. No endpoint, continuation outcome, statistic, or
+decision threshold changed.
+
 ## 2026-09-01: utility outcomes bound to clean orchestration code
 
 Protocol version 0.39 closes the remaining code-lineage gap before any held-out

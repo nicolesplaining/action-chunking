@@ -17,7 +17,22 @@ def test_catalog_progress_counts_clusters_not_directions() -> None:
 
     assert progress["eligible_directions"] == 4
     assert progress["eligible_clusters"] == 2
+    assert progress["valid_prediction_clusters"] == 2
     assert progress["stop_threshold_reached"] is True
+
+
+def test_catalog_progress_continues_until_prediction_sample_is_valid() -> None:
+    jobs = [
+        _job(0, "a", "cluster-a", 1, valid=False),
+        _job(1, "b", "cluster-a", 0),
+        _job(2, "c", "cluster-b", 1, valid=True),
+    ]
+
+    progress = summarize_catalog_progress(_plan(), jobs)
+
+    assert progress["eligible_clusters"] == 2
+    assert progress["valid_prediction_clusters"] == 1
+    assert progress["stop_threshold_reached"] is False
 
 
 def test_catalog_progress_rejects_nonprefix_job() -> None:
@@ -27,7 +42,10 @@ def test_catalog_progress_rejects_nonprefix_job() -> None:
 
 def _plan() -> dict:
     return {
-        "stop_rule": {"minimum_eligible_clusters": 2},
+        "stop_rule": {
+            "minimum_eligible_clusters": 2,
+            "minimum_valid_prediction_clusters": 2,
+        },
         "rows": [
             {"screen_id": "a", "cluster_id": "cluster-a"},
             {"screen_id": "b", "cluster_id": "cluster-a"},
@@ -36,10 +54,21 @@ def _plan() -> dict:
     }
 
 
-def _job(index: int, screen_id: str, cluster_id: str, eligible: int) -> dict:
+def _job(
+    index: int,
+    screen_id: str,
+    cluster_id: str,
+    eligible: int,
+    *,
+    valid: bool = True,
+) -> dict:
     return {
         "plan_index": index,
         "screen_id": screen_id,
         "cluster_id": cluster_id,
         "eligible_directions": eligible,
+        "action_only_predictions": [
+            {"pair_id": f"pair-{index}-{direction}", "valid": valid}
+            for direction in range(eligible)
+        ],
     }

@@ -1,6 +1,6 @@
 study:
   name: pi05_libero_conditional_editability
-  protocol_version: "0.39"
+  protocol_version: "0.40"
   pilot_pairs_per_family: 16
   primary_noise_seed: 0
   robustness_noise_seeds_per_pair: 4
@@ -33,7 +33,14 @@ retarget_utility:
     - eventual_new_task_success
     - target_first_and_task_success_composite
   minimum_eligible_scene_clusters: 59
-  stop_rule: first_59_eligible_scene_clusters_or_public_catalog_exhaustion
+  minimum_valid_prediction_scene_clusters: 59
+  stop_rule: first_prefix_with_59_eligible_and_59_valid_predictions_or_public_catalog_exhaustion
+  endpoint_screen_uses_action_only_prediction_validity: true
+  endpoint_screen_uses_continuation_outcomes: false
+  endpoint_screen_freezes_prediction_arrays_before_closed_loop: true
+  prediction_audit_reconstructs_curves_from_saved_actions: true
+  endpoint_screen_plan: catalogs/retarget_screening_plan_protocol040.json
+  endpoint_screen_plan_sha256: 3706d8da03391a5efe6a3261008c4ad4f7b98b0dfb424c1e9797e9d7e9793a3d
   endpoint_screen_parallel_workers: 2
   endpoint_screen_requires_distinct_gpu_and_port: true
   endpoint_screen_selection_is_contiguous_completed_prefix: true

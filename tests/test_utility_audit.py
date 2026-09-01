@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 import csv
+import hashlib
 import json
 from pathlib import Path
 
+import numpy as np
 import pytest
 
+from action_chunking.metrics import target_direction_affinity
 from action_chunking.pairs import file_digest
 from action_chunking.retarget_controls import BOUNDARY_ZERO_BEHAVIOR_FIELDS
 from action_chunking.utility_artifacts import (
@@ -13,6 +16,10 @@ from action_chunking.utility_artifacts import (
     build_utility_job,
     build_utility_summary,
     select_primary_directions,
+)
+from action_chunking.utility_prediction import (
+    audit_prediction_artifacts,
+    predict_last_successful_boundary,
 )
 
 
@@ -37,6 +44,28 @@ def test_utility_audit_reconstructs_raw_sweeps_and_detects_tampering(
     with pytest.raises(ValueError, match="code-commit binding"):
         audit_utility_study(bound_root)
 
+    prediction_root, _ = _study(tmp_path / "prediction")
+    frozen = json.loads((prediction_root / "frozen_predictions.json").read_text())
+    entry = frozen["entries"][0]
+    assert audit_prediction_artifacts(
+        Path(entry["prediction"]),
+        Path(entry["prediction_actions"]),
+        Path(entry["manifest"]),
+        entry["pair_id"],
+        entry["new_side"],
+    )["valid"] is True
+    changed_prediction = json.loads(Path(entry["prediction"]).read_text())
+    changed_prediction["predicted_last_successful_boundary"] -= 1
+    Path(entry["prediction"]).write_text(json.dumps(changed_prediction))
+    with pytest.raises(ValueError, match="reconstructed curve"):
+        audit_prediction_artifacts(
+            Path(entry["prediction"]),
+            Path(entry["prediction_actions"]),
+            Path(entry["manifest"]),
+            entry["pair_id"],
+            entry["new_side"],
+        )
+
 
 def _study(root: Path) -> tuple[Path, Path]:
     root.mkdir(parents=True, exist_ok=True)
@@ -60,11 +89,40 @@ def _study(root: Path) -> tuple[Path, Path]:
         "restart_new_target_first": True,
         "clean_tasks_competent": True,
     }
+    source_gate = root / "source_gate.json"
+    source_gate.write_text(json.dumps({"selection_uses_continuation_outcomes": False}))
+    catalog = root / "catalog_summary.json"
+    catalog.write_text(
+        json.dumps(
+            {
+                "code_commit": action_chunking_commit,
+                "selection_uses_continuation_outcomes": False,
+                "selection_uses_action_only_prediction_validity": True,
+                "stop_threshold_reached": True,
+                "catalog_exhausted": False,
+                "eligible_clusters": 1,
+                "valid_prediction_clusters": 1,
+            }
+        )
+    )
     gate = root / "gate.json"
     gate.write_text(
         json.dumps(
             {
                 "selection_uses_continuation_outcomes": False,
+                "source_catalog_summary": str(catalog),
+                "source_catalog_summary_sha256": file_digest(catalog),
+                "catalog_stop_threshold_reached": True,
+                "catalog_exhausted": False,
+                "confirmatory_population_complete": True,
+                "eligible_clusters": 1,
+                "valid_prediction_clusters": 1,
+                "source_gates": [
+                    {
+                        "path": str(source_gate),
+                        "sha256": file_digest(source_gate),
+                    }
+                ],
                 "rows": [gate_row],
             }
         )
@@ -72,9 +130,72 @@ def _study(root: Path) -> tuple[Path, Path]:
     calibration = root / "calibration.json"
     calibration.write_text(json.dumps({"selection_uses_continuation_outcomes": False}))
     manifest = root / "candidate.json"
-    manifest.write_text(json.dumps({"pairs": [{"pair_id": pair_id}]}))
+    manifest_entry = {
+        "pair_id": pair_id,
+        "end_effector_position": [0.0, 0.0, 0.0],
+        "base_target_position": [1.0, 0.0, 0.0],
+        "donor_target_position": [0.0, 1.0, 0.0],
+    }
+    manifest.write_text(json.dumps({"pairs": [manifest_entry]}))
     prediction = root / "prediction.json"
-    prediction.write_text(json.dumps({"valid": True, "boundary": 7}))
+    prediction_actions = root / "prediction_actions.npz"
+    actions_by_boundary = {}
+    records = []
+    for boundary in range(11):
+        actions = np.zeros((50, 7), dtype=np.float32)
+        actions[:5, 0] = boundary / 10
+        actions[:5, 1] = 1 - boundary / 10
+        actions_by_boundary[boundary] = actions
+        records.append(
+            {
+                "family": "flow_switch",
+                "direction": "base_to_donor",
+                "switch_after_steps": boundary,
+                "target_direction_affinity": target_direction_affinity(
+                    actions,
+                    manifest_entry["end_effector_position"],
+                    manifest_entry["base_target_position"],
+                    manifest_entry["donor_target_position"],
+                    executed_horizon=5,
+                ),
+            }
+        )
+    restart = actions_by_boundary[0].copy()
+    noise = np.zeros((50, 32), dtype=np.float32)
+    np.savez_compressed(
+        prediction_actions,
+        **{
+            f"continue_after_{boundary}": actions
+            for boundary, actions in actions_by_boundary.items()
+        },
+        restart=restart,
+        noise=noise,
+    )
+    prediction_payload = predict_last_successful_boundary(
+        records,
+        "base_to_donor",
+    )
+    prediction_payload.update(
+        {
+            "valid": True,
+            "invalid_reason": None,
+            "pair_id": pair_id,
+            "noise_seed": 0,
+            "noise_start_index": 0,
+            "action_noise_shape": list(noise.shape),
+            "old_side": "base",
+            "new_side": side,
+            "executed_action_horizon": 5,
+            "boundary_zero_restart_exact": True,
+            "action_sha256_by_boundary": {
+                str(boundary): hashlib.sha256(actions.tobytes()).hexdigest()
+                for boundary, actions in actions_by_boundary.items()
+            },
+            "restart_action_sha256": hashlib.sha256(restart.tobytes()).hexdigest(),
+            "action_noise_sha256": hashlib.sha256(noise.tobytes()).hexdigest(),
+        }
+    )
+    prediction.write_text(json.dumps(prediction_payload))
     entry = {
         "pair_id": pair_id,
         "new_side": side,
@@ -83,8 +204,12 @@ def _study(root: Path) -> tuple[Path, Path]:
         "manifest_sha256": file_digest(manifest),
         "prediction": str(prediction),
         "prediction_sha256": file_digest(prediction),
+        "prediction_actions": str(prediction_actions),
+        "prediction_actions_sha256": file_digest(prediction_actions),
         "valid": True,
-        "predicted_last_successful_boundary": 7,
+        "predicted_last_successful_boundary": prediction_payload[
+            "predicted_last_successful_boundary"
+        ],
     }
     _selected, decisions = select_primary_directions([gate_row])
     frozen = root / "frozen_predictions.json"

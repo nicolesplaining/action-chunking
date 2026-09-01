@@ -315,7 +315,11 @@ decision is emitted until every cluster selected by the frozen endpoint gate is
 complete. The endpoint catalog and closed-loop utility run must use the same
 completely clean action-chunking commit and pinned OpenPI revision. The commit is
 frozen before continuation rollout, checked around every cluster, and verified
-again by the independent raw-artifact audit.
+again by the independent raw-artifact audit. The outcome-blind catalog prefix
+continues until it contains both 59 endpoint-eligible clusters and 59 valid
+action-only predictions. Invalid predictions remain in the population with a
+restart fallback. Prediction validity and boundary values are reconstructed
+from the frozen action arrays before any closed-loop continuation is accepted.
 
 The obstacle pilot applies the same identity principle at `k=0`: continue and
 restart must match not only in action bytes but also in obstacle-contact timing,

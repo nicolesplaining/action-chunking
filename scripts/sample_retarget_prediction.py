@@ -113,6 +113,8 @@ def main() -> int:
                 str(boundary): hashlib.sha256(actions.tobytes()).hexdigest()
                 for boundary, actions in actions_by_boundary.items()
             },
+            "restart_action_sha256": hashlib.sha256(restart.tobytes()).hexdigest(),
+            "action_noise_sha256": hashlib.sha256(noise.tobytes()).hexdigest(),
         }
     )
     args.output.mkdir(parents=True, exist_ok=True)

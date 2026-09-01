@@ -16,10 +16,16 @@ def build_retarget_screening_plan(
     *,
     initial_states_per_pair: int = 50,
     minimum_eligible_clusters: int = 59,
+    minimum_valid_prediction_clusters: int = 59,
 ) -> dict[str, Any]:
-    """Build a deterministic target-pair screen without intervention outcomes."""
-    if not catalog_paths or initial_states_per_pair <= 0 or minimum_eligible_clusters <= 0:
-        raise ValueError("catalogs, initial-state count, and eligible-cluster minimum are required")
+    """Build a deterministic target-pair screen without closed-loop outcomes."""
+    if (
+        not catalog_paths
+        or initial_states_per_pair <= 0
+        or minimum_eligible_clusters <= 0
+        or minimum_valid_prediction_clusters <= 0
+    ):
+        raise ValueError("catalogs and both positive cluster minima are required")
     exclusion_payload = json.loads(exclusions_path.read_text())
     exclusions = exclusion_payload.get("exclusions", [])
     pairs = []
@@ -76,7 +82,9 @@ def build_retarget_screening_plan(
                 excluded.append({**row, "reason": exclusion["reason"]})
     return {
         "schema_version": 1,
-        "selection_uses_intervention_outcomes": False,
+        "selection_uses_intervention_outcomes": True,
+        "selection_uses_continuation_outcomes": False,
+        "selection_uses_action_only_prediction_validity": True,
         "ordering": [
             "canonical_scene_sha256",
             "suite",
@@ -87,6 +95,7 @@ def build_retarget_screening_plan(
         "cluster_unit": "suite_x_canonical_scene_x_init_index",
         "stop_rule": {
             "minimum_eligible_clusters": minimum_eligible_clusters,
+            "minimum_valid_prediction_clusters": minimum_valid_prediction_clusters,
             "fallback": "public_catalog_exhaustion",
         },
         "initial_states_per_pair": initial_states_per_pair,

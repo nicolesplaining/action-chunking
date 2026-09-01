@@ -18,7 +18,7 @@ def test_machine_readable_protocol_matches_executable_frozen_defaults() -> None:
 
     utility_defaults = inspect.signature(summarize_utility_jobs).parameters
     catalog_defaults = inspect.signature(build_retarget_screening_plan).parameters
-    assert protocol["study"]["protocol_version"] == "0.39"
+    assert protocol["study"]["protocol_version"] == "0.40"
     assert protocol["inference"]["flow_steps"] == 10
     assert protocol["inference"]["receding_horizon_steps"] == 5
     assert protocol["study"]["editability_retention_threshold"] == 0.8
@@ -39,6 +39,22 @@ def test_machine_readable_protocol_matches_executable_frozen_defaults() -> None:
     assert utility["minimum_eligible_scene_clusters"] == catalog_defaults[
         "minimum_eligible_clusters"
     ].default
+    assert utility["minimum_valid_prediction_scene_clusters"] == utility_defaults[
+        "minimum_valid_predictions"
+    ].default
+    assert utility["minimum_valid_prediction_scene_clusters"] == catalog_defaults[
+        "minimum_valid_prediction_clusters"
+    ].default
+    assert utility["endpoint_screen_uses_action_only_prediction_validity"] is True
+    assert utility["endpoint_screen_uses_continuation_outcomes"] is False
+    assert utility["endpoint_screen_freezes_prediction_arrays_before_closed_loop"] is True
+    assert utility["prediction_audit_reconstructs_curves_from_saved_actions"] is True
+    assert utility["endpoint_screen_plan"] == (
+        "catalogs/retarget_screening_plan_protocol040.json"
+    )
+    assert utility["endpoint_screen_plan_sha256"] == (
+        "3706d8da03391a5efe6a3261008c4ad4f7b98b0dfb424c1e9797e9d7e9793a3d"
+    )
     assert utility["endpoint_screen_parallel_workers"] == 2
     assert utility["endpoint_screen_requires_distinct_gpu_and_port"] is True
     assert utility["endpoint_screen_selection_is_contiguous_completed_prefix"] is True

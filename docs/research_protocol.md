@@ -1,6 +1,6 @@
 # Research protocol: causal editability and retargeting in action chunks
 
-Protocol version: 0.39 (utility outcomes bound to clean orchestration code)
+Protocol version: 0.40 (catalog stop rule guarantees the predictive sample size)
 
 ## 1. Research question
 
@@ -171,12 +171,16 @@ design utility and cannot be met by treating directions, noise seeds, or action
 tokens as independent. The confirmatory screen therefore proceeds through
 additional exact-scene instruction pairs in the clean public-catalog order
 (canonical-scene hash, suite, base task ID, donor task ID, then initialization
-index) until at least 59 unique eligible scene-state clusters are frozen. A
+index) until at least 59 unique eligible scene-state clusters and 59 valid
+action-only predictions are frozen. Predictor validity depends only on the
+pre-outcome action curve and its registered target-contrast threshold; no
+closed-loop continuation outcome is available. A
 cluster is `(suite, canonical-scene hash, initialization index)` and is counted
 once even when multiple target contrasts or directions are screened within it.
-All screened rows and clusters remain in the denominator. If the public catalog
-is exhausted first, U2 remains a pilot estimate and no five-point
-noninferiority claim is made.
+All screened rows and clusters, including invalid predictions, remain in the
+denominator; invalid predictions conservatively restart in U4. If the public
+catalog is exhausted first, any claim whose sample-size gate is unmet remains a
+pilot estimate.
 
 The predictive U1 claim is stricter than correlation with the last successful
 boundary. A positive requires the scene-specific predictor's mean-absolute-error
@@ -197,19 +201,23 @@ The immutable expansion artifact combines the pinned `libero_goal` and
 definitions, 2,218 non-pilot screening rows, and 718 unique candidate clusters.
 The 32 wine-bottle/bowl initialization states already used for mechanistic or
 utility pilots are excluded explicitly. The plan, source catalog hashes,
-exclusions, ordering, cluster unit, and 59-cluster stop rule were serialized
-before the corrected held-out endpoint screen completed. Eligibility uses only
-the frozen old-condition and restart endpoints; no intermediate continuation
-outcome can affect where screening stops.
+exclusions, ordering, cluster unit, and dual 59-cluster stop rule are serialized
+in `catalogs/retarget_screening_plan_protocol040.json` (SHA-256
+`3706d8da03391a5efe6a3261008c4ad4f7b98b0dfb424c1e9797e9d7e9793a3d`)
+before the fresh held-out endpoint screen starts. Eligibility uses only the
+frozen old-condition and restart endpoints. The second threshold uses only
+action-only predictor validity, never a closed-loop continuation outcome.
 
-The outcome-independent endpoint screen runs at most two adjacent plan rows in
+The closed-loop-outcome-independent endpoint screen runs at most two adjacent plan rows in
 parallel, with distinct registered GPU and policy-server port assignments. The
 inferential population remains the exact contiguous plan prefix ending at the
-first row that reaches 59 eligible clusters. If the other worker completes the
-next row before that crossing is observed, its endpoint-only result is retained,
-hashed, labeled speculative, and excluded from selection and every denominator.
+first row that reaches both 59 eligible clusters and 59 valid predictions. If
+the other worker completes the next row before that crossing is observed, its
+endpoint-only result is retained, hashed, labeled speculative, and excluded
+from selection and every denominator.
 At most one such row can exist. Each completed row result and source manifest is
-hash-bound; eligible rows additionally bind their endpoint-gate summary. Resume
+hash-bound; eligible rows additionally bind their endpoint-gate summary,
+complete action-only arrays, and reconstructed prediction. Resume
 requires the same full code commit and frozen plan digest. The earlier unbound
 28-row partial screen is preserved as exploratory and is not adopted by this
 confirmatory run.
@@ -221,8 +229,9 @@ is retained per independent scene cluster: the first endpoint-eligible direction
 in the already frozen gate order. Additional eligible directions in that cluster
 are recorded but cannot increase the primary denominator. The initial 16-state
 pilot and the catalog population use the same rule. All action-only predictions
-for a selected population are serialized and hashed before its first continuation
-rollout. The catalog screen runs after the pilot regardless of whether the pilot
+and their complete action arrays are serialized, hashed, and independently
+reconstructed before the first continuation rollout. The catalog screen runs
+after the pilot regardless of whether the pilot
 contains an eligible state; pilot convenience therefore cannot replace the
 registered confirmatory population.
 

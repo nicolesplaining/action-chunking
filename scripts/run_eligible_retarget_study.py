@@ -18,7 +18,10 @@ from action_chunking.utility_artifacts import (
     cluster_id,
     select_primary_directions,
 )
-from action_chunking.utility_prediction import validate_eligible_retarget_row
+from action_chunking.utility_prediction import (
+    audit_prediction_artifacts,
+    validate_eligible_retarget_row,
+)
 
 
 def parse_args() -> argparse.Namespace:
@@ -33,6 +36,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--port", type=int, default=8003)
     parser.add_argument("--noise-seed", type=int, default=0)
     parser.add_argument("--action-chunking-commit", required=True)
+    parser.add_argument("--require-precomputed-predictions", action="store_true")
     return parser.parse_args()
 
 
@@ -67,9 +71,26 @@ def main() -> int:
     prediction_script = Path(__file__).with_name("sample_retarget_prediction.py")
     for row in eligible:
         pair_id = row["pair_id"]
-        prediction_output = args.output / "predictions" / pair_id / row["new_side"]
-        prediction_path = prediction_output / "prediction.json"
-        if not prediction_path.is_file():
+        precomputed = row.get("action_only_prediction")
+        if precomputed is not None:
+            prediction_path = Path(str(precomputed["prediction"]))
+            actions_path = Path(str(precomputed["actions"]))
+            if (
+                not prediction_path.is_file()
+                or _digest(prediction_path) != precomputed["prediction_sha256"]
+                or not actions_path.is_file()
+                or _digest(actions_path) != precomputed["actions_sha256"]
+            ):
+                raise ValueError(
+                    "precomputed action-only prediction changed after catalog screening"
+                )
+        else:
+            if args.require_precomputed_predictions:
+                raise ValueError("confirmatory utility requires catalog-frozen predictions")
+            prediction_output = args.output / "predictions" / pair_id / row["new_side"]
+            prediction_path = prediction_output / "prediction.json"
+            actions_path = prediction_output / "actions.npz"
+        if precomputed is None and not prediction_path.is_file():
             subprocess.run(
                 [
                     sys.executable,
@@ -92,6 +113,26 @@ def main() -> int:
         prediction = json.loads(prediction_path.read_text())
         if prediction.get("pair_id") != pair_id or prediction.get("new_side") != row["new_side"]:
             raise ValueError("existing prediction does not match the eligible direction")
+        if precomputed is not None and (
+            prediction.get("valid") is not precomputed.get("valid")
+            or prediction.get("predicted_last_successful_boundary")
+            != precomputed.get("predicted_last_successful_boundary")
+        ):
+            raise ValueError("precomputed prediction metadata differs from its artifact")
+        audited_prediction = audit_prediction_artifacts(
+            prediction_path,
+            actions_path,
+            manifest_by_pair[pair_id],
+            pair_id,
+            str(row["new_side"]),
+        )
+        if audited_prediction != {
+            "valid": bool(prediction["valid"]),
+            "predicted_last_successful_boundary": prediction.get(
+                "predicted_last_successful_boundary"
+            ),
+        }:
+            raise ValueError("action-only prediction audit differs from its metadata")
         prediction_entries.append(
             {
                 "pair_id": pair_id,
@@ -101,6 +142,8 @@ def main() -> int:
                 "manifest_sha256": _digest(manifest_by_pair[pair_id]),
                 "prediction": str(prediction_path),
                 "prediction_sha256": _digest(prediction_path),
+                "prediction_actions": str(actions_path),
+                "prediction_actions_sha256": _digest(actions_path),
                 "valid": bool(prediction["valid"]),
                 "predicted_last_successful_boundary": prediction.get("predicted_last_successful_boundary"),
             }
@@ -292,6 +335,11 @@ def _validate_frozen_inputs(
             raise ValueError("candidate manifest changed after predictions were frozen")
         if _digest(Path(entry["prediction"])) != entry["prediction_sha256"]:
             raise ValueError("action-only prediction changed after it was frozen")
+        if (
+            _digest(Path(entry["prediction_actions"]))
+            != entry["prediction_actions_sha256"]
+        ):
+            raise ValueError("action-only prediction actions changed after they were frozen")
 
 
 def _validate_execution_binding(output: Path, action_chunking_commit: str) -> None:

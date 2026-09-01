@@ -119,4 +119,5 @@ env PYTHONPATH="$repo_root/src" "$repo_root/.venv/bin/python" \
   --gpu "$gpu" \
   --port "$port" \
   --noise-seed 0 \
-  --action-chunking-commit "$action_chunking_commit"
+  --action-chunking-commit "$action_chunking_commit" \
+  --require-precomputed-predictions
