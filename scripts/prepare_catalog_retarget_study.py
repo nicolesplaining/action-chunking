@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 from pathlib import Path
 from typing import Any
 
@@ -135,9 +136,26 @@ def _validate_catalog_accounting(catalog: dict[str, Any]) -> int:
     processed = int(catalog.get("processed_rows", -1))
     if minimum <= 0 or planned < 0 or processed != len(jobs) or processed > planned:
         raise ValueError("catalog summary has inconsistent progress counts")
+    plan = Path(str(catalog.get("plan", "")))
+    if (
+        re.fullmatch(r"[0-9a-f]{40}", str(catalog.get("code_commit"))) is None
+        or not plan.is_file()
+        or catalog.get("plan_sha256") != file_digest(plan)
+    ):
+        raise ValueError("catalog summary lacks a valid code and frozen-plan binding")
+    workers = catalog.get("parallel_workers")
+    if (
+        not isinstance(workers, list)
+        or not 1 <= len(workers) <= 2
+        or len({int(worker.get("gpu", -1)) for worker in workers}) != len(workers)
+        or len({int(worker.get("port", -1)) for worker in workers}) != len(workers)
+        or catalog.get("selection_uses_only_contiguous_completed_prefix") is not True
+    ):
+        raise ValueError("catalog summary has invalid isolated-worker provenance")
     for index, job in enumerate(jobs):
         if int(job.get("plan_index", -1)) != index:
             raise ValueError("catalog jobs are not a contiguous frozen prefix")
+        _validate_row_result_binding(job)
     if len({str(job.get("screen_id")) for job in jobs}) != len(jobs):
         raise ValueError("catalog jobs contain duplicate screen ids")
     eligible_jobs = [job for job in jobs if int(job.get("eligible_directions", 0)) > 0]
@@ -166,7 +184,36 @@ def _validate_catalog_accounting(catalog: dict[str, Any]) -> int:
         }
         if len(prior_clusters) >= minimum:
             raise ValueError("catalog continued after the first stop-threshold crossing")
+    speculative = catalog.get("speculative_endpoint_rows_excluded_from_selection")
+    if not isinstance(speculative, list) or len(speculative) > len(workers) - 1:
+        raise ValueError("catalog has invalid speculative endpoint accounting")
+    expected_speculative_indices = list(
+        range(processed, processed + len(speculative))
+    )
+    if [int(job.get("plan_index", -1)) for job in speculative] != expected_speculative_indices:
+        raise ValueError("catalog speculative rows do not immediately follow the frozen prefix")
+    for job in speculative:
+        _validate_row_result_binding(job)
+    if speculative and not stop_reached:
+        raise ValueError("catalog retained speculative rows before its stop threshold")
     return minimum
+
+
+def _validate_row_result_binding(job: dict[str, Any]) -> None:
+    path = Path(str(job.get("row_result", "")))
+    if not path.is_file() or job.get("row_result_sha256") != file_digest(path):
+        raise ValueError("catalog row result changed after screening")
+    raw = json.loads(path.read_text())
+    expected = {
+        key: value
+        for key, value in job.items()
+        if key not in {"row_result", "row_result_sha256"}
+    }
+    if raw != expected:
+        raise ValueError("catalog summary row differs from its bound result artifact")
+    source = Path(str(raw.get("source_manifest", "")))
+    if not source.is_file() or raw.get("source_manifest_sha256") != file_digest(source):
+        raise ValueError("catalog source manifest changed after endpoint screening")
 
 
 def _candidate_manifests(root: Path) -> dict[str, Path]:

@@ -18,7 +18,7 @@ def test_machine_readable_protocol_matches_executable_frozen_defaults() -> None:
 
     utility_defaults = inspect.signature(summarize_utility_jobs).parameters
     catalog_defaults = inspect.signature(build_retarget_screening_plan).parameters
-    assert protocol["study"]["protocol_version"] == "0.34"
+    assert protocol["study"]["protocol_version"] == "0.35"
     assert protocol["inference"]["flow_steps"] == 10
     assert protocol["inference"]["receding_horizon_steps"] == 5
     assert protocol["study"]["editability_retention_threshold"] == 0.8
@@ -39,6 +39,12 @@ def test_machine_readable_protocol_matches_executable_frozen_defaults() -> None:
     assert utility["minimum_eligible_scene_clusters"] == catalog_defaults[
         "minimum_eligible_clusters"
     ].default
+    assert utility["endpoint_screen_parallel_workers"] == 2
+    assert utility["endpoint_screen_requires_distinct_gpu_and_port"] is True
+    assert utility["endpoint_screen_selection_is_contiguous_completed_prefix"] is True
+    assert utility["endpoint_screen_speculative_rows_excluded_from_selection"] is True
+    assert utility["endpoint_screen_requires_row_result_hashes"] is True
+    assert utility["endpoint_screen_resume_requires_code_and_plan_binding"] is True
     assert utility["prediction_bootstrap_replicates"] == utility_defaults[
         "bootstrap_samples"
     ].default

@@ -1,5 +1,18 @@
 # Reproducibility log
 
+## 2026-09-01: catalog endpoints sharded without changing the frozen prefix
+
+Protocol version 0.35 accelerates the future outcome-independent eligibility
+screen with two isolated GPU/port workers before any catalog continuation
+outcome exists. Workers process adjacent rows, while selection still uses only
+the exact contiguous frozen-plan prefix through the first 59-cluster crossing.
+At most one simultaneously completed successor is retained as a hashed,
+explicitly speculative endpoint row and excluded from every selection count.
+The handoff reconstructs every row-result and source-manifest digest and rejects
+changed speculative artifacts. Resume requires the same code commit and plan
+digest. The prior 28-row screen lacked a code binding and will remain
+exploratory rather than being silently adopted.
+
 ## 2026-09-01: editability converted into an adaptive inference policy
 
 Protocol version 0.34 adds a consequential held-out estimand before any catalog
@@ -12,6 +25,12 @@ requires all three behavioral outcomes to be noninferior to both controls and
 exact velocity-evaluation savings intervals to lie above zero against both,
 with at least 59 valid predictions. This reuses the already registered dense
 sweeps and adds no outcome-driven cell selection.
+
+The remote preflight also showed that the required root `.venv` is a symlink,
+while the ignore rule matched only directories. The strict clean-worktree gate
+would therefore have rejected the future pi0 intervention launcher. The ignore
+rule now covers both a directory and a symlink named `.venv`; no environment
+contents are tracked, and the sealed confirmation checkout is unchanged.
 
 ## 2026-09-01: matched-control figures bound to audited outputs
 

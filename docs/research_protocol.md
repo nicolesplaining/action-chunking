@@ -1,6 +1,6 @@
 # Research protocol: causal editability and retargeting in action chunks
 
-Protocol version: 0.34 (boundary-adaptive inference policy)
+Protocol version: 0.35 (isolated parallel endpoint screening)
 
 ## 1. Research question
 
@@ -201,6 +201,18 @@ exclusions, ordering, cluster unit, and 59-cluster stop rule were serialized
 before the corrected held-out endpoint screen completed. Eligibility uses only
 the frozen old-condition and restart endpoints; no intermediate continuation
 outcome can affect where screening stops.
+
+The outcome-independent endpoint screen runs at most two adjacent plan rows in
+parallel, with distinct registered GPU and policy-server port assignments. The
+inferential population remains the exact contiguous plan prefix ending at the
+first row that reaches 59 eligible clusters. If the other worker completes the
+next row before that crossing is observed, its endpoint-only result is retained,
+hashed, labeled speculative, and excluded from selection and every denominator.
+At most one such row can exist. Each completed row result and source manifest is
+hash-bound; eligible rows additionally bind their endpoint-gate summary. Resume
+requires the same full code commit and frozen plan digest. The earlier unbound
+28-row partial screen is preserved as exploratory and is not adopted by this
+confirmatory run.
 
 After the endpoint screen reaches its frozen stop rule (or exhausts the public
 catalog), an immutable handoff gathers every eligible endpoint row and its
