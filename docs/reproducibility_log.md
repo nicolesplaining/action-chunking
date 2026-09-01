@@ -1,5 +1,18 @@
 # Reproducibility log
 
+## 2026-09-01: editability converted into an adaptive inference policy
+
+Protocol version 0.34 adds a consequential held-out estimand before any catalog
+continuation outcome exists. At each registered instruction-update time, a
+frozen scene-specific boundary now selects continue-without-restart or full
+restart; invalid predictions conservatively restart. The policy is compared
+with always restart and a fixed cutoff at update seven, uniformly over all 11
+registered event times within each independent scene cluster. A positive claim
+requires all three behavioral outcomes to be noninferior to both controls and
+exact velocity-evaluation savings intervals to lie above zero against both,
+with at least 59 valid predictions. This reuses the already registered dense
+sweeps and adds no outcome-driven cell selection.
+
 ## 2026-09-01: matched-control figures bound to audited outputs
 
 Protocol version 0.33 closes a future publication-lineage gap before any

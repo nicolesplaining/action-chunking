@@ -35,6 +35,10 @@ def test_cluster_summary_reports_prediction_and_noninferiority_statistics() -> N
     assert result["boundary7_practical_gate_passed"] is False
     assert result["boundary7_first_chunk_old_events"] == 0
     assert result["wrong_target_failure_first_contact_replan_histogram"] == {"0": 6}
+    assert result["adaptive_policy"]["event_boundary_weighting"] == (
+        "uniform_over_0_to_10_design_estimand"
+    )
+    assert result["adaptive_policy"]["invalid_prediction_fallback"] == "restart"
 
 
 def test_cluster_summary_rejects_direction_pseudoreplication() -> None:
@@ -63,6 +67,11 @@ def test_cluster_summary_rejects_curve_and_registered_boundary_mismatch() -> Non
     job = _job("a", predicted=7, observed=7)
     job["boundary7_new_task_success"] = False
     with pytest.raises(ValueError, match="boundary-zero or boundary-seven"):
+        summarize_utility_jobs([job], bootstrap_samples=10)
+
+    job = _job("a", predicted=7, observed=7)
+    job["post_event_velocity_evaluations_curve"][8] = 3
+    with pytest.raises(ValueError, match="velocity-evaluation curve"):
         summarize_utility_jobs([job], bootstrap_samples=10)
 
 
@@ -104,6 +113,7 @@ def test_prediction_utility_requires_chosen_boundary_behavior() -> None:
         for index in range(59)
     ]
     for job in jobs:
+        job["new_target_first_curve"][9] = False
         job["success_curve"][9] = False
         job["old_target_first_curve"][9] = True
         job["first_chunk_old_event_curve"][9] = True
@@ -147,6 +157,8 @@ def test_practical_gate_requires_each_behavioral_outcome_and_latency() -> None:
 
     jobs[0]["boundary7_new_target_first"] = False
     jobs[0]["boundary7_new_task_success"] = True
+    jobs[0]["new_target_first_curve"][7] = False
+    jobs[0]["new_task_success_curve"][7] = True
     jobs[0]["success_curve"][7] = False
     jobs[0]["observed_last_successful_boundary"] = 6
     jobs[0]["prediction_exact"] = False
@@ -160,6 +172,73 @@ def test_practical_gate_requires_each_behavioral_outcome_and_latency() -> None:
     assert failing["boundary7_task_success_noninferior"] is True
     assert failing["boundary7_composite_noninferior"] is False
     assert failing["boundary7_practical_gate_passed"] is False
+
+
+def test_adaptive_policy_preserves_success_and_saves_compute_against_controls() -> None:
+    jobs = [
+        _job(f"cluster-{index}", predicted=9, observed=9)
+        for index in range(100)
+    ]
+
+    result = summarize_utility_jobs(
+        jobs,
+        bootstrap_samples=1_000,
+        minimum_valid_predictions=len(jobs),
+    )["adaptive_policy"]
+
+    assert result["mean_outcomes"]["composite"] == {
+        "predicted": 1.0,
+        "fixed": 1.0,
+        "restart": 1.0,
+    }
+    assert result["mean_velocity_evaluations"]["predicted"] < result[
+        "mean_velocity_evaluations"
+    ]["fixed"]
+    assert result["comparisons"]["predicted_vs_restart"][
+        "velocity_evaluation_savings_positive"
+    ] is True
+    assert result["comparisons"]["predicted_vs_fixed"][
+        "velocity_evaluation_savings_positive"
+    ] is True
+    assert result["utility_gate_passed"] is True
+
+
+def test_adaptive_policy_falls_back_to_restart_for_invalid_prediction() -> None:
+    job = _job("invalid", predicted=7, observed=7)
+    job["prediction_valid"] = False
+    job["predicted_last_successful_boundary"] = None
+    job["prediction_exact"] = False
+
+    result = summarize_utility_jobs(
+        [job],
+        bootstrap_samples=100,
+        minimum_valid_predictions=1,
+    )["adaptive_policy"]
+
+    assert result["valid_predictions"] == 0
+    assert result["mean_velocity_evaluations"]["predicted"] == 10.0
+    assert result["mean_outcomes"]["composite"]["predicted"] == result[
+        "mean_outcomes"
+    ]["composite"]["restart"]
+    assert result["utility_gate_passed"] is False
+
+
+def test_adaptive_policy_rejects_compute_savings_with_behavioral_loss() -> None:
+    jobs = [
+        _job(f"cluster-{index}", predicted=9, observed=7)
+        for index in range(100)
+    ]
+
+    result = summarize_utility_jobs(
+        jobs,
+        bootstrap_samples=1_000,
+        minimum_valid_predictions=len(jobs),
+    )["adaptive_policy"]
+
+    comparison = result["comparisons"]["predicted_vs_fixed"]
+    assert comparison["velocity_evaluation_savings_positive"] is True
+    assert comparison["outcomes"]["composite"]["noninferior"] is False
+    assert result["utility_gate_passed"] is False
 
 
 def _job(
@@ -183,11 +262,16 @@ def _job(
         "predicted_last_successful_boundary": predicted,
         "observed_last_successful_boundary": observed,
         "prediction_exact": observed is not None and predicted == observed,
+        "new_target_first_curve": curve.copy(),
+        "new_task_success_curve": curve.copy(),
         "success_curve": curve,
         "first_chunk_old_event_curve": old_target_first,
         "old_target_first_curve": old_target_first,
         "clean_replanning_rescue_curve": [False] * 11,
         "first_contact_replan_index_curve": [1 if value else 0 for value in curve],
+        "post_event_velocity_evaluations_curve": [
+            10 - boundary for boundary in range(11)
+        ],
         "boundary7_new_target_first": boundary7,
         "boundary7_new_task_success": boundary7,
         "boundary7_first_chunk_old_event": old_target_first[7],

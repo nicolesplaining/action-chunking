@@ -18,7 +18,7 @@ def test_machine_readable_protocol_matches_executable_frozen_defaults() -> None:
 
     utility_defaults = inspect.signature(summarize_utility_jobs).parameters
     catalog_defaults = inspect.signature(build_retarget_screening_plan).parameters
-    assert protocol["study"]["protocol_version"] == "0.33"
+    assert protocol["study"]["protocol_version"] == "0.34"
     assert protocol["inference"]["flow_steps"] == 10
     assert protocol["inference"]["receding_horizon_steps"] == 5
     assert protocol["study"]["editability_retention_threshold"] == 0.8
@@ -50,6 +50,18 @@ def test_machine_readable_protocol_matches_executable_frozen_defaults() -> None:
     assert utility["prediction_no_success_boundary_sentinel"] == -1
     assert utility["prediction_positive_requires_selected_boundary_noninferiority"] is True
     assert utility["report_nonmonotone_behavioral_success_curves"] is True
+    assert utility["adaptive_policy_event_boundary_weighting"] == (
+        "uniform_over_0_to_10_design_estimand"
+    )
+    assert utility["adaptive_policy_invalid_prediction_fallback"] == "restart"
+    assert utility["adaptive_policy_comparators"] == ["always_restart", "fixed_cutoff_7"]
+    assert utility["adaptive_policy_outcomes"] == utility["noninferiority_outcomes"]
+    assert utility["adaptive_policy_bootstrap_replicates"] == utility[
+        "prediction_bootstrap_replicates"
+    ]
+    assert utility["adaptive_policy_bootstrap_seed"] == 20
+    assert utility["adaptive_policy_requires_noninferiority_to_both_comparators"] is True
+    assert utility["adaptive_policy_requires_compute_savings_ci_low_above_zero_vs_both"] is True
     assert utility["noninferiority_outcomes"] == [
         "new_target_first",
         "eventual_new_task_success",

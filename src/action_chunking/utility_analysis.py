@@ -171,6 +171,14 @@ def summarize_utility_jobs(
         and prediction_rank_association_positive
         and prediction_selection_noninferiority["noninferior"]
     )
+    adaptive_policy = _adaptive_policy_evaluation(
+        jobs,
+        fixed_cutoff=fixed_boundary_baseline,
+        noninferiority_margin=noninferiority_margin,
+        bootstrap_samples=bootstrap_samples,
+        bootstrap_seed=bootstrap_seed + 20,
+        minimum_valid_predictions=minimum_valid_predictions,
+    )
     nonmonotone_success_curves = sum(
         any(not left and right for left, right in zip(job["success_curve"][:-1], job["success_curve"][1:], strict=True))
         for job in jobs
@@ -226,6 +234,8 @@ def summarize_utility_jobs(
             "selected_boundary_composite_noninferior_to_fixed_boundary",
         ],
         "prediction_utility_gate_passed": prediction_utility_gate_passed,
+        "adaptive_policy": adaptive_policy,
+        "adaptive_policy_utility_gate_passed": adaptive_policy["utility_gate_passed"],
         "next_boundary_composite_failure_rate": _mean_boolean(next_boundary_failure),
         "predicted_boundary_first_chunk_old_event_rate": _mean_boolean(predicted_boundary_first_chunk_old_event),
         "next_boundary_first_chunk_old_event_rate": _mean_boolean(next_boundary_first_chunk_old_event),
@@ -269,6 +279,176 @@ def summarize_utility_jobs(
     }
 
 
+def _adaptive_policy_evaluation(
+    jobs: list[dict[str, Any]],
+    *,
+    fixed_cutoff: int,
+    noninferiority_margin: float,
+    bootstrap_samples: int,
+    bootstrap_seed: int,
+    minimum_valid_predictions: int,
+) -> dict[str, Any]:
+    """Evaluate a frozen continue-or-restart policy over a uniform update-time design."""
+    outcome_specs = {
+        "target_first": ("new_target_first_curve", "restart_new_target_first"),
+        "task_success": ("new_task_success_curve", "restart_new_task_success"),
+        "composite": ("success_curve", None),
+    }
+    policy_outcomes: dict[str, dict[str, list[float]]] = {
+        name: {policy: [] for policy in ("predicted", "fixed", "restart")}
+        for name in outcome_specs
+    }
+    evaluation_counts = {policy: [] for policy in ("predicted", "fixed", "restart")}
+    for job in jobs:
+        predicted_cutoff = (
+            int(job["predicted_last_successful_boundary"])
+            if job["prediction_valid"]
+            else -1
+        )
+        for name, (curve_field, restart_field) in outcome_specs.items():
+            curve = [bool(value) for value in job[curve_field]]
+            restart_value = (
+                bool(job[restart_field])
+                if restart_field is not None
+                else bool(job["restart_new_target_first"] and job["restart_new_task_success"])
+            )
+            policy_outcomes[name]["predicted"].append(
+                _uniform_policy_mean(curve, restart_value, predicted_cutoff)
+            )
+            policy_outcomes[name]["fixed"].append(
+                _uniform_policy_mean(curve, restart_value, fixed_cutoff)
+            )
+            policy_outcomes[name]["restart"].append(float(restart_value))
+        evaluation_curve = [
+            int(value) for value in job["post_event_velocity_evaluations_curve"]
+        ]
+        restart_evaluations = int(job["restart_post_event_velocity_evaluations"])
+        evaluation_counts["predicted"].append(
+            _uniform_policy_mean(evaluation_curve, restart_evaluations, predicted_cutoff)
+        )
+        evaluation_counts["fixed"].append(
+            _uniform_policy_mean(evaluation_curve, restart_evaluations, fixed_cutoff)
+        )
+        evaluation_counts["restart"].append(float(restart_evaluations))
+
+    comparisons = {}
+    for comparison_index, (label, control) in enumerate(
+        (("predicted_vs_restart", "restart"), ("predicted_vs_fixed", "fixed"))
+    ):
+        outcomes = {
+            name: _paired_mean_noninferiority(
+                policy_values[control],
+                policy_values["predicted"],
+                margin=noninferiority_margin,
+                bootstrap_samples=bootstrap_samples,
+                bootstrap_seed=bootstrap_seed + comparison_index * 10 + outcome_index,
+            )
+            for outcome_index, (name, policy_values) in enumerate(policy_outcomes.items())
+        }
+        control_cost = np.asarray(evaluation_counts[control], dtype=np.float64)
+        predicted_cost = np.asarray(evaluation_counts["predicted"], dtype=np.float64)
+        savings = (control_cost - predicted_cost) / control_cost
+        savings_interval = _cluster_bootstrap_mean(
+            savings,
+            bootstrap_samples,
+            bootstrap_seed + comparison_index * 10 + 9,
+        )
+        comparisons[label] = {
+            "outcomes": outcomes,
+            "mean_velocity_evaluation_savings_fraction": (
+                float(np.mean(savings)) if len(savings) else None
+            ),
+            "velocity_evaluation_savings_fraction_ci95": savings_interval,
+            "velocity_evaluation_savings_positive": bool(
+                savings_interval is not None and savings_interval[0] > 0.0
+            ),
+        }
+
+    sample_size_passed = sum(bool(job["prediction_valid"]) for job in jobs) >= minimum_valid_predictions
+    utility_gate_passed = bool(
+        sample_size_passed
+        and all(
+            result["noninferior"]
+            for comparison in comparisons.values()
+            for result in comparison["outcomes"].values()
+        )
+        and all(
+            comparison["velocity_evaluation_savings_positive"]
+            for comparison in comparisons.values()
+        )
+    )
+    return {
+        "analysis_unit": "independent_scene_cluster",
+        "event_boundary_weighting": "uniform_over_0_to_10_design_estimand",
+        "event_boundaries": list(range(11)),
+        "invalid_prediction_fallback": "restart",
+        "fixed_cutoff": fixed_cutoff,
+        "valid_predictions": sum(bool(job["prediction_valid"]) for job in jobs),
+        "minimum_valid_predictions": minimum_valid_predictions,
+        "sample_size_gate_passed": sample_size_passed,
+        "mean_velocity_evaluations": {
+            policy: (float(np.mean(values)) if values else None)
+            for policy, values in evaluation_counts.items()
+        },
+        "mean_outcomes": {
+            name: {
+                policy: (float(np.mean(values)) if values else None)
+                for policy, values in policies.items()
+            }
+            for name, policies in policy_outcomes.items()
+        },
+        "comparisons": comparisons,
+        "utility_gate_requires": [
+            "minimum_valid_independent_clusters",
+            "target_first_noninferior_to_restart_and_fixed_cutoff",
+            "task_success_noninferior_to_restart_and_fixed_cutoff",
+            "composite_noninferior_to_restart_and_fixed_cutoff",
+            "velocity_evaluation_savings_ci95_low_above_zero_vs_restart_and_fixed_cutoff",
+        ],
+        "utility_gate_passed": utility_gate_passed,
+    }
+
+
+def _uniform_policy_mean(
+    continuation: list[bool] | list[int],
+    restart: bool | int,
+    cutoff: int,
+) -> float:
+    selected = [
+        continuation[boundary] if boundary <= cutoff else restart
+        for boundary in range(11)
+    ]
+    return float(np.mean(np.asarray(selected, dtype=np.float64)))
+
+
+def _paired_mean_noninferiority(
+    control: list[float],
+    intervention: list[float],
+    *,
+    margin: float,
+    bootstrap_samples: int,
+    bootstrap_seed: int,
+) -> dict[str, Any]:
+    if len(control) != len(intervention):
+        raise ValueError("paired policy outcomes must have equal lengths")
+    differences = np.asarray(intervention, dtype=np.float64) - np.asarray(
+        control, dtype=np.float64
+    )
+    interval = _cluster_bootstrap_mean(
+        differences,
+        bootstrap_samples,
+        bootstrap_seed,
+    )
+    return {
+        "control_mean": float(np.mean(control)) if control else None,
+        "intervention_mean": float(np.mean(intervention)) if intervention else None,
+        "mean_difference": float(np.mean(differences)) if len(differences) else None,
+        "mean_difference_ci95": interval,
+        "noninferiority_margin": margin,
+        "noninferior": bool(interval is not None and interval[0] > -margin),
+    }
+
+
 def _paired_loss_noninferiority(
     restart: list[bool],
     continued: list[bool],
@@ -294,6 +474,8 @@ def _paired_loss_noninferiority(
 def _validate_derived_job_fields(jobs: list[dict[str, Any]]) -> None:
     """Reconstruct prediction targets and registered curve cells before inference."""
     boolean_curves = (
+        "new_target_first_curve",
+        "new_task_success_curve",
         "success_curve",
         "first_chunk_old_event_curve",
         "old_target_first_curve",
@@ -315,6 +497,17 @@ def _validate_derived_job_fields(jobs: list[dict[str, Any]]) -> None:
             or any(value is not None and (type(value) is not int or value < 0) for value in replan_curve)
         ):
             raise ValueError("utility job first-contact replan curve is invalid")
+        evaluation_curve = job.get("post_event_velocity_evaluations_curve")
+        if (
+            not isinstance(evaluation_curve, list)
+            or any(type(value) is not int for value in evaluation_curve)
+            or evaluation_curve != [10 - boundary for boundary in range(11)]
+            or type(job.get("restart_post_event_velocity_evaluations")) is not int
+            or job["restart_post_event_velocity_evaluations"] != 10
+            or type(job.get("boundary7_post_event_velocity_evaluations")) is not int
+            or job["boundary7_post_event_velocity_evaluations"] != 3
+        ):
+            raise ValueError("utility job velocity-evaluation curve is not exact")
 
         success_curve = job["success_curve"]
         observed = max((boundary for boundary, success in enumerate(success_curve) if success), default=None)
@@ -341,7 +534,25 @@ def _validate_derived_job_fields(jobs: list[dict[str, Any]]) -> None:
             and job.get("restart_new_task_success")
         )
         if (
-            success_curve[7] is not boundary7_composite
+            any(
+                success
+                is not bool(target_first and task_success)
+                for success, target_first, task_success in zip(
+                    success_curve,
+                    job["new_target_first_curve"],
+                    job["new_task_success_curve"],
+                    strict=True,
+                )
+            )
+            or job["new_target_first_curve"][7]
+            is not job.get("boundary7_new_target_first")
+            or job["new_task_success_curve"][7]
+            is not job.get("boundary7_new_task_success")
+            or job["new_target_first_curve"][0]
+            is not job.get("restart_new_target_first")
+            or job["new_task_success_curve"][0]
+            is not job.get("restart_new_task_success")
+            or success_curve[7] is not boundary7_composite
             or success_curve[0] is not restart_composite
             or job["first_chunk_old_event_curve"][7]
             is not job.get("boundary7_first_chunk_old_event")
