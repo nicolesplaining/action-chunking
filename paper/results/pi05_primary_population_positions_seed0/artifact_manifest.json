@@ -1,0 +1,16 @@
+{
+  "analysis_code_commit": "1f26e5c6ad88e5e75d08055626b7a86722acf021",
+  "analysis_unit": "physical_scene_state",
+  "artifacts": {
+    "position_cells.csv": "e06a2ac28a2b58dbae8e34112b94ef167486eb69d5e54d74014de54537e1d44d",
+    "run_summary.json": "fb0d1be163ffbcea2a0728e48f69f233120e3b1953aa0d253ffff1b86f717896",
+    "selection.json": "e97f7a24b73486d98d2b2fc6ac984b916b20e53f2ab5f32d258b14127ed189bc",
+    "summary.json": "54f38c42872ae17cd5549384a3f0d9621e782544c4190f8f630c807990165c3a"
+  },
+  "bootstrap_replicates": 10000,
+  "complete_jobs": 15,
+  "intervention_records_per_job": 373,
+  "openpi_commit": "215abfb217dbac7d5f1273282331b9b1866c0479",
+  "raw_position_units_sha256": "503176a56b94ff6dbd46f3cb34fc35039c31fe084257408a3d99e8e5746ba01a",
+  "schema_version": 1
+}

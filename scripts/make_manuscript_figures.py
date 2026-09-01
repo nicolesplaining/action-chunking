@@ -34,6 +34,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--primary", type=Path, required=True)
     parser.add_argument("--target-online", type=Path, required=True)
     parser.add_argument("--destination-online", type=Path, required=True)
+    parser.add_argument("--population-position", type=Path, required=True)
     parser.add_argument("--closure-position", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     return parser.parse_args()
@@ -48,6 +49,7 @@ def main() -> int:
         "dimension_cells": args.primary / "dimension_cells.csv",
         "target_curve": args.target_online / "curve.csv",
         "destination_curve": args.destination_online / "curve.csv",
+        "population_position_cells": args.population_position / "position_cells.csv",
         "closure_position_cells": args.closure_position / "position_cells.csv",
     }
     for path in inputs.values():
@@ -83,23 +85,32 @@ def main() -> int:
         _read_csv(inputs["destination_curve"]),
         args.output / "fig3_behavioral_editability",
     )
+    _plot_population_token_localization(
+        _read_csv(inputs["population_position_cells"]),
+        args.output / "fig4_population_token_localization",
+    )
     _plot_closure_token_case(
         _read_csv(inputs["closure_position_cells"]),
-        args.output / "fig4_closure_token_case",
+        args.output / "fig5_closure_token_case",
     )
+    output_names = [
+        f"fig{index}_{name}.{suffix}"
+        for index, name in (
+            (1, "formation_and_editability"),
+            (2, "causal_localization"),
+            (3, "behavioral_editability"),
+            (4, "population_token_localization"),
+            (5, "closure_token_case"),
+        )
+        for suffix in ("pdf", "png")
+    ]
     manifest = {
-        "schema_version": 1,
-        "inputs": {name: {"path": str(path.resolve()), "sha256": _sha256(path)} for name, path in inputs.items()},
-        "outputs": [
-            f"fig{index}_{name}.{suffix}"
-            for index, name in (
-                (1, "formation_and_editability"),
-                (2, "causal_localization"),
-                (3, "behavioral_editability"),
-                (4, "closure_token_case"),
-            )
-            for suffix in ("pdf", "png")
-        ],
+        "schema_version": 2,
+        "inputs": {name: {"path": str(path), "sha256": _sha256(path)} for name, path in inputs.items()},
+        "outputs": output_names,
+        "output_sha256": {
+            name: _sha256(args.output / name) for name in output_names
+        },
         "marker_definition": "open circles require BH q < 0.05 and a scene-cluster 95% CI strictly above zero",
         "closure_caveat": "descriptive one-state, one-noise-mode case; no population significance markers",
     }
@@ -149,6 +160,122 @@ def _plot_formation_and_editability(
     axes[2].legend(frameon=False, loc="center left")
     for axis in axes:
         axis.spines[["top", "right"]].set_visible(False)
+    _save(figure, stem)
+
+
+def _plot_population_token_localization(rows: list[dict[str, str]], stem: Path) -> None:
+    selected_rows = [row for row in rows if row["metric"] == "all"]
+    if not selected_rows:
+        raise ValueError("population-position table has no full-action rows")
+    layers = sorted({int(row["layer"]) for row in selected_rows})
+    steps = sorted({int(row["flow_step"]) for row in selected_rows})
+    positions = sorted({int(row["action_position"]) for row in selected_rows})
+    if layers != [0, 8, 14, 17] or steps != [0, 7, 8, 9] or positions != list(range(10)):
+        raise ValueError("population-position table does not match the frozen grid")
+    limit = max(abs(float(row["mean_symmetric_ncte"])) for row in selected_rows)
+    figure, axes = plt.subplots(
+        1,
+        len(layers) + 1,
+        figsize=(13.4, 3.0),
+        constrained_layout=True,
+        gridspec_kw={"width_ratios": [1, 1, 1, 1, 1.7]},
+    )
+    image = None
+    for axis, layer in zip(axes[:4], layers, strict=True):
+        indexed = {
+            (int(row["flow_step"]), int(row["action_position"])): row
+            for row in selected_rows
+            if int(row["layer"]) == layer
+        }
+        values = np.asarray(
+            [
+                [
+                    float(indexed[(step, position)]["mean_symmetric_ncte"])
+                    for position in positions
+                ]
+                for step in steps
+            ]
+        )
+        image = axis.imshow(
+            values,
+            origin="lower",
+            aspect="auto",
+            cmap="RdBu_r",
+            vmin=-limit,
+            vmax=limit,
+        )
+        for y, step in enumerate(steps):
+            for x, position in enumerate(positions):
+                row = indexed[(step, position)]
+                if (
+                    float(row["q_bh_within_metric_family"]) < 0.05
+                    and float(row["symmetric_ci95_low"]) > 0.0
+                ):
+                    axis.plot(
+                        x,
+                        y,
+                        "o",
+                        ms=2.4,
+                        markerfacecolor="none",
+                        markeredgecolor="black",
+                        markeredgewidth=0.6,
+                    )
+        axis.axvline(4.5, color="black", linewidth=0.65, linestyle=":")
+        axis.set(
+            title=f"layer {layer}",
+            xlabel="future action position",
+            xticks=np.arange(len(positions)),
+            xticklabels=positions,
+            yticks=np.arange(len(steps)),
+            yticklabels=steps,
+        )
+    axes[0].set_ylabel("flow step")
+    axes[0].text(
+        0.02,
+        0.98,
+        "a  full-action NCTE\n○ positive q<.05 + CI>0",
+        transform=axes[0].transAxes,
+        ha="left",
+        va="top",
+        fontsize=7.5,
+        bbox={"facecolor": "white", "edgecolor": "none", "alpha": 0.8, "pad": 2},
+    )
+    if image is not None:
+        colorbar = figure.colorbar(image, ax=axes[:4], shrink=0.80)
+        colorbar.ax.set_title("NCTE", fontsize=8)
+
+    profile = axes[4]
+    for metric in ("all", "translation", "rotation"):
+        selected = sorted(
+            (
+                row
+                for row in rows
+                if row["metric"] == metric
+                and int(row["flow_step"]) == 9
+                and int(row["layer"]) == 17
+            ),
+            key=lambda row: int(row["action_position"]),
+        )
+        if [int(row["action_position"]) for row in selected] != positions:
+            raise ValueError(f"incomplete final-site token profile for {metric}")
+        x = np.asarray(positions)
+        mean = np.asarray([float(row["mean_symmetric_ncte"]) for row in selected])
+        low = np.asarray([float(row["symmetric_ci95_low"]) for row in selected])
+        high = np.asarray([float(row["symmetric_ci95_high"]) for row in selected])
+        profile.plot(x, mean, marker="o", ms=3, color=COLORS[metric], label=LABELS[metric])
+        profile.fill_between(x, low, high, color=COLORS[metric], alpha=0.12, linewidth=0)
+    profile.axvspan(-0.5, 4.5, color="0.85", alpha=0.45, linewidth=0)
+    profile.axvline(4.5, color="black", linewidth=0.65, linestyle=":")
+    profile.text(2, 0.98, "executed", transform=profile.get_xaxis_transform(), ha="center", va="top")
+    profile.text(7, 0.98, "deferred", transform=profile.get_xaxis_transform(), ha="center", va="top")
+    profile.set(
+        title="b  final update · layer 17",
+        xlabel="future action position",
+        ylabel="mean normalized causal transfer",
+        xticks=positions,
+    )
+    profile.legend(frameon=False, loc="lower right")
+    profile.spines[["top", "right"]].set_visible(False)
     _save(figure, stem)
 
 

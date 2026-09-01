@@ -1,0 +1,101 @@
+{
+  "complete": true,
+  "completed_jobs": 15,
+  "eligibility": "dual_success",
+  "expected_jobs": 15,
+  "jobs": [
+    {
+      "metadata": "/lambda/nfs/action-chunking/outputs/interventions/pi05_primary_population_positions_seed0/libero_goal_000_wine_bottle_1_to_akita_black_bowl_1/noise_0/metadata.json",
+      "noise_seed": 0,
+      "pair_id": "libero_goal_000_wine_bottle_1_to_akita_black_bowl_1",
+      "records": 373
+    },
+    {
+      "metadata": "/lambda/nfs/action-chunking/outputs/interventions/pi05_primary_population_positions_seed0/libero_goal_001_wine_bottle_1_to_akita_black_bowl_1/noise_0/metadata.json",
+      "noise_seed": 0,
+      "pair_id": "libero_goal_001_wine_bottle_1_to_akita_black_bowl_1",
+      "records": 373
+    },
+    {
+      "metadata": "/lambda/nfs/action-chunking/outputs/interventions/pi05_primary_population_positions_seed0/libero_goal_002_wine_bottle_1_to_akita_black_bowl_1/noise_0/metadata.json",
+      "noise_seed": 0,
+      "pair_id": "libero_goal_002_wine_bottle_1_to_akita_black_bowl_1",
+      "records": 373
+    },
+    {
+      "metadata": "/lambda/nfs/action-chunking/outputs/interventions/pi05_primary_population_positions_seed0/libero_goal_004_wine_bottle_1_to_akita_black_bowl_1/noise_0/metadata.json",
+      "noise_seed": 0,
+      "pair_id": "libero_goal_004_wine_bottle_1_to_akita_black_bowl_1",
+      "records": 373
+    },
+    {
+      "metadata": "/lambda/nfs/action-chunking/outputs/interventions/pi05_primary_population_positions_seed0/libero_goal_005_wine_bottle_1_to_akita_black_bowl_1/noise_0/metadata.json",
+      "noise_seed": 0,
+      "pair_id": "libero_goal_005_wine_bottle_1_to_akita_black_bowl_1",
+      "records": 373
+    },
+    {
+      "metadata": "/lambda/nfs/action-chunking/outputs/interventions/pi05_primary_population_positions_seed0/libero_goal_006_wine_bottle_1_to_akita_black_bowl_1/noise_0/metadata.json",
+      "noise_seed": 0,
+      "pair_id": "libero_goal_006_wine_bottle_1_to_akita_black_bowl_1",
+      "records": 373
+    },
+    {
+      "metadata": "/lambda/nfs/action-chunking/outputs/interventions/pi05_primary_population_positions_seed0/libero_goal_007_wine_bottle_1_to_akita_black_bowl_1/noise_0/metadata.json",
+      "noise_seed": 0,
+      "pair_id": "libero_goal_007_wine_bottle_1_to_akita_black_bowl_1",
+      "records": 373
+    },
+    {
+      "metadata": "/lambda/nfs/action-chunking/outputs/interventions/pi05_primary_population_positions_seed0/libero_goal_008_wine_bottle_1_to_akita_black_bowl_1/noise_0/metadata.json",
+      "noise_seed": 0,
+      "pair_id": "libero_goal_008_wine_bottle_1_to_akita_black_bowl_1",
+      "records": 373
+    },
+    {
+      "metadata": "/lambda/nfs/action-chunking/outputs/interventions/pi05_primary_population_positions_seed0/libero_goal_009_wine_bottle_1_to_akita_black_bowl_1/noise_0/metadata.json",
+      "noise_seed": 0,
+      "pair_id": "libero_goal_009_wine_bottle_1_to_akita_black_bowl_1",
+      "records": 373
+    },
+    {
+      "metadata": "/lambda/nfs/action-chunking/outputs/interventions/pi05_primary_population_positions_seed0/libero_goal_010_wine_bottle_1_to_akita_black_bowl_1/noise_0/metadata.json",
+      "noise_seed": 0,
+      "pair_id": "libero_goal_010_wine_bottle_1_to_akita_black_bowl_1",
+      "records": 373
+    },
+    {
+      "metadata": "/lambda/nfs/action-chunking/outputs/interventions/pi05_primary_population_positions_seed0/libero_goal_011_wine_bottle_1_to_akita_black_bowl_1/noise_0/metadata.json",
+      "noise_seed": 0,
+      "pair_id": "libero_goal_011_wine_bottle_1_to_akita_black_bowl_1",
+      "records": 373
+    },
+    {
+      "metadata": "/lambda/nfs/action-chunking/outputs/interventions/pi05_primary_population_positions_seed0/libero_goal_012_wine_bottle_1_to_akita_black_bowl_1/noise_0/metadata.json",
+      "noise_seed": 0,
+      "pair_id": "libero_goal_012_wine_bottle_1_to_akita_black_bowl_1",
+      "records": 373
+    },
+    {
+      "metadata": "/lambda/nfs/action-chunking/outputs/interventions/pi05_primary_population_positions_seed0/libero_goal_013_wine_bottle_1_to_akita_black_bowl_1/noise_0/metadata.json",
+      "noise_seed": 0,
+      "pair_id": "libero_goal_013_wine_bottle_1_to_akita_black_bowl_1",
+      "records": 373
+    },
+    {
+      "metadata": "/lambda/nfs/action-chunking/outputs/interventions/pi05_primary_population_positions_seed0/libero_goal_014_wine_bottle_1_to_akita_black_bowl_1/noise_0/metadata.json",
+      "noise_seed": 0,
+      "pair_id": "libero_goal_014_wine_bottle_1_to_akita_black_bowl_1",
+      "records": 373
+    },
+    {
+      "metadata": "/lambda/nfs/action-chunking/outputs/interventions/pi05_primary_population_positions_seed0/libero_goal_015_wine_bottle_1_to_akita_black_bowl_1/noise_0/metadata.json",
+      "noise_seed": 0,
+      "pair_id": "libero_goal_015_wine_bottle_1_to_akita_black_bowl_1",
+      "records": 373
+    }
+  ],
+  "mode": "population_positions",
+  "schema_version": 1,
+  "selection_uses_interventions": false
+}

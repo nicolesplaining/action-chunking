@@ -23,7 +23,11 @@ source-retained after nine. Residual-stream interchange peaks at the final
 action-expert layer and final flow step (normalized causal transfer 0.095--0.099
 across full action, translation, and rotation), while property-matched final-step
 action-state swaps transfer 0.537 of translation and 0.900 of rotation. A
-post-grasp destination contrast replicates across two independently selected
+15-state future-position grid reveals a separate temporal organization: at the
+final layer and flow update, positions 5--9 carry more causal transfer than the
+five immediately executed positions (full-action executed-minus-deferred NCTE
+-0.0110, 95% interval -0.0119 to -0.0101; 15/15 states agree). A post-grasp
+destination contrast replicates across two independently selected
 physical-state blocks, losing editability at boundaries seven or eight. A closure-time
 case localizes completely to future action position nine, but only one of four
 noise modes is eligible and therefore supports no population claim. These
@@ -361,7 +365,32 @@ replication shows that a post-grasp subgoal remains editable until late
 integration. Because the target and destination experiments begin at different
 rollout phases, their boundary difference is not a universal semantic ordering.
 
-### 4.5 Closure localization is sharp but noise conditional
+### 4.5 Late residual effects concentrate in deferred action positions
+
+The frozen population position grid crosses flow steps 0, 7, 8, and 9; action-
+expert layers 0, 8, 14, and 17; and all ten future action positions in each of
+the 15 primary scene states. It therefore contains 160 bidirectional cells per
+continuous metric. Identity and full-donor controls remain exact, and every
+reported continuous metric retains all 15 scene-state clusters.
+
+At the final flow step and final layer, full-action NCTE rises from 0.0007 at
+future position 0 to 0.0163 at position 9. Translation rises from 0.0006 to
+0.0167; rotation rises from 0.0012 to 0.0153. The preregistered contrast averages
+positions 0--4, which are executed before the next replan, against deferred
+positions 5--9. Executed-minus-deferred NCTE is -0.0110 for full action (95%
+scene-cluster interval -0.0119 to -0.0101; exact sign-flip `p=6.10e-5`),
+-0.0115 for translation (-0.0124 to -0.0105; `p=6.10e-5`), and -0.00813 for
+rotation (-0.0105 to -0.00569; `p=1.22e-4`). Every state has the same negative
+sign for full action and translation; 14/15 do for rotation.
+
+The largest full-action and translation cells are position 9 at the final layer
+and update, whereas rotation peaks at position 8, layer 14, update 9. These
+results show that the late residual mediator is position structured: it has
+greater causal control over the deferred half of the sampled chunk than over
+the controls about to be executed. They do not establish that deferred controls
+are behaviorally more important, because the policy replans after five actions.
+
+### 4.6 Closure localization is sharp but noise conditional
 
 In the registered seed-0 target-pose case, the unshifted clean chunk first closes
 at future action position 9 while the shifted chunk is right-censored at the
@@ -378,7 +407,7 @@ neither side closes within the seed-2 chunk. The conservative all-seed gate
 therefore yields zero eligible scene clusters. This is a mechanistic case study
 for one sampled action mode, not a state-level population result.
 
-### 4.6 Matched pi0 control status
+### 4.7 Matched pi0 control status
 
 The public pi0 base checkpoint and upstream `pi0_libero` full-finetuning recipe
 are the registered model-level control. Dataset normalization traversed all
@@ -392,7 +421,7 @@ gates fix its metadata and manifest hashes and accept no other checkpoint. The
 competence and conversion-parity evaluations must complete before any
 pi0-versus-pi0.5 timing contrast is inserted here.
 
-### 4.7 Registered inference-utility experiment
+### 4.8 Registered inference-utility experiment
 
 Dynamic-retargeting outcomes are not yet reported. The continuation and restart
 paths, compute accounting, latency instrumentation, eligibility gates, tested
@@ -423,11 +452,14 @@ directly exchangeable: destination is measured after grasp from a held-object
 state, whereas target identity begins before contact. A stronger hierarchy claim
 would require the same property family measured at matched rollout phases.
 
-The closure case demonstrates the value and danger of token-localized analysis.
-Its position specificity is exact for the sampled mode, but the clean contrast
-itself is not stable across noise. Treating four noise modes as four independent
-states would incorrectly turn a conditional event into a population claim. Our
-all-seed gate prevents that error.
+The population token grid and closure case answer different questions. The
+population result identifies a graded geometric effect across all ten positions
+and 15 scene states: late residual computation preferentially affects positions
+that will be discarded if a clean replan occurs after five controls. The
+closure case is much sharper—only position 9 transfers the categorical event—
+but its clean contrast is not stable across noise. Treating four noise modes as
+four independent states would incorrectly turn a conditional event into a
+population claim. Our all-seed gate prevents that error.
 
 ## 6. Limitations and pending registered experiments
 

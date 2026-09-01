@@ -1,5 +1,36 @@
 # Reproducibility log
 
+## 2026-09-01: 15-state population action-position grid completed
+
+The frozen pi0.5 population grid completed all 15 clean-selected scene states,
+with 373 intervention records per state and no post-outcome exclusions. It
+crosses flow steps 0, 7, 8, and 9; layers 0, 8, 14, and 17; and all ten future
+positions. At the final layer/update, the preregistered positions-0--4 minus
+positions-5--9 contrast is -0.0110 full-action NCTE (95% scene-cluster interval
+-0.0119 to -0.0101, exact sign-flip `p=6.10e-5`), -0.0115 for translation
+(-0.0124 to -0.0105, `p=6.10e-5`), and -0.00813 for rotation (-0.0105 to
+-0.00569, `p=1.22e-4`). Full action and translation have the same negative sign
+in all 15 states; rotation does so in 14. The analysis summary SHA-256 is
+`54f38c42872ae17cd5549384a3f0d9621e782544c4190f8f630c807990165c3a`,
+the aggregated position-cell table is
+`e06a2ac28a2b58dbae8e34112b94ef167486eb69d5e54d74014de54537e1d44d`,
+and the state-unit table is
+`503176a56b94ff6dbd46f3cb34fc35039c31fe084257408a3d99e8e5746ba01a`.
+This is a population mechanistic result, not a recovery or safety result.
+
+## 2026-09-01: fixed-rule utility comparator frozen
+
+Protocol version 0.17 was frozen while the public target catalog had produced
+zero eligible scene clusters and before any catalog continuation boundary was
+opened. U1 must now beat the fixed boundary-seven rule already implied by the
+mechanistic population result. The primary comparison is the paired
+scene-cluster difference in absolute last-successful-boundary error, with a
+10,000-resample seed-zero cluster-bootstrap interval. A useful timing-prediction
+positive requires that interval's upper endpoint to be below zero; correlation
+or apparent accuracy without improvement over the fixed rule is insufficient.
+The eligibility screen, action-only predictor, outcome seals, denominator, and
+all intervention thresholds are unchanged.
+
 ## 2026-09-01: exact obstacle base-endpoint cache frozen
 
 Protocol version 0.16 was frozen after seven public obstacle source rows were

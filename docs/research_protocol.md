@@ -1,6 +1,6 @@
 # Research protocol: causal editability and retargeting in action chunks
 
-Protocol version: 0.16 (exact obstacle base-endpoint cache)
+Protocol version: 0.17 (state-specific utility predictor baseline)
 
 ## 1. Research question
 
