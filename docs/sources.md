@@ -11,7 +11,9 @@ paper version, not this summary.
   `third_party/openpi`. The matched-pi0 checkpoint conversion reuses the pinned
   public converter's parameter mapping and adopts the narrowly scoped
   float32-intermediate safeguard proposed in public
-  [OpenPI PR #978](https://github.com/Physical-Intelligence/openpi/pull/978).
+  [OpenPI PR #978](https://github.com/Physical-Intelligence/openpi/pull/978),
+  pinned at its four-line precision-fix commit
+  `e5fe45e2c6784f315ffa59c207457701fb906c05`.
   The original bfloat16 conversion failure is retained because public reports
   also document JAX/PyTorch output and performance discrepancies
   ([issue #810](https://github.com/Physical-Intelligence/openpi/issues/810),

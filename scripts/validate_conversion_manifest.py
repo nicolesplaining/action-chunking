@@ -22,6 +22,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--jax-checkpoint", type=Path, required=True)
     parser.add_argument("--pytorch-checkpoint", type=Path, required=True)
+    parser.add_argument("--upstream-converter", type=Path, required=True)
     parser.add_argument("--manifest", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--config", default="pi0_libero")
@@ -69,6 +70,10 @@ def run_parent(args: argparse.Namespace) -> int:
     if args.noise_seed < 0:
         raise ValueError("noise seed must be nonnegative")
     args.output.mkdir(parents=True, exist_ok=True)
+    conversion_provenance = _validate_conversion_provenance(
+        args.pytorch_checkpoint,
+        args.upstream_converter,
+    )
     common = [
         sys.executable,
         str(Path(__file__).resolve()),
@@ -76,6 +81,8 @@ def run_parent(args: argparse.Namespace) -> int:
         str(args.jax_checkpoint),
         "--pytorch-checkpoint",
         str(args.pytorch_checkpoint),
+        "--upstream-converter",
+        str(args.upstream_converter),
         "--manifest",
         str(args.manifest),
         "--output",
@@ -117,6 +124,7 @@ def run_parent(args: argparse.Namespace) -> int:
             "pytorch_checkpoint": str(args.pytorch_checkpoint),
             "jax_checkpoint_identity": validate_pi0_final_checkpoint(args.jax_checkpoint),
             "pytorch_checkpoint_artifact_sha256": _checkpoint_hashes(args.pytorch_checkpoint),
+            "conversion_provenance": conversion_provenance,
         }
     )
     (args.output / "summary.json").write_text(json.dumps(result, indent=2, sort_keys=True) + "\n")
@@ -125,11 +133,43 @@ def run_parent(args: argparse.Namespace) -> int:
 
 
 def _checkpoint_hashes(checkpoint: Path) -> dict[str, str]:
-    required = ("config.json", "model.safetensors")
+    required = ("config.json", "conversion_provenance.json", "model.safetensors")
     missing = [name for name in required if not (checkpoint / name).is_file()]
     if missing:
         raise FileNotFoundError(f"converted checkpoint artifacts are missing: {missing}")
     return {name: file_digest(checkpoint / name) for name in required}
+
+
+def _validate_conversion_provenance(
+    checkpoint: Path,
+    upstream_converter: Path,
+) -> dict:
+    path = checkpoint / "conversion_provenance.json"
+    if not path.is_file():
+        raise FileNotFoundError("converted checkpoint lacks conversion_provenance.json")
+    provenance = json.loads(path.read_text())
+    required = {
+        "schema_version": 1,
+        "adapter": "openpi_pr978_float32_intermediate",
+        "source_precision_repair_commit": "e5fe45e2c6784f315ffa59c207457701fb906c05",
+        "upstream_openpi_revision": "215abfb217dbac7d5f1273282331b9b1866c0479",
+        "intermediate_model_config_dtype": "float32",
+        "saved_checkpoint_precision": "float32",
+        "policy_loader_precision_behavior": "unchanged_openpi_mixed_precision",
+    }
+    mismatched = {
+        key: {"expected": expected, "actual": provenance.get(key)}
+        for key, expected in required.items()
+        if provenance.get(key) != expected
+    }
+    if mismatched:
+        raise ValueError(f"conversion provenance mismatch: {mismatched}")
+    if not upstream_converter.is_file():
+        raise FileNotFoundError(f"upstream converter is missing: {upstream_converter}")
+    actual_digest = file_digest(upstream_converter)
+    if provenance.get("upstream_converter_sha256") != actual_digest:
+        raise ValueError("conversion provenance has the wrong upstream converter digest")
+    return provenance
 
 
 def main() -> int:

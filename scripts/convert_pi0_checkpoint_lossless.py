@@ -12,9 +12,17 @@ from __future__ import annotations
 
 import argparse
 import dataclasses
+import hashlib
 import importlib.util
+import json
 from pathlib import Path
 from types import ModuleType
+
+OPENPI_PRECISION_REPAIR_COMMIT = "e5fe45e2c6784f315ffa59c207457701fb906c05"
+OPENPI_PRECISION_REPAIR_URL = (
+    "https://github.com/Greyman-Seu/openpi/commit/"
+    f"{OPENPI_PRECISION_REPAIR_COMMIT}"
+)
 
 
 def parse_args() -> argparse.Namespace:
@@ -23,6 +31,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--config-name", default="pi0_libero")
     parser.add_argument("--output-path", type=Path, required=True)
     parser.add_argument("--upstream-converter", type=Path, required=True)
+    parser.add_argument("--upstream-revision", required=True)
     return parser.parse_args()
 
 
@@ -48,6 +57,22 @@ def load_upstream_converter(path: Path) -> ModuleType:
     return module
 
 
+def conversion_provenance(converter: Path, upstream_revision: str) -> dict:
+    if not converter.is_file():
+        raise FileNotFoundError(f"upstream converter is missing: {converter}")
+    return {
+        "schema_version": 1,
+        "adapter": "openpi_pr978_float32_intermediate",
+        "source_precision_repair_commit": OPENPI_PRECISION_REPAIR_COMMIT,
+        "source_precision_repair_url": OPENPI_PRECISION_REPAIR_URL,
+        "upstream_openpi_revision": upstream_revision,
+        "upstream_converter_sha256": hashlib.sha256(converter.read_bytes()).hexdigest(),
+        "intermediate_model_config_dtype": "float32",
+        "saved_checkpoint_precision": "float32",
+        "policy_loader_precision_behavior": "unchanged_openpi_mixed_precision",
+    }
+
+
 def main() -> None:
     args = parse_args()
 
@@ -65,6 +90,13 @@ def main() -> None:
         "float32",
         str(args.output_path),
         model_config,
+    )
+    provenance = conversion_provenance(
+        args.upstream_converter,
+        args.upstream_revision,
+    )
+    (args.output_path / "conversion_provenance.json").write_text(
+        json.dumps(provenance, indent=2, sort_keys=True) + "\n"
     )
 
 

@@ -454,13 +454,19 @@ launched.
 
 This exposed an implementation issue rather than authorizing a threshold
 change. Public OpenPI PR #978 identifies silent precision loss when a
-non-float32 PI0 config constructs the intermediate converted model. The repair
+non-float32 PI0 config constructs the intermediate converted model; the exact
+adapted source commit is `e5fe45e2c6784f315ffa59c207457701fb906c05`.
+The repair
 calls the pinned public converter's parameter mapping with a float32
 intermediate config and float32 saved checkpoint, after which OpenPI's unchanged
 loader recreates mixed-precision inference. The exact same 32 inputs, seed-zero
 noise, 0.02 maximum-error threshold, and 0.999 cosine threshold must be rerun in
 a new output directory. The original failure is never overwritten; if the
 lossless rerun fails, pi0 remains conversion-limited.
+The rerun additionally binds a SHA-256 digest of the pinned upstream converter,
+the OpenPI submodule revision, the public repair commit, and both conversion
+precision choices in `conversion_provenance.json`; the parity gate hashes this
+file alongside the config and weights.
 
 ## 2026-09-01: utility-prediction sample-size gate
 

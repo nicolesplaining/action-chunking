@@ -14,6 +14,12 @@ pytorch_output="$(realpath -m "$5")"
 parity_output="$(realpath -m "$6")"
 gpu="$7"
 openpi="$repo_root/third_party/openpi"
+pinned_openpi="215abfb217dbac7d5f1273282331b9b1866c0479"
+actual_openpi="$(git -C "$openpi" rev-parse HEAD)"
+if [[ "$actual_openpi" != "$pinned_openpi" ]]; then
+  echo "conversion requires pinned OpenPI commit $pinned_openpi, found $actual_openpi" >&2
+  exit 1
+fi
 
 if ! PYTHONPATH="$repo_root/src" "$repo_root/.venv/bin/python" \
   "$repo_root/scripts/validate_pi0_final_checkpoint.py" --checkpoint "$jax_checkpoint" >/dev/null; then
@@ -41,9 +47,10 @@ env CUDA_VISIBLE_DEVICES="$gpu" XLA_PYTHON_CLIENT_PREALLOCATE=false \
   --checkpoint-dir "$jax_checkpoint" \
   --config-name pi0_libero \
   --output-path "$pytorch_output" \
-  --upstream-converter "$openpi/examples/convert_jax_model_to_pytorch.py"
+  --upstream-converter "$openpi/examples/convert_jax_model_to_pytorch.py" \
+  --upstream-revision "$actual_openpi"
 
-if [[ ! -f "$pytorch_output/model.safetensors" || ! -f "$pytorch_output/config.json" ]]; then
+if [[ ! -f "$pytorch_output/model.safetensors" || ! -f "$pytorch_output/config.json" || ! -f "$pytorch_output/conversion_provenance.json" ]]; then
   echo "official conversion did not produce the required PyTorch artifacts" >&2
   exit 1
 fi
@@ -55,6 +62,7 @@ PYTHONPATH="$repo_root/src:$openpi:$openpi/packages/openpi-client/src" \
   "$openpi/.venv/bin/python" "$repo_root/scripts/validate_conversion_manifest.py" \
   --jax-checkpoint "$jax_checkpoint" \
   --pytorch-checkpoint "$pytorch_output" \
+  --upstream-converter "$openpi/examples/convert_jax_model_to_pytorch.py" \
   --manifest "$manifest" \
   --output "$parity_output" \
   --config pi0_libero \
