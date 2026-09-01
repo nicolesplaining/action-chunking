@@ -74,6 +74,83 @@ def summarize_episode_results(results: list[EpisodeResult], suite: str) -> tuple
     return rows, summary
 
 
+def validate_task_counts(
+    rows: list[dict],
+    *,
+    expected_tasks: int | None = None,
+    expected_episodes_per_task: int | None = None,
+) -> None:
+    """Reject suite summaries with missing, duplicated, or truncated task blocks."""
+
+    if expected_tasks is not None and len(rows) != expected_tasks:
+        raise ValueError(f"expected {expected_tasks} tasks, found {len(rows)}")
+    if expected_episodes_per_task is None:
+        return
+    mismatches = {
+        str(row["task"]): int(row["episodes"])
+        for row in rows
+        if int(row["episodes"]) != expected_episodes_per_task
+    }
+    if mismatches:
+        details = ", ".join(f"{task}={episodes}" for task, episodes in sorted(mismatches.items()))
+        raise ValueError(f"expected {expected_episodes_per_task} episodes per task; found {details}")
+
+
+def combine_suite_summaries(
+    summaries: list[dict],
+    *,
+    expected_suites: set[str] | None = None,
+    expected_episodes_per_suite: int | None = None,
+) -> tuple[list[dict], dict]:
+    """Combine independently validated suite summaries into one benchmark result."""
+
+    if not summaries:
+        raise ValueError("no suite summaries provided")
+    rows = []
+    seen = set()
+    for summary in summaries:
+        suite = str(summary["suite"])
+        if suite in seen:
+            raise ValueError(f"duplicate suite summary: {suite}")
+        seen.add(suite)
+        episodes = int(summary["episodes"])
+        successes = int(summary["successes"])
+        if episodes <= 0 or not 0 <= successes <= episodes:
+            raise ValueError(f"invalid counts for {suite}: {successes}/{episodes}")
+        if expected_episodes_per_suite is not None and episodes != expected_episodes_per_suite:
+            raise ValueError(f"expected {expected_episodes_per_suite} episodes for {suite}, found {episodes}")
+        low, high = wilson_interval(successes, episodes)
+        rows.append(
+            {
+                "suite": suite,
+                "episodes": episodes,
+                "successes": successes,
+                "success_rate": successes / episodes,
+                "success_rate_ci95_low": low,
+                "success_rate_ci95_high": high,
+            }
+        )
+    if expected_suites is not None and seen != expected_suites:
+        missing = sorted(expected_suites - seen)
+        unexpected = sorted(seen - expected_suites)
+        raise ValueError(f"suite set mismatch: missing={missing}, unexpected={unexpected}")
+    rows.sort(key=lambda row: row["suite"])
+    total_episodes = sum(row["episodes"] for row in rows)
+    total_successes = sum(row["successes"] for row in rows)
+    low, high = wilson_interval(total_successes, total_episodes)
+    combined = {
+        "schema_version": 1,
+        "suites": len(rows),
+        "episodes": total_episodes,
+        "successes": total_successes,
+        "micro_success_rate": total_successes / total_episodes,
+        "micro_success_rate_ci95_low": low,
+        "micro_success_rate_ci95_high": high,
+        "macro_suite_success_rate": sum(row["success_rate"] for row in rows) / len(rows),
+    }
+    return rows, combined
+
+
 def wilson_interval(successes: int, trials: int, *, z: float = 1.959963984540054) -> tuple[float, float]:
     """Return a two-sided Wilson score interval for a binomial proportion."""
 
