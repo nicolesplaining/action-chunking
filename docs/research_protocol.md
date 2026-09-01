@@ -205,6 +205,28 @@ a manipulated-object change from a destination/subgoal change; these families
 are never pooled. Public suite-level competence is established first, followed
 by pair-level clean closed-loop validation.
 
+### 4.1 Frozen pi0 competence gate
+
+The matched pi0 checkpoint is evaluated only after the 30,000-update Orbax
+checkpoint has finalized. Before any pi0 intervention outcome is inspected, it
+must pass both levels of the following gate:
+
+1. The unchanged public OpenPI evaluator runs 50 episodes for each of the ten
+   `libero_goal` tasks. The 500-episode success estimate must be at least 90%,
+   and its Wilson 95% lower bound must be at least 87%.
+2. On the 16 held-out wine-bottle-versus-bowl scene pairs with shared noise seed
+   zero, at least 12 pairs must be dual-successful, restore exact inputs and
+   simulator state, and contact the instructed object first in both directions.
+
+The 90% suite threshold is fixed below the public pi0.5-LIBERO-goal reference
+of 98.0% but high enough that causal differences are not dominated by a broadly
+incompetent control. The 12/16 pair threshold ensures a minimum paired overlap
+for descriptive model contrasts. Primary pi0-versus-pi0.5 estimates use only
+the clean-eligible state intersection and retain every exclusion. If either
+level fails, pi0 is reported as a competence-limited negative control and no
+architectural timing comparison is claimed; the gate is not relaxed or rescued
+by selecting a later checkpoint.
+
 1. **Instruction target:** identical scene with two valid objects; change only
    the target phrase in the instruction.
 2. **Target pose:** identical instruction and distractors; change only the
