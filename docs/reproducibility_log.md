@@ -1,5 +1,14 @@
 # Reproducibility log
 
+## 2026-09-01: streaming inference comparison added from public sources
+
+The practical-inference positioning now cites the peer-reviewed Streaming Flow
+Policy paper and its public implementation. The distinction is explicit:
+Streaming Flow Policy trains integration states to be executable actions,
+whereas this study leaves released pi0.5 weights and flow semantics unchanged
+and emits the predicted clean endpoint from a partial ordinary trajectory. No
+method, threshold, or result changed.
+
 ## 2026-09-01: converted-control weights receive content identity
 
 Before the matched pi0 conversion completed, the frozen conversion-parity

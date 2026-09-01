@@ -122,10 +122,14 @@ where and when a fixed trained model causally constructs a chunk.
 Iterative action generation also creates a latency problem. One-Step Diffusion
 Policy distills a diffusion controller and reports both task success and action
 frequency [@wang2025onedp], while One-Step Flow Policy applies self-distillation
-to flow policies and includes a pi0.5 integration [@li2026ofp]. Our practical
-experiment does not distill or retrain the model. It addresses a different
-online event: when an instruction changes after some flow evaluations are
-already sunk, can the current action state be reused rather than restarted?
+to flow policies and includes a pi0.5 integration [@li2026ofp]. Streaming Flow
+Policy instead trains flow states to be executable actions during integration,
+supporting tighter receding-horizon control [@jiang2025streaming]. Our practical
+experiment neither retrains nor changes the released flow semantics: it emits a
+predicted clean endpoint from a partial ordinary pi0.5 trajectory. It addresses
+a different online event: when an instruction changes after some flow
+evaluations are already sunk, can the current action state be reused rather
+than restarted?
 SafeDiffuser embeds constraints into iterative diffusion planning and separates
 safety satisfaction from planning quality and overhead
 [@xiao2025safediffuser]. We adopt that measurement separation for the planned
