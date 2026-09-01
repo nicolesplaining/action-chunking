@@ -25,6 +25,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--resolution", type=int, default=256)
     parser.add_argument("--resize", type=int, default=224)
+    parser.add_argument("--seed", type=int, default=7)
     parser.add_argument("--minimum-object-clearance", type=float, default=0.01)
     parser.add_argument("--minimum-gripper-clearance", type=float, default=0.04)
     return parser.parse_args()
@@ -148,6 +149,7 @@ def main() -> int:
         "pair_family": "obstacle_pose",
         "suite": manifest["suite"],
         "source": {
+            "reset_seed": args.seed,
             "base_bddl": str(bddl_path),
             "base_bddl_sha256": file_digest(bddl_path),
             "donor_bddl": str(bddl_path),
