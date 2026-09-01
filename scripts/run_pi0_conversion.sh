@@ -21,6 +21,16 @@ if [[ "$actual_openpi" != "$pinned_openpi" ]]; then
   echo "conversion requires pinned OpenPI commit $pinned_openpi, found $actual_openpi" >&2
   exit 1
 fi
+checkpoint_assets="$jax_checkpoint/assets"
+sibling_assets="$jax_checkpoint/../assets"
+if [[ -d "$checkpoint_assets" ]]; then
+  jax_assets="$(realpath "$checkpoint_assets")"
+elif [[ -d "$sibling_assets" ]]; then
+  jax_assets="$(realpath "$sibling_assets")"
+else
+  echo "finalized JAX checkpoint is missing normalization assets" >&2
+  exit 1
+fi
 
 if ! PYTHONPATH="$repo_root/src" "$repo_root/.venv/bin/python" \
   "$repo_root/scripts/validate_pi0_final_checkpoint.py" --checkpoint "$jax_checkpoint" >/dev/null; then
@@ -37,7 +47,7 @@ if ! PYTHONPATH="$repo_root/src" "$repo_root/.venv/bin/python" -c \
   echo "pi0 competence gate did not authorize architecture timing" >&2
   exit 1
 fi
-if [[ -e "$pytorch_output" || -e "$parity_output/summary.json" ]]; then
+if [[ -e "$pytorch_output" || -e "$parity_output" ]]; then
   echo "conversion or parity output already exists" >&2
   exit 1
 fi
@@ -64,8 +74,13 @@ if [[ ! -f "$pytorch_output/model.safetensors" || ! -f "$pytorch_output/config.j
   echo "official conversion did not produce the required PyTorch artifacts" >&2
   exit 1
 fi
-if [[ ! -d "$pytorch_output/assets" ]]; then
-  cp -a "$jax_checkpoint/assets" "$pytorch_output/assets"
+if [[ -d "$pytorch_output/assets" ]]; then
+  if ! diff -qr "$jax_assets" "$pytorch_output/assets" >/dev/null; then
+    echo "converted normalization assets differ from the frozen JAX source" >&2
+    exit 1
+  fi
+else
+  cp -a "$jax_assets" "$pytorch_output/assets"
 fi
 
 PYTHONPATH="$repo_root/src:$openpi:$openpi/packages/openpi-client/src" \

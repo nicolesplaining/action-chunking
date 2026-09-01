@@ -1,6 +1,6 @@
 # Research protocol: causal editability and retargeting in action chunks
 
-Protocol version: 0.26 (per-unit matched-control grid completeness)
+Protocol version: 0.27 (lossless-conversion execution and lineage repair)
 
 ## 1. Research question
 
@@ -545,6 +545,13 @@ in OpenPI PR #978: the intermediate model and saved checkpoint remain float32,
 then OpenPI's unchanged policy loader recreates its intended mixed-precision
 inference layout. This prevents an irreversible bfloat16 checkpoint downcast;
 it does not change model weights, inputs, sampling, or the parity criterion.
+The adapter records the exact digest of the preserved 24/32 failed-parity
+summary, and the parity validator independently matches that digest before
+loading either backend. The launcher resolves normalization assets from the
+numbered checkpoint used by the frozen run, with OpenPI's public sibling-assets
+layout as a fallback, and requires any converter-copied assets to be bytewise
+identical to that frozen source. Conversion and parity each require a new output
+path; partial failed artifacts are retained rather than overwritten.
 Before any pi0
 activation intervention, conversion parity is evaluated on both directions of
 all 16 held-out target fixtures under identical seed-zero `50 x 32` action

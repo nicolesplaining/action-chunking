@@ -1,5 +1,18 @@
 # Reproducibility log
 
+## 2026-09-01: lossless pi0 conversion made executable and lineage-bound
+
+Protocol version 0.27 repairs the future lossless pi0 conversion before its
+outcome exists. The launcher supplied a preserved-failure argument that its
+adapter had not declared, which would have stopped conversion during argument
+parsing. The adapter now accepts that argument and records its SHA-256 digest;
+the parity stage independently checks it. The launcher explicitly resolves the
+actual frozen run's in-checkpoint normalization assets, supports OpenPI's
+sibling-assets layout as a fallback, and requires converter-copied assets to
+match the selected source bytewise. Both conversion and parity require wholly
+new output paths so partial failures remain immutable. These repairs change no
+parameter mapping, model input, action, parity case, or registered tolerance.
+
 ## 2026-09-01: matched grids made complete per intervention unit
 
 Protocol version 0.26 strengthens the future pi0-versus-pi0.5 comparison before
