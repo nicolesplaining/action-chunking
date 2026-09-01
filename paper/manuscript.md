@@ -257,7 +257,8 @@ condition chunk must also be byte-exact to the saved clean chunk. Eligibility is
 then selected without intermediate-continuation outcomes: the old endpoint must
 induce old-target contact within five actions, a full new-instruction restart
 must avoid that event, and both clean tasks must remain competent. Intermediate
-boundaries stay sealed until this gate and the action-only prediction are frozen.
+boundaries stay sealed until this gate and the action-only prediction are frozen
+[@zhu2020robosuite].
 
 ### 3.6 Layer, action-state, and token interventions
 
