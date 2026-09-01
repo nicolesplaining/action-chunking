@@ -443,6 +443,15 @@ composite in 14/15, all replan compute counts are exact, and median paired
 first-replan latency savings are 30.0%. The result opens the confirmation; it
 does not alter its denominator, margin, pairing, or stopping rule.
 
+The sealed confirmation is visualized identically whether its registered gate
+passes or fails. Its publication figure must show all ten 50-trial task strata,
+the four paired outcome categories (both, full-only loss, early-only gain, and
+neither), and the complete 500-pair first-replan latency-savings distribution.
+The figure generator independently reconstructs aggregate successes, paired
+losses/gains, the exact loss bound, latency median, and the final decision from
+the row-level artifact. A negative result is therefore not replaced by the
+earlier positive pilot figure.
+
 ## 3. Mechanistic hypotheses and utility amendment
 
 The following hypotheses will be frozen after the pilot and before examining

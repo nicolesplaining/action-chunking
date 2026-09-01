@@ -1,5 +1,15 @@
 # Reproducibility log
 
+## 2026-09-01: sealed-confirmation figure path fixed before completion
+
+While the 500-pair confirmation was incomplete, a separate publication figure
+generator was added for its final artifact. It accepts either a positive or a
+negative decision and must display every task stratum, all four paired outcome
+categories, and the full paired latency distribution. Before rendering, it
+reconstructs success counts, losses, gains, the exact loss bound, latency
+median, and the registered decision from all 500 rows. This prevents a failed
+confirmation from being silently replaced by the earlier positive pilot.
+
 ## 2026-09-01: boundary-zero behavioral identity added before utility outcomes
 
 Protocol version 0.25 strengthens the future continue-versus-restart identity
