@@ -190,11 +190,13 @@ scene-state differences in formation, editability, formation-to-editability gap,
 retention AUC, 10--90% transition width, directional-asymmetry AUC, and common
 causal cells with within-metric BH correction.
 
-The two-device pipeline has passed a two-update execution smoke from the public
-base checkpoint (first reported loss 0.1812; finite gradient and parameter
-norms; finalized Orbax checkpoint). This validates the pipeline only. The pi0
-comparison remains pending until the completed 30,000-update checkpoint passes the frozen
-LIBERO competence gate.
+The two-device pipeline passed its execution smoke and completed the frozen
+30,000-update run. The final checkpoint passes both behavioral gates: 465/500
+LIBERO Goal episodes and 15/16 exact dual-success target pairs. Its first
+bfloat16 conversion fails parity at 24/32 cases, so the matched mechanistic
+comparison remains conversion-limited. Rerun the same cases with the public
+float32-intermediate repair and unchanged thresholds; only a 32/32 pass may
+release the two-H100 coarse and all-50-position grids.
 
 The model comparison is a matched experimental protocol, not a pure
 architectural ablation: pi0 and pi0.5 differ in pretraining and checkpoint
