@@ -503,6 +503,17 @@ decision boundary, and a negative-latency case verifies that behavioral
 preservation alone cannot pass. No outcome, threshold, denominator, estimand,
 or active rollout code changed.
 
+## 2026-09-01: publication-artifact audit
+
+The six current manuscript figures were independently checked against
+`paper/figures/figure_manifest.json`. All nine input hashes and all 12 PNG/PDF
+output hashes match. Every PDF is a single page with embedded fonts; every PNG
+is at least 2,000 pixels wide and 800 pixels high. The six numbered captions
+are complete, all 18 manuscript citation keys resolve in the checked-in BibTeX,
+and every versioned paper-result manifest binds its listed files. These checks
+now run in `tests/test_paper_artifacts.py` so later result integration cannot
+silently leave stale figures, captions, citations, or artifact hashes.
+
 ## 2026-09-01: population action-token grid frozen
 
 Before any population target-token intervention was generated, the missing
