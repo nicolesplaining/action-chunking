@@ -1,5 +1,17 @@
 # Reproducibility log
 
+## 2026-09-01: obstacle source-base pre-gate frozen
+
+Protocol version 0.15 was frozen after the first public-catalog obstacle row's
+unchanged base episode contacted the distractor first and failed, while the
+second placement was redundantly running the same base episode. All placements
+within a source row share that base fixture, so a failed exact base target-first
+task endpoint makes every placement in that row ineligible under the already
+frozen paired-clean rule. Future rows run this source-base endpoint once and
+skip redundant geometry/clean rollouts if it fails. The row and reason remain
+in the denominator; thresholds, ordering, and selection are unchanged, and no
+obstacle intervention outcome was inspected.
+
 ## 2026-09-01: public-catalog obstacle expansion frozen
 
 Protocol version 0.14 was frozen after the wine/bowl obstacle family exhausted
