@@ -1,6 +1,6 @@
 # Research protocol: causal editability and retargeting in action chunks
 
-Protocol version: 0.35 (isolated parallel endpoint screening)
+Protocol version: 0.36 (independently reconstructed utility outcomes)
 
 ## 1. Research question
 
@@ -273,6 +273,16 @@ invalid predictions remain in all policy denominators through their conservative
 restart fallback. The U4 claim is positive only if every behavioral and compute
 condition passes. Thus a correlation alone cannot support the practical claim,
 and a predictor identical to the fixed cutoff cannot pass by construction.
+
+After the final selected cluster finishes, a separate process reconstructs the
+entire utility summary before any result is publishable. For every cluster it
+re-reads the raw 12-condition rollout table, sweep control summary, and grasp-
+orientation artifact; verifies their hashes and the frozen candidate manifest,
+prediction, endpoint gate, and orientation calibration; rebuilds every curve
+and registered boundary field; and reruns all bootstrap, permutation, exact
+noninferiority, adaptive-policy, compute, and latency statistics. The resulting
+payload must equal `summary.json` exactly. A repeated audit may verify an
+identical immutable `final_audit.json` but may never overwrite a differing one.
 
 U1 is useful only if the state-specific action-only predictor adds information
 beyond the population rule already available from the mechanistic pilot. Its

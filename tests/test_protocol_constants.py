@@ -18,7 +18,7 @@ def test_machine_readable_protocol_matches_executable_frozen_defaults() -> None:
 
     utility_defaults = inspect.signature(summarize_utility_jobs).parameters
     catalog_defaults = inspect.signature(build_retarget_screening_plan).parameters
-    assert protocol["study"]["protocol_version"] == "0.35"
+    assert protocol["study"]["protocol_version"] == "0.36"
     assert protocol["inference"]["flow_steps"] == 10
     assert protocol["inference"]["receding_horizon_steps"] == 5
     assert protocol["study"]["editability_retention_threshold"] == 0.8
@@ -68,6 +68,10 @@ def test_machine_readable_protocol_matches_executable_frozen_defaults() -> None:
     assert utility["adaptive_policy_bootstrap_seed"] == 20
     assert utility["adaptive_policy_requires_noninferiority_to_both_comparators"] is True
     assert utility["adaptive_policy_requires_compute_savings_ci_low_above_zero_vs_both"] is True
+    assert utility["utility_final_audit_required"] is True
+    assert utility["utility_final_audit_reconstructs_raw_files_per_cluster"] == 3
+    assert utility["utility_final_audit_recomputes_all_statistics"] is True
+    assert utility["utility_final_audit_resume_requires_exact_match"] is True
     assert utility["noninferiority_outcomes"] == [
         "new_target_first",
         "eventual_new_task_success",

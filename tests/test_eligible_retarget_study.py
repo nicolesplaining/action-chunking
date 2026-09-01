@@ -6,19 +6,22 @@ from pathlib import Path
 
 import pytest
 
+from action_chunking.utility_artifacts import (
+    select_primary_directions,
+    strict_boolean,
+    utility_decision,
+    validate_completed_sweep,
+)
+
 _module = runpy.run_path(
     str(Path(__file__).parents[1] / "scripts" / "run_eligible_retarget_study.py")
 )
-_boolean = _module["_boolean"]
 _candidate_manifests = _module["_candidate_manifests"]
-_select_primary_directions = _module["_select_primary_directions"]
-_utility_decision = _module["_utility_decision"]
-_validate_completed_sweep = _module["_validate_completed_sweep"]
 
 
 def test_strict_serialized_boolean_parser() -> None:
-    assert _boolean("True") is True
-    assert _boolean("False") is False
+    assert strict_boolean("True") is True
+    assert strict_boolean("False") is False
 
 
 def test_selects_only_first_frozen_direction_per_scene_cluster() -> None:
@@ -28,7 +31,7 @@ def test_selects_only_first_frozen_direction_per_scene_cluster() -> None:
         {"pair_id": "b", "new_side": "base", "cluster_id": "scene-2"},
     ]
 
-    selected, decisions = _select_primary_directions(rows)
+    selected, decisions = select_primary_directions(rows)
 
     assert [(row["pair_id"], row["new_side"]) for row in selected] == [
         ("a", "base"),
@@ -63,8 +66,8 @@ def test_utility_decision_is_withheld_until_every_cluster_finishes() -> None:
         "adaptive_policy_utility_gate_passed": True,
     }
 
-    pending = _utility_decision(statistics, 99, 100)
-    positive = _utility_decision(statistics, 100, 100)
+    pending = utility_decision(statistics, 99, 100)
+    positive = utility_decision(statistics, 100, 100)
 
     assert pending == {
         "study_complete": False,
@@ -96,7 +99,7 @@ def test_completed_sweep_requires_every_condition_and_exact_control() -> None:
         "boundary_zero_continue_restart_behavior_exact": True,
     }
 
-    _validate_completed_sweep(summary, "pair")
+    validate_completed_sweep(summary, "pair")
     summary["boundary_zero_continue_restart_actions_exact"] = False
     with pytest.raises(ValueError, match="exact controls"):
-        _validate_completed_sweep(summary, "pair")
+        validate_completed_sweep(summary, "pair")
