@@ -101,7 +101,10 @@ def main() -> int:
                     "metric": row["metric"],
                     "switch_after_steps": int(row["switch_after_steps"]),
                     "eligible": bool(summary["valid_contrasts"][row["metric"]]),
+                    "base_to_donor_retention": float(row["base_to_donor_retention"]),
+                    "donor_to_base_retention": float(row["donor_to_base_retention"]),
                     "symmetric_retention": float(row["symmetric_retention"]),
+                    "directional_asymmetry": float(row["directional_asymmetry"]),
                 }
             )
         for row in _read_csv(job_analysis / "formation_contrast.csv"):
@@ -147,7 +150,10 @@ def main() -> int:
                             "metric": closure_metric,
                             "switch_after_steps": int(row["switch_after_steps"]),
                             "eligible": True,
+                            "base_to_donor_retention": float(row["base_to_donor_retention"]),
+                            "donor_to_base_retention": float(row["donor_to_base_retention"]),
                             "symmetric_retention": float(row["symmetric_retention"]),
+                            "directional_asymmetry": float(row["directional_asymmetry"]),
                         }
                     )
                 for row in _read_csv(job_analysis / "gripper_closure_formation.csv"):
@@ -620,7 +626,16 @@ def _timing_separation(units: list[dict[str, Any]], args: argparse.Namespace) ->
 def _aggregate_flow(
     rows: list[dict[str, Any]], args: argparse.Namespace
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
-    state_rows = _state_means(rows, "switch_after_steps", ("symmetric_retention",))
+    state_rows = _state_means(
+        rows,
+        "switch_after_steps",
+        (
+            "base_to_donor_retention",
+            "donor_to_base_retention",
+            "symmetric_retention",
+            "directional_asymmetry",
+        ),
+    )
     rng = np.random.default_rng(args.bootstrap_seed)
     output = []
     statistics = {}
@@ -643,6 +658,20 @@ def _aggregate_flow(
                 for cluster in clusters
             ]
         )
+        asymmetry_matrix = np.asarray(
+            [
+                [
+                    next(
+                        row["directional_asymmetry"]
+                        for row in selected
+                        if row["scene_state_sha256"] == cluster
+                        and row["switch_after_steps"] == boundary
+                    )
+                    for boundary in range(11)
+                ]
+                for cluster in clusters
+            ]
+        )
         bootstrap_indices = rng.integers(0, len(clusters), size=(args.bootstrap_replicates, len(clusters)))
         bootstrap_curves = matrix[bootstrap_indices].mean(axis=1)
         mean_curve = matrix.mean(axis=0)
@@ -654,6 +683,8 @@ def _aggregate_flow(
             ]
         )
         auc = float(np.trapz(mean_curve, dx=0.1))
+        state_asymmetry_auc = np.trapz(asymmetry_matrix, dx=0.1, axis=1)
+        bootstrap_asymmetry_auc = state_asymmetry_auc[bootstrap_indices].mean(axis=1)
         statistics[metric] = {
             "eligible_state_clusters": len(clusters),
             "aggregate_commitment_step": aggregate_step,
@@ -661,6 +692,13 @@ def _aggregate_flow(
             "commitment_step_ci95_high": float(np.quantile(bootstrap_steps, 0.975)),
             "retention_auc": auc,
             "late_weighting_index": 0.5 - auc,
+            "mean_directional_asymmetry_auc": float(state_asymmetry_auc.mean()),
+            "directional_asymmetry_auc_ci95_low": float(
+                np.quantile(bootstrap_asymmetry_auc, 0.025)
+            ),
+            "directional_asymmetry_auc_ci95_high": float(
+                np.quantile(bootstrap_asymmetry_auc, 0.975)
+            ),
         }
         for boundary in range(11):
             values = bootstrap_curves[:, boundary]

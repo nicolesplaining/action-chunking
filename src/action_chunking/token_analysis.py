@@ -39,8 +39,8 @@ def executed_token_contrast(
     expected_positions = set(range(action_horizon))
     by_metric: dict[str, list[float]] = {}
     for (_cluster, metric), values in sorted(grouped.items()):
-        if set(values) != expected_positions:
-            raise ValueError("incomplete action-token grid at the primary site")
+        if not expected_positions <= set(values):
+            raise ValueError("incomplete action-token grid in the primary comparison window")
         executed = np.mean([values[position] for position in range(execution_horizon)])
         deferred = np.mean(
             [values[position] for position in range(execution_horizon, action_horizon)]

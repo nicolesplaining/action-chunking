@@ -1,6 +1,6 @@
 # Research protocol: causal editability and retargeting in action chunks
 
-Protocol version: 0.7 (independent-cluster utility handoff and analysis)
+Protocol version: 0.8 (matched pi0 intervention and comparison grid)
 
 ## 1. Research question
 
@@ -328,6 +328,29 @@ noise. Every physical-action case must have maximum absolute JAX/PyTorch error
 at most 0.02 and cosine similarity at least 0.999. A failed case blocks the
 mechanistic comparison and is reported as conversion-limited; these tolerances
 are not relaxed after conversion.
+
+If and only if competence and conversion parity pass, both models are analyzed
+on the intersection of their clean dual-success, instructed-target-first scene
+states. Pi0 uses the same target manifest, seed-zero noise mode, ten flow
+updates, evaluator thresholds, and 18 action-expert layer indices as pi0.5.
+Its native action tensor remains `50 x 32`; it is not truncated before model
+execution. The matched coarse grid crosses all ten flow steps and all 18 layers
+with all action positions patched jointly, plus the same preregistered physical
+action-dimension groups. The position grid crosses flow steps `{0, 7, 8, 9}`,
+layers `{0, 8, 14, 17}`, and all 50 native pi0 positions.
+
+Primary position comparisons use common positions zero through nine. A separate
+normalized-chunk-time analysis partitions pi0.5's ten positions and pi0's 50
+positions into ten fixed bins, averaging within bin and scene before the paired
+model contrast. Every cross-model estimate is paired by serialized scene-state
+hash. Timing comparisons report formation, editability-boundary, and
+formation-to-editability-gap differences. Flow-shape comparisons report
+retention AUC, late-weighting index, 10--90% transition width, and directional-
+asymmetry AUC. Residual, action-state dimension, first-ten position, and
+normalized-position cell differences use scene-cluster bootstrap intervals,
+exact sign-flip tests when at most 20 clusters are eligible, and BH correction
+within each metric family. This is a model-level comparison, not an isolated
+architectural causal effect.
 
 1. **Instruction target:** identical scene with two valid objects; change only
    the target phrase in the instruction.

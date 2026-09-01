@@ -44,3 +44,23 @@ def test_executed_token_contrast_rejects_incomplete_site() -> None:
     ]
     with pytest.raises(ValueError, match="incomplete"):
         executed_token_contrast(rows)
+
+
+def test_executed_token_contrast_accepts_positions_beyond_primary_window() -> None:
+    rows = [
+        {
+            "scene_state_sha256": "a",
+            "metric": "translation",
+            "eligible": True,
+            "flow_step": 9,
+            "layer": 17,
+            "action_position": position,
+            "symmetric_ncte": 1.0 if position < 5 else 0.0,
+        }
+        for position in range(50)
+    ]
+
+    result = executed_token_contrast(rows, bootstrap_replicates=100)
+
+    assert result["translation"]["executed_positions"] == list(range(5))
+    assert result["translation"]["deferred_positions"] == list(range(5, 10))

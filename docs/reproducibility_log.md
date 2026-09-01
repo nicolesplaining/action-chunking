@@ -1,5 +1,30 @@
 # Reproducibility log
 
+## 2026-09-01: matched pi0 intervention grid frozen before control outcomes
+
+Protocol version 0.8 was frozen while the public pi0 training run was still at
+approximately 25,000/30,000 updates. No step-30,000 competence, conversion-
+parity, or pi0 intervention outcome existed. The earlier competence and parity
+gates remain unchanged and fail closed.
+
+Passing pi0 is now automatically evaluated on the clean-eligible intersection
+with pi0.5. The coarse grid uses all ten flow steps, all 18 action-expert layers,
+joint action-position residual patches, and the existing dimension groups. The
+position grid uses steps 0, 7, 8, and 9; layers 0, 8, 14, and 17; and all 50
+native pi0 action positions. The analyzer was amended before this grid to retain
+both directional retention curves and their asymmetry, and to treat positions
+0--9 as a primary window even when the native model exposes additional
+positions. All native positions remain in the released heatmap.
+
+The paired comparison code was fixed before outcomes. It matches serialized
+scene states, reports timing and flow-shape differences, compares common
+residual and action-dimension cells, compares positions 0--9 directly, and
+compares ten normalized chunk-time bins (`1` pi0.5 position versus `5` pi0
+positions per bin). Scene bootstraps, exact sign-flip tests for at most 20
+clusters, and within-metric BH correction are computed from the common-state
+units. This preserves the model-level-control interpretation and does not claim
+that pretraining, horizon, and architecture have been isolated.
+
 ## 2026-09-01: independent-cluster utility analysis frozen before outcomes
 
 Protocol version 0.7 was frozen while exact replan-aligned candidate generation
