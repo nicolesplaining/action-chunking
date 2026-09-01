@@ -127,6 +127,9 @@ Require a separate final audit to reconstruct every cluster from its raw sweep
 summary, 12-condition rollout table, and grasp-orientation artifact, recheck all
 frozen input hashes, and rerun every statistic. A utility result is reportable
 only when that independently rebuilt payload exactly matches the saved summary.
+The utility rollout must also use the same completely clean action-chunking
+commit as its endpoint catalog; the frozen prediction manifest and final audit
+both verify that code binding.
 
 Use the preregistered four-panel utility figure regardless of decision sign:
 predicted versus observed recovery boundary, all behavioral curves over update

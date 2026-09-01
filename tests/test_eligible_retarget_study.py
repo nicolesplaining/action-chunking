@@ -17,6 +17,7 @@ _module = runpy.run_path(
     str(Path(__file__).parents[1] / "scripts" / "run_eligible_retarget_study.py")
 )
 _candidate_manifests = _module["_candidate_manifests"]
+_validate_execution_binding = _module["_validate_execution_binding"]
 
 
 def test_strict_serialized_boolean_parser() -> None:
@@ -57,6 +58,11 @@ def test_reads_frozen_candidate_index(tmp_path: Path) -> None:
     )
 
     assert _candidate_manifests(None, index) == {"pair": manifest}
+
+
+def test_utility_execution_binding_requires_full_commit(tmp_path: Path) -> None:
+    with pytest.raises(ValueError, match="full lowercase code commit"):
+        _validate_execution_binding(tmp_path / "output", "short")
 
 
 def test_utility_decision_is_withheld_until_every_cluster_finishes() -> None:

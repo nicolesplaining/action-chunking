@@ -18,7 +18,7 @@ def test_machine_readable_protocol_matches_executable_frozen_defaults() -> None:
 
     utility_defaults = inspect.signature(summarize_utility_jobs).parameters
     catalog_defaults = inspect.signature(build_retarget_screening_plan).parameters
-    assert protocol["study"]["protocol_version"] == "0.38"
+    assert protocol["study"]["protocol_version"] == "0.39"
     assert protocol["inference"]["flow_steps"] == 10
     assert protocol["inference"]["receding_horizon_steps"] == 5
     assert protocol["study"]["editability_retention_threshold"] == 0.8
@@ -72,6 +72,10 @@ def test_machine_readable_protocol_matches_executable_frozen_defaults() -> None:
     assert utility["utility_final_audit_reconstructs_raw_files_per_cluster"] == 3
     assert utility["utility_final_audit_recomputes_all_statistics"] is True
     assert utility["utility_final_audit_resume_requires_exact_match"] is True
+    assert utility["utility_requires_complete_worktree_cleanliness"] is True
+    assert utility["utility_requires_same_code_commit_as_catalog"] is True
+    assert utility["utility_resume_requires_code_commit_binding"] is True
+    assert utility["utility_frozen_predictions_bind_code_commit"] is True
     assert utility["utility_publication_figure_requires_final_audit"] is True
     assert utility["utility_publication_figure_reruns_raw_reconstruction"] is True
     assert utility["utility_publication_figure_requires_new_path"] is True

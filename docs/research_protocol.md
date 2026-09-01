@@ -1,6 +1,6 @@
 # Research protocol: causal editability and retargeting in action chunks
 
-Protocol version: 0.38 (conversion bound to clean orchestration code)
+Protocol version: 0.39 (utility outcomes bound to clean orchestration code)
 
 ## 1. Research question
 
@@ -283,6 +283,12 @@ and registered boundary field; and reruns all bootstrap, permutation, exact
 noninferiority, adaptive-policy, compute, and latency statistics. The resulting
 payload must equal `summary.json` exactly. A repeated audit may verify an
 identical immutable `final_audit.json` but may never overwrite a differing one.
+The closed-loop utility launcher requires a completely clean worktree, the
+same full action-chunking commit that produced the endpoint catalog, and the
+pinned OpenPI revision. That commit is frozen before any continuation rollout,
+checked before and after every cluster, and verified from `code_commit.txt` by
+the independent final audit. A partial utility output without the same binding
+cannot be resumed.
 
 The frozen utility figure can be rendered only after that final audit passes,
 and its loader reruns the raw-artifact reconstruction at render time. Its four

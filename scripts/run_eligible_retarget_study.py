@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -31,6 +32,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--gpu", type=int, default=1)
     parser.add_argument("--port", type=int, default=8003)
     parser.add_argument("--noise-seed", type=int, default=0)
+    parser.add_argument("--action-chunking-commit", required=True)
     return parser.parse_args()
 
 
@@ -38,6 +40,7 @@ def main() -> int:
     args = parse_args()
     if args.noise_seed != 0:
         raise ValueError("registered retarget utility requires noise seed zero")
+    _validate_execution_binding(args.output, args.action_chunking_commit)
     gate = json.loads(args.gate_summary.read_text())
     if gate.get("selection_uses_continuation_outcomes") is not False:
         raise ValueError("eligibility selection must explicitly exclude continuation outcomes")
@@ -111,6 +114,7 @@ def main() -> int:
         "selected_independent_clusters": len(eligible),
         "direction_selection": selection,
         "noise_seed": args.noise_seed,
+        "action_chunking_commit": args.action_chunking_commit,
         "gate_summary": str(args.gate_summary),
         "gate_summary_sha256": gate_digest,
         "orientation_calibration": str(args.orientation_calibration),
@@ -138,6 +142,8 @@ def main() -> int:
             frozen_digest,
             args.orientation_calibration,
             orientation_calibration_digest,
+            args.output,
+            args.action_chunking_commit,
         )
         pair_id = row["pair_id"]
         rollout_output = args.output / "rollouts" / pair_id / row["new_side"]
@@ -190,6 +196,8 @@ def main() -> int:
             frozen_digest,
             args.orientation_calibration,
             orientation_calibration_digest,
+            args.output,
+            args.action_chunking_commit,
         )
         jobs.append(
             build_utility_job(
@@ -269,7 +277,10 @@ def _validate_frozen_inputs(
     frozen_digest: str,
     orientation_calibration_path: Path,
     orientation_calibration_digest: str,
+    output: Path,
+    action_chunking_commit: str,
 ) -> None:
+    _validate_execution_binding(output, action_chunking_commit)
     if _digest(gate_path) != gate_digest:
         raise ValueError("endpoint gate changed after predictions were frozen")
     if _digest(frozen_path) != frozen_digest:
@@ -281,6 +292,35 @@ def _validate_frozen_inputs(
             raise ValueError("candidate manifest changed after predictions were frozen")
         if _digest(Path(entry["prediction"])) != entry["prediction_sha256"]:
             raise ValueError("action-only prediction changed after it was frozen")
+
+
+def _validate_execution_binding(output: Path, action_chunking_commit: str) -> None:
+    if re.fullmatch(r"[0-9a-f]{40}", action_chunking_commit) is None:
+        raise ValueError("retarget utility requires a full lowercase code commit")
+    repo = Path(__file__).resolve().parents[1]
+    actual = subprocess.run(
+        ["git", "-C", str(repo), "rev-parse", "HEAD"],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    if actual != action_chunking_commit:
+        raise ValueError("retarget utility code commit differs from the current checkout")
+    status = subprocess.run(
+        ["git", "-C", str(repo), "status", "--porcelain=v1", "--untracked-files=all"],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout
+    if status:
+        raise ValueError("retarget utility requires a completely clean worktree")
+    binding = output / "code_commit.txt"
+    if output.exists() and not binding.is_file():
+        raise ValueError("existing retarget utility output lacks a code-commit binding")
+    output.mkdir(parents=True, exist_ok=True)
+    if binding.is_file() and binding.read_text().strip() != action_chunking_commit:
+        raise ValueError("existing retarget utility output uses a different code commit")
+    binding.write_text(action_chunking_commit + "\n")
 
 
 if __name__ == "__main__":

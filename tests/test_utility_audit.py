@@ -32,9 +32,16 @@ def test_utility_audit_reconstructs_raw_sweeps_and_detects_tampering(
     with pytest.raises(ValueError, match="raw rollout table"):
         audit_utility_study(root)
 
+    bound_root, _ = _study(tmp_path / "binding")
+    (bound_root / "code_commit.txt").write_text("b" * 40 + "\n")
+    with pytest.raises(ValueError, match="code-commit binding"):
+        audit_utility_study(bound_root)
+
 
 def _study(root: Path) -> tuple[Path, Path]:
     root.mkdir(parents=True, exist_ok=True)
+    action_chunking_commit = "a" * 40
+    (root / "code_commit.txt").write_text(action_chunking_commit + "\n")
     pair_id = "pair-a"
     side = "donor"
     gate_row = {
@@ -94,6 +101,7 @@ def _study(root: Path) -> tuple[Path, Path]:
                 "selected_independent_clusters": 1,
                 "direction_selection": decisions,
                 "noise_seed": 0,
+                "action_chunking_commit": action_chunking_commit,
                 "gate_summary": str(gate),
                 "gate_summary_sha256": file_digest(gate),
                 "orientation_calibration": str(calibration),

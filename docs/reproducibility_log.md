@@ -1,5 +1,15 @@
 # Reproducibility log
 
+## 2026-09-01: utility outcomes bound to clean orchestration code
+
+Protocol version 0.39 closes the remaining code-lineage gap before any held-out
+continuation outcome exists. The closed-loop utility launcher now requires the
+same clean action-chunking commit as the endpoint catalog and the pinned OpenPI
+revision. The runner freezes that full commit before rollout, rechecks the
+checkout and binding around every cluster, and the independent final audit
+rejects a missing or changed binding. No population, endpoint, predictor,
+boundary, outcome, statistic, or decision rule changed.
+
 ## 2026-09-01: pi0 conversion bound to orchestration code
 
 Protocol version 0.38 requires the lossless pi0 conversion launcher to start

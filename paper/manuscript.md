@@ -312,7 +312,10 @@ composite, exact velocity-evaluation accounting, and a scene-bootstrap latency-
 savings interval strictly above zero. Each noninferiority test uses the one-
 sided exact upper bound on the conservative paired-loss probability. No utility
 decision is emitted until every cluster selected by the frozen endpoint gate is
-complete.
+complete. The endpoint catalog and closed-loop utility run must use the same
+completely clean action-chunking commit and pinned OpenPI revision. The commit is
+frozen before continuation rollout, checked around every cluster, and verified
+again by the independent raw-artifact audit.
 
 The obstacle pilot applies the same identity principle at `k=0`: continue and
 restart must match not only in action bytes but also in obstacle-contact timing,

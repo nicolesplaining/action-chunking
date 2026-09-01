@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import csv
 import json
+import re
 from pathlib import Path
 from typing import Any
 
@@ -256,6 +257,14 @@ def audit_utility_study(root: Path) -> dict[str, Any]:
         or int(frozen.get("noise_seed", -1)) != 0
     ):
         raise ValueError("utility summary has an invalid frozen-prediction binding")
+    action_chunking_commit = str(frozen.get("action_chunking_commit", ""))
+    code_binding = root / "code_commit.txt"
+    if (
+        re.fullmatch(r"[0-9a-f]{40}", action_chunking_commit) is None
+        or not code_binding.is_file()
+        or code_binding.read_text().strip() != action_chunking_commit
+    ):
+        raise ValueError("utility study lacks a valid code-commit binding")
 
     gate_path = Path(str(frozen.get("gate_summary", "")))
     calibration_path = Path(str(frozen.get("orientation_calibration", "")))
@@ -331,6 +340,7 @@ def audit_utility_study(root: Path) -> dict[str, Any]:
         "utility_summary_sha256": file_digest(summary_path),
         "frozen_predictions_sha256": file_digest(frozen_path),
         "independent_scene_clusters": len(jobs),
+        "action_chunking_commit": action_chunking_commit,
         "raw_sweep_files": len(jobs) * 3,
         "utility_inference_status": summary["utility_inference_status"],
         "prediction_utility_positive": summary["prediction_utility_positive"],
