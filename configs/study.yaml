@@ -1,6 +1,6 @@
 study:
   name: pi05_libero_conditional_editability
-  protocol_version: "0.32"
+  protocol_version: "0.33"
   pilot_pairs_per_family: 16
   primary_noise_seed: 0
   robustness_noise_seeds_per_pair: 4
@@ -129,6 +129,16 @@ matched_pi0:
   require_new_conversion_output_directories: true
   require_normalization_asset_hashes: true
   require_final_output_lineage_audit: true
+  comparison_generated_files: 10
+  require_comparison_output_hashes: true
+  publication_figure_requires_final_audit: true
+  publication_figure_requires_new_path: true
+  publication_figure_primary_metric: all
+  publication_figure_panels:
+    - paired_formation_and_editability_timing
+    - all_metric_residual_flow_by_layer
+    - all_metric_action_state_dimension_groups
+    - all_metric_normalized_position_at_layer_17
 
 obstacle_pilot:
   contact_definition: gripper_geom_x_obstacle_contact_geom

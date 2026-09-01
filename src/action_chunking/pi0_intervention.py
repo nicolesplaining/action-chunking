@@ -16,6 +16,18 @@ from action_chunking.pairs import file_digest
 
 PINNED_OPENPI_REVISION = "215abfb217dbac7d5f1273282331b9b1866c0479"
 PRECISION_REPAIR_COMMIT = "e5fe45e2c6784f315ffa59c207457701fb906c05"
+COMPARISON_OUTPUT_FILENAMES = (
+    "paired_timing.csv",
+    "paired_flow_shapes.csv",
+    "paired_residual_units.csv",
+    "paired_residual_cells.csv",
+    "paired_dimension_units.csv",
+    "paired_dimension_cells.csv",
+    "paired_position_first10_units.csv",
+    "paired_position_first10_cells.csv",
+    "paired_position_normalized_units.csv",
+    "paired_position_normalized_cells.csv",
+)
 
 
 def validate_pi0_intervention_inputs(
@@ -161,6 +173,13 @@ def audit_pi0_intervention_output(
         path = Path(str(source.get("path", "")))
         if not path.is_file() or source.get("sha256") != file_digest(path):
             raise ValueError(f"pi0 comparison source changed after analysis: {name}")
+    generated = comparison.get("output_files", {})
+    if set(generated) != set(COMPARISON_OUTPUT_FILENAMES):
+        raise ValueError("pi0 comparison does not bind all 10 generated CSV files")
+    for name in COMPARISON_OUTPUT_FILENAMES:
+        path = output_root / "comparison" / name
+        if not path.is_file() or generated.get(name) != file_digest(path):
+            raise ValueError(f"pi0 comparison output changed after analysis: {name}")
 
     return {
         "schema_version": 1,
@@ -171,6 +190,7 @@ def audit_pi0_intervention_output(
         "input_binding_sha256": file_digest(output_root / "intervention_input_binding.json"),
         "comparison_summary_sha256": file_digest(output_root / "comparison" / "summary.json"),
         "comparison_source_files": len(sources),
+        "comparison_output_files": len(generated),
         "intervention_gpus": 2,
     }
 

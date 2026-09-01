@@ -1,5 +1,17 @@
 # Reproducibility log
 
+## 2026-09-01: matched-control figures bound to audited outputs
+
+Protocol version 0.33 closes a future publication-lineage gap before any
+matched pi0 intervention outcome exists. The comparison summary now hashes all
+ten generated CSVs, and the independent final audit rechecks them in addition
+to the 14 raw comparison inputs. The registered figure can be rendered only
+from a passing final audit into a new path; it rechecks every input digest and
+uses four frozen panels for paired timing, residual mediation, action-state
+dimension groups, and normalized action position. Its manifest hashes the
+three plotted CSVs and both output formats. No intervention, estimator,
+threshold, model, or completed result changed.
+
 ## 2026-09-01: matched pi0 grids assigned to isolated H100s
 
 Protocol version 0.32 changes only execution of the future matched-control

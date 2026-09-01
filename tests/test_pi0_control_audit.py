@@ -57,6 +57,11 @@ def test_completed_pi0_control_is_reconstructed_and_tamper_evident(
         path = tmp_path / "sources" / f"source-{index}.json"
         _write_json(path, {"index": index})
         sources[f"source_{index}"] = {"path": str(path), "sha256": file_digest(path)}
+    comparison_root = output / "comparison"
+    for name in module.COMPARISON_OUTPUT_FILENAMES:
+        path = comparison_root / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(f"artifact,{name}\n")
     comparison = {
         "schema_version": 1,
         "analysis_unit": "paired_scene_state",
@@ -67,13 +72,18 @@ def test_completed_pi0_control_is_reconstructed_and_tamper_evident(
         "normalized_position_bins": 10,
         "bootstrap_replicates": 10_000,
         "source_files": sources,
+        "output_files": {
+            name: file_digest(comparison_root / name)
+            for name in module.COMPARISON_OUTPUT_FILENAMES
+        },
     }
-    _write_json(output / "comparison" / "summary.json", comparison)
+    _write_json(comparison_root / "summary.json", comparison)
 
     audit = module.audit_pi0_intervention_output(output, parity, checkpoint, manifest)
     assert audit["passed"] is True
     assert audit["common_scene_pair_count"] == 12
     assert audit["intervention_gpus"] == 2
+    assert audit["comparison_output_files"] == 10
     assert audit["common_scene_pairs"] == pairs
 
     first_source = Path(sources["source_0"]["path"])
@@ -82,6 +92,13 @@ def test_completed_pi0_control_is_reconstructed_and_tamper_evident(
         module.audit_pi0_intervention_output(output, parity, checkpoint, manifest)
 
     _write_json(first_source, {"index": 0})
+    first_output = comparison_root / module.COMPARISON_OUTPUT_FILENAMES[0]
+    original_output = first_output.read_text()
+    first_output.write_text("tampered\n")
+    with pytest.raises(ValueError, match="output changed after analysis"):
+        module.audit_pi0_intervention_output(output, parity, checkpoint, manifest)
+
+    first_output.write_text(original_output)
     (output / "gpu_preflight.csv").write_text(
         "index, uuid, name, driver_version, memory.total [MiB]\n"
         "0, GPU-a, NVIDIA H100 80GB HBM3, 570.0, 81559 MiB\n"
