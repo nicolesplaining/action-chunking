@@ -21,6 +21,35 @@ def advance_reset_sequence(env: Any, start_index: int) -> None:
         env.reset()
 
 
+def replan_snapshot_step(contact_step: int, replan_steps: int) -> tuple[int, int]:
+    """Return the latest replan boundary before a one-indexed contact step."""
+    if contact_step <= 0 or replan_steps <= 0:
+        raise ValueError("contact_step and replan_steps must be positive")
+    snapshot_step = ((contact_step - 1) // replan_steps) * replan_steps
+    return snapshot_step, snapshot_step // replan_steps
+
+
+def advance_action_noise(rng: Any, replan_index: int, shape: tuple[int, int]) -> None:
+    """Advance a NumPy generator to the noise draw at ``replan_index``."""
+    if replan_index < 0 or any(value <= 0 for value in shape):
+        raise ValueError("replan_index must be nonnegative and noise shape positive")
+    for _ in range(replan_index):
+        rng.standard_normal(shape, dtype=np.float32)
+
+
+def load_action_chunk(path: Path, replan_index: int) -> NDArray[np.float64]:
+    """Load one saved clean action chunk without changing its numeric values."""
+    if replan_index < 0:
+        raise ValueError("replan index must be nonnegative")
+    chunks = json.loads(path.read_text())
+    if replan_index >= len(chunks):
+        raise IndexError(f"replan index {replan_index} is absent from {path}")
+    chunk = np.asarray(chunks[replan_index], dtype=np.float64)
+    if chunk.ndim != 2:
+        raise ValueError(f"saved action chunk has invalid shape in {path}")
+    return chunk
+
+
 @dataclasses.dataclass(frozen=True)
 class InstructionPair:
     """Model-ready inputs for one explicitly registered paired intervention."""

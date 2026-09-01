@@ -128,7 +128,11 @@ def main() -> int:
 
 def _candidate_manifests(root: Path) -> dict[str, Path]:
     result = {}
-    for path in sorted(root.glob("**/offset_*/manifest.json")):
+    paths = {
+        *root.glob("**/offset_*/manifest.json"),
+        *root.glob("**/aligned/manifest.json"),
+    }
+    for path in sorted(paths):
         manifest = json.loads(path.read_text())
         for entry in manifest["pairs"]:
             pair_id = entry["pair_id"]

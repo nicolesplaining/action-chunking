@@ -16,7 +16,7 @@ from libero.libero.envs import OffScreenRenderEnv
 from openpi_client import image_tools, websocket_client_policy
 
 from action_chunking.metrics import gripper_closure_position
-from action_chunking.pairs import load_instruction_pair
+from action_chunking.pairs import advance_action_noise, load_instruction_pair
 
 
 def parse_args() -> argparse.Namespace:
@@ -27,6 +27,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--host", default="0.0.0.0")
     parser.add_argument("--port", type=int, default=8002)
     parser.add_argument("--noise-seed", type=int, default=0)
+    parser.add_argument("--noise-start-index", type=int, default=0)
     parser.add_argument("--max-steps", type=int, default=400)
     parser.add_argument("--replan-steps", type=int, default=5)
     parser.add_argument("--resolution", type=int, default=256)
@@ -52,6 +53,8 @@ def main() -> int:
     args.output.mkdir(parents=True, exist_ok=True)
     if args.destination_radius <= 0.0 or args.destination_persistence_steps <= 0:
         raise ValueError("destination radius and persistence steps must be positive")
+    if args.noise_start_index < 0:
+        raise ValueError("noise start index must be nonnegative")
     dynamic_retarget = _dynamic_retarget_spec(args)
     sides = _sides(args.sides)
     manifest = json.loads(args.manifest.read_text())
@@ -106,6 +109,7 @@ def main() -> int:
         "schema_version": 1,
         "pair_id": args.pair_id,
         "noise_seed": args.noise_seed,
+        "noise_start_index": args.noise_start_index,
         "shared_noise_by_replan_index": True,
         "requested_sides": sides,
         "all_successful": all(result["success"] for result in results),
@@ -154,6 +158,7 @@ def _rollout(
     other_side = "donor" if side == "base" else "base"
     old_prompt = getattr(pair, f"{other_side}_prompt") if dynamic_retarget is not None else prompt
     rng = np.random.default_rng(args.noise_seed)
+    advance_action_noise(rng, args.noise_start_index, (10, 32))
     frames = []
     action_chunks = []
     trajectory_records = []

@@ -11,7 +11,14 @@ from typing import Any
 import generate_postgrasp_instruction_pairs as phase
 import numpy as np
 
-from action_chunking.pairs import InstructionPair, array_digest, file_digest, load_instruction_pair
+from action_chunking.pairs import (
+    InstructionPair,
+    array_digest,
+    file_digest,
+    load_action_chunk,
+    load_instruction_pair,
+    replan_snapshot_step,
+)
 
 
 def parse_args() -> argparse.Namespace:
@@ -22,6 +29,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--origins", default="base,donor")
     parser.add_argument("--precontact-offset", type=int, default=10)
+    parser.add_argument("--replan-steps", type=int)
     parser.add_argument("--seed", type=int, default=7)
     parser.add_argument("--resolution", type=int, default=256)
     parser.add_argument("--resize", type=int, default=224)
@@ -32,6 +40,8 @@ def main() -> int:
     args = parse_args()
     if args.precontact_offset <= 0:
         raise ValueError("precontact offset must be positive")
+    if args.replan_steps is not None and args.replan_steps <= 0:
+        raise ValueError("replan steps must be positive")
     origins = [value.strip() for value in args.origins.split(",") if value.strip()]
     if not origins or len(origins) != len(set(origins)) or not set(origins) <= {"base", "donor"}:
         raise ValueError("origins must be a nonempty unique subset of base,donor")
@@ -60,10 +70,24 @@ def main() -> int:
         if not contacts or min(contacts, key=contacts.get) != target:
             raise ValueError(f"{origin} clean rollout does not first contact its instructed target")
         contact_step = int(contacts[target])
-        snapshot_step = contact_step - args.precontact_offset
+        snapshot_step, source_replan_index = (
+            replan_snapshot_step(contact_step, args.replan_steps)
+            if args.replan_steps is not None
+            else (contact_step - args.precontact_offset, None)
+        )
+        precontact_offset = contact_step - snapshot_step
         if snapshot_step < 0:
             raise ValueError(f"{origin} contact occurs before the requested pre-contact horizon")
         state = _trace_state(args.rollout / f"{origin}_sim_states.npz", snapshot_step)
+        source_action_chunk_sha256 = (
+            array_digest(
+                load_action_chunk(
+                    args.rollout / f"{origin}_actions.json", source_replan_index
+                )
+            )
+            if source_replan_index is not None
+            else None
+        )
         restored = {
             side: _restore_side(
                 side,
@@ -115,7 +139,9 @@ def main() -> int:
                 "origin_side": origin,
                 "snapshot_step": snapshot_step,
                 "source_contact_step": contact_step,
-                "precontact_offset_steps": args.precontact_offset,
+                "precontact_offset_steps": precontact_offset,
+                "source_replan_index": source_replan_index,
+                "source_action_chunk_sha256": source_action_chunk_sha256,
                 "fixture": pair_path.name,
                 "fixture_sha256": file_digest(pair_path),
                 "base_prompt": pair.base_prompt,
@@ -149,8 +175,15 @@ def main() -> int:
             "selection_uses_interventions": False,
             "source_rollout": str(args.rollout),
             "origins": origins,
-            "precontact_offset_steps": args.precontact_offset,
-            "reference": "one full action horizon before first instructed-object contact",
+            "precontact_offset_steps": (
+                None if args.replan_steps is not None else args.precontact_offset
+            ),
+            "replan_steps": args.replan_steps,
+            "reference": (
+                "latest receding-horizon replan boundary before first instructed-object contact"
+                if args.replan_steps is not None
+                else "one fixed offset before first instructed-object contact"
+            ),
         },
         "pairs": output_entries,
     }

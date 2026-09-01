@@ -72,6 +72,7 @@ def main() -> int:
             str(boundary),
             "400",
             ",".join(sides),
+            str(int(entry.get("source_replan_index") or 0)),
         ]
         completed = subprocess.run(command, check=False)
         if completed.returncode not in {0, 1} or not summary_path.is_file():
@@ -216,6 +217,10 @@ def _validate_run(
         raise ValueError("existing dynamic-retarget output has different pair or noise seed")
     if summary.get("dynamic_retarget") != expected:
         raise ValueError("existing dynamic-retarget output has different strategy or boundary")
+    manifest = json.loads(args.manifest.read_text())
+    entry = _manifest_entry(manifest, args.pair_id)
+    if int(summary.get("noise_start_index", 0)) != int(entry.get("source_replan_index") or 0):
+        raise ValueError("existing dynamic-retarget output has different source replan noise")
     if {result["side"] for result in summary["results"]} != set(_sides(args.sides)):
         raise ValueError("existing dynamic-retarget output has different requested sides")
     for result in summary["results"]:

@@ -35,6 +35,15 @@ def test_event_gate_does_not_claim_eligibility_before_competence_run() -> None:
     assert row["eligible"] is False
 
 
+def test_event_gate_rejects_nonreproduced_source_chunk() -> None:
+    event = _summary(old_step=4, restart_old_step=None, success=False)
+    row = eligibility_row(_entry(), event, 5, source_chunk_exact=False)
+
+    assert row["old_event_induced"] is True
+    assert row["source_chunk_exact"] is False
+    assert row["event_gate_pass"] is False
+
+
 def _entry() -> dict:
     return {
         "pair_id": "pair_precontact_base_010",

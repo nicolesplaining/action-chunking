@@ -10,6 +10,9 @@ import subprocess
 from pathlib import Path
 from typing import Any
 
+import numpy as np
+
+from action_chunking.pairs import array_digest
 from action_chunking.retarget_eligibility import eligibility_row
 
 
@@ -28,7 +31,12 @@ def main() -> int:
     args = parse_args()
     if args.execution_horizon <= 0:
         raise ValueError("execution horizon must be positive")
-    manifests = sorted(args.candidate_root.glob("**/offset_*/manifest.json"))
+    manifests = sorted(
+        {
+            *args.candidate_root.glob("**/offset_*/manifest.json"),
+            *args.candidate_root.glob("**/aligned/manifest.json"),
+        }
+    )
     if not manifests:
         raise ValueError("candidate root contains no offset manifests")
     args.output.mkdir(parents=True, exist_ok=True)
@@ -49,8 +57,15 @@ def main() -> int:
                 args,
                 stop_after_contact=True,
                 max_steps=args.execution_horizon,
+                noise_start_index=int(entry.get("source_replan_index") or 0),
             )
-            row = eligibility_row(entry, event_summary, args.execution_horizon)
+            source_chunk_exact = _source_chunk_exact(entry, job_root / "event_horizon")
+            row = eligibility_row(
+                entry,
+                event_summary,
+                args.execution_horizon,
+                source_chunk_exact=source_chunk_exact,
+            )
             if row["event_gate_pass"]:
                 competence_summary = _run_endpoint(
                     launcher,
@@ -60,12 +75,14 @@ def main() -> int:
                     args,
                     stop_after_contact=False,
                     max_steps=400,
+                    noise_start_index=int(entry.get("source_replan_index") or 0),
                 )
                 row = eligibility_row(
                     entry,
                     event_summary,
                     args.execution_horizon,
                     competence_summary,
+                    source_chunk_exact=source_chunk_exact,
                 )
             records.append(row)
             _write_outputs(args.output, records, len(manifests))
@@ -81,6 +98,7 @@ def _run_endpoint(
     *,
     stop_after_contact: bool,
     max_steps: int,
+    noise_start_index: int,
 ) -> dict[str, Any]:
     summary_path = output / "summary.json"
     if not summary_path.is_file():
@@ -102,6 +120,8 @@ def _run_endpoint(
             "",
             "",
             str(max_steps),
+            "base,donor",
+            str(noise_start_index),
         ]
         completed = subprocess.run(command, check=False)
         if completed.returncode not in {0, 1} or not summary_path.is_file():
@@ -111,7 +131,20 @@ def _run_endpoint(
         raise ValueError("existing eligibility result has a different noise seed")
     if bool(summary.get("stop_after_first_task_contact")) != stop_after_contact:
         raise ValueError("existing eligibility endpoint has a different stopping rule")
+    if int(summary.get("noise_start_index", 0)) != noise_start_index:
+        raise ValueError("existing eligibility endpoint has a different noise start index")
     return summary
+
+
+def _source_chunk_exact(entry: dict[str, Any], event_output: Path) -> bool:
+    expected = entry.get("source_action_chunk_sha256")
+    if expected is None:
+        return True
+    origin = entry["origin_side"]
+    chunks = json.loads((event_output / f"{origin}_actions.json").read_text())
+    if len(chunks) != 1:
+        raise ValueError("bounded event screen must sample exactly one source action chunk")
+    return array_digest(np.asarray(chunks[0], dtype=np.float64)) == expected
 
 
 def _write_outputs(output: Path, rows: list[dict[str, Any]], manifest_count: int) -> None:

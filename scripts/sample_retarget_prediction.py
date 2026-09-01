@@ -13,7 +13,7 @@ import numpy as np
 from openpi_client import websocket_client_policy
 
 from action_chunking.metrics import target_direction_affinity
-from action_chunking.pairs import load_instruction_pair
+from action_chunking.pairs import advance_action_noise, load_instruction_pair
 from action_chunking.utility_prediction import predict_last_successful_boundary
 
 
@@ -44,7 +44,10 @@ def main() -> int:
     metadata = client.get_server_metadata()
     if "dynamic_retarget" not in metadata.get("causal_intervention_families", []):
         raise ValueError("server does not advertise dynamic retargeting")
-    noise = np.random.default_rng(args.noise_seed).standard_normal((10, 32), dtype=np.float32)
+    noise_rng = np.random.default_rng(args.noise_seed)
+    source_replan_index = int(entry.get("source_replan_index") or 0)
+    advance_action_noise(noise_rng, source_replan_index, (10, 32))
+    noise = noise_rng.standard_normal((10, 32), dtype=np.float32)
 
     actions_by_boundary = {}
     records = []
@@ -99,6 +102,7 @@ def main() -> int:
         {
             "pair_id": args.pair_id,
             "noise_seed": args.noise_seed,
+            "noise_start_index": source_replan_index,
             "old_side": old_side,
             "new_side": args.new_side,
             "executed_action_horizon": 5,

@@ -1,6 +1,6 @@
 # Research protocol: causal editability and retargeting in action chunks
 
-Protocol version: 0.3 (post-pilot behavioral-sensitivity amendment)
+Protocol version: 0.4 (replan-aligned utility-fork amendment)
 
 ## 1. Research question
 
@@ -184,6 +184,16 @@ safety event, while a full restart under the new instruction must avoid that
 event and preserve clean task competence. States are screened using only these
 two endpoint controls. Intermediate continuation boundaries remain sealed until
 eligibility is frozen. All screened states and exclusion reasons are retained.
+
+The pre-contact state is the latest clean receding-horizon replan boundary
+strictly before first instructed-target contact, rather than an arbitrary
+step offset. If that state is at environment step `5j`, the fork uses Gaussian
+noise draw `j` from the clean seed-zero sequence. The old-condition endpoint's
+first action chunk must be byte-exact to saved clean chunk `j`; otherwise the
+candidate is construct-invalid and cannot enter the failure-induction gate.
+This alignment makes continue, restart, and the clean counterfactual alternative
+computations from the same action-generation event, not merely the same broad
+trajectory neighborhood.
 
 The primary five-action horizon is unchanged. Executing a longer portion of the
 chunk may be reported as a sensitivity analysis but cannot replace the primary
