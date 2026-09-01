@@ -1,6 +1,6 @@
 # Research protocol: causal editability and retargeting in action chunks
 
-Protocol version: 0.14 (public-catalog obstacle expansion)
+Protocol version: 0.15 (obstacle source-base pre-gate)
 
 ## 1. Research question
 
@@ -513,6 +513,17 @@ rank, then rows are ordered by `(init_index, target-pair rank)`. This order is
 serialized and hashed before execution. The same nine placements and all
 geometry and clean-behavior thresholds remain unchanged; the first clean-pass
 rule and complete exclusion denominator are retained.
+
+The first public-catalog row showed that its unchanged base episode contacted
+the distractor first and failed. Because every obstacle placement in one source
+row shares that exact base fixture, validating the base episode repeatedly
+cannot change eligibility. Before processing the next source row, add an exact
+source-base endpoint pre-gate: run the unchanged instructed-target side once,
+require exact input/state restoration, target-first contact, and task success,
+and skip all nine geometry/clean placements when it fails. This is logically
+necessary for the existing paired-clean criterion and changes only compute;
+the failed source row and reason remain in the denominator. No obstacle
+intervention outcome is read.
 
 Selection then uses clean closed-loop behavior only. Both paired rollouts must
 restore their fixture exactly, contact the unchanged instructed target first,

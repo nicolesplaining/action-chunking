@@ -90,6 +90,80 @@ def _run_row(
     ):
         raise ValueError("generated obstacle source fixture differs from the frozen row")
 
+    base_gate = row_root / "source_base_gate"
+    base_gate_summary_path = base_gate / "summary.json"
+    if not base_gate_summary_path.is_file():
+        completed = subprocess.run(
+            [
+                str(repo / "scripts" / "run_pair_validation.sh"),
+                str(source_manifest),
+                source_entry["pair_id"],
+                str(args.gpu),
+                str(args.port),
+                str(args.noise_seed),
+                str(base_gate),
+                "",
+                "strict",
+                "false",
+                "",
+                "0",
+                "false",
+                "false",
+                "",
+                "",
+                "400",
+                "base",
+                "0",
+            ],
+            check=False,
+        )
+        if completed.returncode not in {0, 1} or not base_gate_summary_path.is_file():
+            raise RuntimeError("source-base obstacle pre-gate produced no summary")
+    base_gate_summary = json.loads(base_gate_summary_path.read_text())
+    base_endpoint = _base_endpoint(base_gate_summary, row["base_target"])
+    base_fields = {
+        "source_base_gate": str(base_gate_summary_path),
+        "source_base_gate_sha256": file_digest(base_gate_summary_path),
+        **base_endpoint,
+    }
+    if not base_endpoint["source_base_endpoint_eligible"]:
+        obstacle_manifest = row_root / "fixtures" / "manifest.json"
+        existing_obstacle = (
+            json.loads(obstacle_manifest.read_text()) if obstacle_manifest.is_file() else None
+        )
+        return {
+            "obstacle_plan_index": index,
+            "screen_id": row["screen_id"],
+            "cluster_id": row["cluster_id"],
+            "suite": row["suite"],
+            "init_index": int(row["init_index"]),
+            "source_pair_id": source_entry["pair_id"],
+            "source_manifest": str(source_manifest),
+            "source_manifest_sha256": file_digest(source_manifest),
+            **base_fields,
+            "obstacle_manifest": str(obstacle_manifest) if existing_obstacle else None,
+            "obstacle_manifest_sha256": (
+                file_digest(obstacle_manifest) if existing_obstacle else None
+            ),
+            "generated_candidates": (
+                len(existing_obstacle["pairs"]) if existing_obstacle else 0
+            ),
+            "geometric_exclusions": (
+                len(existing_obstacle["exclusions"]) if existing_obstacle else 0
+            ),
+            "geometry_exhausted": (
+                bool(existing_obstacle.get("geometry_exhausted"))
+                if existing_obstacle
+                else None
+            ),
+            "geometry_not_evaluated": existing_obstacle is None,
+            "selection_uses_interventions": False,
+            "status": "source_base_endpoint_ineligible",
+            "clean_screened_pairs": 0,
+            "eligible_pairs": 0,
+            "selected_pair_id": None,
+        }
+
     fixtures = row_root / "fixtures"
     obstacle_manifest = fixtures / "manifest.json"
     if not obstacle_manifest.is_file():
@@ -119,7 +193,9 @@ def _run_row(
         "generated_candidates": generated,
         "geometric_exclusions": len(obstacle_data["exclusions"]),
         "geometry_exhausted": bool(obstacle_data.get("geometry_exhausted")),
+        "geometry_not_evaluated": False,
         "selection_uses_interventions": False,
+        **base_fields,
     }
     if generated == 0:
         return {
@@ -192,7 +268,7 @@ def _write_summary(
 ) -> None:
     payload = {
         "schema_version": 1,
-        "protocol_version": "0.14",
+        "protocol_version": "0.15",
         "selection_uses_interventions": False,
         "plan": str(args.plan),
         "plan_sha256": file_digest(args.plan),
@@ -229,6 +305,31 @@ def _validate_plans(
     ordered_ids = [row["screen_id"] for row in plan["rows"]]
     if len(ordered_ids) != len(set(ordered_ids)) or set(ordered_ids) != source_ids:
         raise ValueError("obstacle plan must contain every source row exactly once")
+
+
+def _base_endpoint(summary: dict[str, Any], target: str) -> dict[str, Any]:
+    if summary.get("requested_sides") != ["base"] or len(summary.get("results", [])) != 1:
+        raise ValueError("source-base obstacle pre-gate must contain exactly the base side")
+    result = summary["results"][0]
+    contacts = {
+        str(name): int(step)
+        for name, step in result["first_contact_step_by_object"].items()
+    }
+    first_contact = min(contacts, key=contacts.get) if contacts else None
+    input_exact = all(
+        field["array_equal"] for field in result["live_initial_input_diagnostics"].values()
+    )
+    state_exact = result["restored_sim_state_max_abs_error"] == 0.0
+    return {
+        "source_base_input_exact": input_exact,
+        "source_base_simulator_state_exact": state_exact,
+        "source_base_task_success": bool(result["success"]),
+        "source_base_first_contact_object": first_contact,
+        "source_base_target_first": first_contact == target,
+        "source_base_endpoint_eligible": bool(
+            input_exact and state_exact and result["success"] and first_contact == target
+        ),
+    }
 
 
 if __name__ == "__main__":

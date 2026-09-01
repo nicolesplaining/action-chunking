@@ -14,6 +14,7 @@ _runner = runpy.run_path(
     str(Path(__file__).parents[1] / "scripts" / "run_public_obstacle_catalog_screen.py")
 )
 _validate_plans = _runner["_validate_plans"]
+_base_endpoint = _runner["_base_endpoint"]
 
 
 def test_obstacle_plan_round_robins_target_pair_families(tmp_path) -> None:
@@ -48,6 +49,30 @@ def test_frozen_public_obstacle_plan_hash_and_source_contract() -> None:
     assert plan["target_pair_families"] == 45
     assert plan["rows"][0]["source_row_index"] == 0
     assert plan["rows"][1]["source_row_index"] == 50
+
+
+def test_source_base_endpoint_gate_requires_exact_target_first_success() -> None:
+    summary = {
+        "requested_sides": ["base"],
+        "results": [
+            {
+                "success": True,
+                "first_contact_step_by_object": {"distractor": 3, "target": 5},
+                "live_initial_input_diagnostics": {
+                    "observation/image": {"array_equal": True},
+                    "observation/wrist_image": {"array_equal": True},
+                    "observation/state": {"array_equal": True},
+                },
+                "restored_sim_state_max_abs_error": 0.0,
+            }
+        ],
+    }
+
+    result = _base_endpoint(summary, "target")
+
+    assert result["source_base_first_contact_object"] == "distractor"
+    assert result["source_base_task_success"] is True
+    assert result["source_base_endpoint_eligible"] is False
 
 
 def _row(screen_id: str, family: str, init_index: int) -> dict:
