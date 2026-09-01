@@ -61,9 +61,9 @@ def analyze_early_exit_pilot(
     scene_hashes = [_scene_state_hash(entry) for entry in entries]
     if len(set(scene_hashes)) != len(scene_hashes):
         raise ValueError("early-exit pilot scene clusters must have unique state hashes")
-    clean_catalog = _catalog(clean_root, 16, None)
-    full_catalog = _catalog(full_root, 16, 10)
-    early_catalog = _catalog(early_root, 16, 7)
+    clean_catalog = _clean_catalog(clean_root, entries)
+    full_catalog = _intervention_catalog(full_root, 16, 10)
+    early_catalog = _intervention_catalog(early_root, 16, 7)
     rows = []
     for entry in entries:
         pair_id = entry["pair_id"]
@@ -138,7 +138,53 @@ def analyze_early_exit_pilot(
     }
 
 
-def _catalog(root: Path, expected: int, after_steps: int | None) -> dict[str, dict[str, Any]]:
+def _clean_catalog(
+    root: Path, entries: list[dict[str, Any]]
+) -> dict[str, dict[str, Any]]:
+    summary_path = root / "validation_summary.json"
+    summary = json.loads(summary_path.read_text())
+    expected = len(entries)
+    if int(summary.get("expected_jobs", -1)) != expected or int(
+        summary.get("completed_jobs", -1)
+    ) != expected:
+        raise ValueError(f"legacy clean catalog is incomplete: {summary_path}")
+    if not bool(summary.get("all_simulator_states_exact")) or not bool(
+        summary.get("all_first_chunks_exact")
+    ):
+        raise ValueError(f"legacy clean catalog has inexact controls: {summary_path}")
+    jobs = summary.get("jobs", [])
+    catalog = {str(job["pair_id"]): job for job in jobs}
+    if len(catalog) != expected:
+        raise ValueError(f"legacy clean catalog has duplicate or missing pairs: {summary_path}")
+    normalized = {}
+    for entry in entries:
+        pair_id = str(entry["pair_id"])
+        if pair_id not in catalog:
+            raise ValueError(f"legacy clean catalog omits manifest pair: {pair_id}")
+        job = catalog[pair_id]
+        if (
+            int(job.get("noise_seed", -1)) != 0
+            or job.get("status") != "completed"
+            or not bool(job.get("simulator_state_exact"))
+            or not bool(job.get("first_chunk_exact"))
+            or job.get("initial_input_modes") != ["strict"]
+            or job.get("scene_state_sha256") != _scene_state_hash(entry)
+        ):
+            raise ValueError(f"legacy clean catalog controls are invalid: {pair_id}")
+        pair_summary = _pair_summary(root, pair_id)
+        composite = _pair_composite(entry, pair_summary)
+        if bool(job.get("both_successful")) != bool(pair_summary.get("both_successful")):
+            raise ValueError(f"legacy clean catalog success mismatch: {pair_id}")
+        normalized[pair_id] = {
+            **job,
+            "exact_dual_success_target_first": bool(composite),
+        }
+    return normalized
+
+
+def _intervention_catalog(
+    root: Path, expected: int, after_steps: int
+) -> dict[str, dict[str, Any]]:
     summary_path = root / "validation_summary.json"
     summary = json.loads(summary_path.read_text())
     if int(summary.get("noise_seed", -1)) != 0:
@@ -150,10 +196,7 @@ def _catalog(root: Path, expected: int, after_steps: int | None) -> dict[str, di
     if not bool(summary.get("all_initial_states_exact")):
         raise ValueError(f"validation catalog has inexact initial states: {summary_path}")
     intervention = summary.get("intervention")
-    if after_steps is None:
-        if intervention is not None:
-            raise ValueError("clean catalog unexpectedly contains an intervention")
-    elif (
+    if (
         not isinstance(intervention, dict)
         or intervention.get("family") != "early_exit"
         or int(intervention.get("after_steps", -1)) != after_steps
@@ -169,7 +212,7 @@ def _catalog(root: Path, expected: int, after_steps: int | None) -> dict[str, di
 
 
 def _pair_summary(root: Path, pair_id: str) -> dict[str, Any]:
-    summary = json.loads((root / pair_id / "summary.json").read_text())
+    summary = json.loads((_artifact_pair_root(root, pair_id) / "summary.json").read_text())
     if summary.get("pair_id") != pair_id:
         raise ValueError("pair summary id mismatch")
     return summary

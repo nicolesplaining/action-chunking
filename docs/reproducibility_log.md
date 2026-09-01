@@ -28,6 +28,13 @@ complete and were not rerun. Before inspecting any derived pilot statistic, the
 analyzer and its test fixture were corrected to use and validate the real
 64-character hexadecimal simulator-state digest; a duplicate-hash rejection
 test was added. The outcome rule and all 16 rollout artifacts remain unchanged.
+The next invocation also stopped before analysis because the original clean
+archive uses a legacy catalog schema with seed and exactness fields per job,
+not the newer catalog-level fields used by the intervention runs. The analyzer
+was then made to validate that real legacy schema explicitly: 16 completed
+jobs, seed zero, strict inputs, exact simulator state and first chunk, matching
+manifest simulator-state hashes, and success/contact recomputed from each
+immutable `noise_0` pair artifact. The test fixture now reproduces this schema.
 
 ## 2026-09-01: executed-action early-exit pilot frozen
 

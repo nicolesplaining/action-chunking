@@ -90,9 +90,10 @@ def _write_catalog(
                 "early_exit_compute_exact": after_steps is not None,
             }
         )
-        failed = pair_id == failed_pair
+        failed = pair_id == failed_pair or (after_steps is None and not eligible)
         pair_summary = {
             "pair_id": pair_id,
+            "both_successful": not failed,
             "results": [
                 _result("base", "mug", after_steps, failed),
                 _result("donor", "bowl", after_steps, False),
@@ -102,19 +103,38 @@ def _write_catalog(
         for side in ("base", "donor"):
             actions = [[[float(index), 0.0]]]
             (pair_root / f"{side}_actions.json").write_text(json.dumps(actions))
-    (root / "validation_summary.json").write_text(
-        json.dumps(
+    if after_steps is None:
+        legacy_jobs = [
             {
+                "pair_id": entry["pair_id"],
                 "noise_seed": 0,
-                "expected_pairs": 16,
-                "completed_pairs": 16,
-                "all_initial_states_exact": True,
-                "intervention": intervention,
-                "intervene_replans": "all" if intervention is not None else None,
-                "jobs": jobs,
+                "status": "completed",
+                "simulator_state_exact": True,
+                "first_chunk_exact": True,
+                "initial_input_modes": ["strict"],
+                "scene_state_sha256": entry["identity_hashes"]["sim_state"],
+                "both_successful": index < 15,
             }
-        )
-    )
+            for index, entry in enumerate(entries)
+        ]
+        catalog_summary = {
+            "expected_jobs": 16,
+            "completed_jobs": 16,
+            "all_simulator_states_exact": True,
+            "all_first_chunks_exact": True,
+            "jobs": legacy_jobs,
+        }
+    else:
+        catalog_summary = {
+            "noise_seed": 0,
+            "expected_pairs": 16,
+            "completed_pairs": 16,
+            "all_initial_states_exact": True,
+            "intervention": intervention,
+            "intervene_replans": "all",
+            "jobs": jobs,
+        }
+    (root / "validation_summary.json").write_text(json.dumps(catalog_summary))
 
 
 def _result(
