@@ -287,6 +287,26 @@ The corresponding median gaps are 10 (interval 9--10), 9 (9--9), and 10
 (9--10). Thus the formation--commitment separation is a directly estimated
 within-state effect rather than an inference from nonoverlapping summaries.
 
+The complete 15-state coarse layer and action-dimension grid adds population-
+level causal localization. Scene-cluster bootstrap intervals, exact sign-flip
+tests over the 15 state clusters, and Benjamini--Hochberg correction within each
+property--intervention family all use the frozen raw grid. For full action,
+translation, and rotation, the largest residual-stream transfer occurs at flow
+step 9 and final action-expert layer 17: mean symmetric NCTE 0.0955 (95% interval
+0.0921--0.0990, q=`6.95e-5`), 0.0947 (0.0908--0.0987, q=`7.09e-5`), and 0.0990
+(0.0955--0.1020, q=`7.09e-5`). There are 43, 42, and 63 FDR-significant positive
+cells respectively out of 180 tested sites.
+
+Property-matched `x_t` interchange at the final flow step is substantially
+stronger. Translation-coordinate transfer explains mean symmetric translation
+NCTE 0.537 (0.517--0.559, q=`1.83e-4`), while rotation-coordinate transfer
+explains rotation NCTE 0.900 (0.873--0.922, q=`1.26e-4`). The corresponding
+full-action peak is the translation-coordinate `x_t` interchange at step 9,
+NCTE 0.468 (0.439--0.498, q=`1.26e-4`). These effects establish late geometric
+instantiation at the action state and a smaller but reproducible final-layer
+mediator; they do not imply that earlier significant sites are unnecessary or
+that the residual patches form a complete causal decomposition.
+
 A clean-only pre-contact pilot tested whether gripper closure could be brought
 inside the 10-token horizon without changing the prompt-only target-pair design.
 States were forked one full horizon before each origin rollout's first contact.

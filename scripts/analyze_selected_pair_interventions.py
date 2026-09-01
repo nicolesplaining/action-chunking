@@ -50,6 +50,7 @@ def main() -> int:
     flow_rows = []
     formation_rows = []
     residual_rows = []
+    position_rows = []
     dimension_rows = []
     analyzer = Path(__file__).with_name("analyze_pair.py")
     for job in jobs:
@@ -166,6 +167,36 @@ def main() -> int:
                             ),
                         }
                     )
+                closure_interventions = (
+                    (
+                        residual_rows,
+                        "gripper_closure_residual_transfer.csv",
+                        ("flow_step", "layer"),
+                    ),
+                    (
+                        position_rows,
+                        "gripper_closure_position_transfer.csv",
+                        ("flow_step", "layer", "action_position"),
+                    ),
+                    (
+                        dimension_rows,
+                        "gripper_closure_dimension_transfer.csv",
+                        ("flow_step", "patched_tensor", "action_dimension_group"),
+                    ),
+                )
+                for destination, filename, fields in closure_interventions:
+                    path = job_analysis / filename
+                    if path.exists():
+                        destination.extend(
+                            _closure_intervention_rows(
+                                path,
+                                pair_id,
+                                clusters[pair_id],
+                                noise_seed,
+                                closure_metric,
+                                fields,
+                            )
+                        )
         residual_path = job_analysis / "residual_transfer.csv"
         if residual_path.exists():
             residual_rows.extend(
@@ -176,6 +207,18 @@ def main() -> int:
                     noise_seed,
                     summary,
                     ("flow_step", "layer"),
+                )
+            )
+        position_path = job_analysis / "position_transfer.csv"
+        if position_path.exists():
+            position_rows.extend(
+                _intervention_rows(
+                    position_path,
+                    pair_id,
+                    clusters[pair_id],
+                    noise_seed,
+                    summary,
+                    ("flow_step", "layer", "action_position"),
                 )
             )
         dimension_path = job_analysis / "dimension_transfer.csv"
@@ -196,6 +239,7 @@ def main() -> int:
         flow_rows,
         formation_rows,
         residual_rows,
+        position_rows,
         dimension_rows,
     )
     flow_curve, flow_statistics = _aggregate_flow(flow_rows, args)
@@ -207,11 +251,17 @@ def main() -> int:
         args,
         seed_offset=2,
     )
+    position_cells = _aggregate_intervention_cells(
+        position_rows,
+        ("flow_step", "layer", "action_position"),
+        args,
+        seed_offset=3,
+    )
     dimension_cells = _aggregate_intervention_cells(
         dimension_rows,
         ("flow_step", "patched_tensor", "patched_dimension_group"),
         args,
-        seed_offset=3,
+        seed_offset=4,
     )
     _write_csv(args.output / "units.csv", units)
     _write_csv(args.output / "flow_units.csv", flow_rows)
@@ -221,6 +271,9 @@ def main() -> int:
     if residual_rows:
         _write_csv(args.output / "residual_units.csv", residual_rows)
         _write_csv(args.output / "residual_cells.csv", residual_cells)
+    if position_rows:
+        _write_csv(args.output / "position_units.csv", position_rows)
+        _write_csv(args.output / "position_cells.csv", position_cells)
     if dimension_rows:
         _write_csv(args.output / "dimension_units.csv", dimension_rows)
         _write_csv(args.output / "dimension_cells.csv", dimension_cells)
@@ -232,6 +285,8 @@ def main() -> int:
     )
     if residual_cells:
         _plot_residual_cells(residual_cells, args.output / "residual_heatmap")
+    if position_cells:
+        _plot_position_cells(position_cells, args.output / "position_heatmap")
     if dimension_cells:
         _plot_dimension_cells(dimension_cells, args.output / "dimension_heatmap")
     summary = {
@@ -247,6 +302,10 @@ def main() -> int:
         "timing_separation_statistics": timing_separation_statistics,
         "intervention_statistics": {
             "residual_patch": _intervention_statistics(residual_cells, ("flow_step", "layer")),
+            "position_patch": _intervention_statistics(
+                position_cells,
+                ("flow_step", "layer", "action_position"),
+            ),
             "dimension_patch": _intervention_statistics(
                 dimension_cells,
                 ("flow_step", "patched_tensor", "patched_dimension_group"),
@@ -305,7 +364,7 @@ def _intervention_rows(
     cell_fields: tuple[str, ...],
 ) -> list[dict[str, Any]]:
     output = []
-    integer_fields = {"flow_step", "layer"}
+    integer_fields = {"flow_step", "layer", "action_position"}
     for row in _read_csv(path):
         record = {
             "pair_id": pair_id,
@@ -313,6 +372,38 @@ def _intervention_rows(
             "noise_seed": noise_seed,
             "metric": row["metric"],
             "eligible": bool(summary["valid_contrasts"][row["metric"]]),
+            "base_to_donor_ncte": float(row["base_to_donor_ncte"]),
+            "donor_to_base_ncte": float(row["donor_to_base_ncte"]),
+            "symmetric_ncte": float(row["symmetric_ncte"]),
+            "directional_asymmetry": float(row["directional_asymmetry"]),
+        }
+        record.update(
+            {
+                field: int(row[field]) if field in integer_fields else row[field]
+                for field in cell_fields
+            }
+        )
+        output.append(record)
+    return output
+
+
+def _closure_intervention_rows(
+    path: Path,
+    pair_id: str,
+    cluster: str,
+    noise_seed: int,
+    metric: str,
+    cell_fields: tuple[str, ...],
+) -> list[dict[str, Any]]:
+    integer_fields = {"flow_step", "layer", "action_position"}
+    output = []
+    for row in _read_csv(path):
+        record = {
+            "pair_id": pair_id,
+            "scene_state_sha256": cluster,
+            "noise_seed": noise_seed,
+            "metric": metric,
+            "eligible": True,
             "base_to_donor_ncte": float(row["base_to_donor_ncte"]),
             "donor_to_base_ncte": float(row["donor_to_base_ncte"]),
             "symmetric_ncte": float(row["symmetric_ncte"]),
@@ -743,6 +834,59 @@ def _plot_residual_cells(rows: list[dict[str, Any]], stem: Path) -> None:
             yticklabels=layers,
         )
     axes[0, 0].set_ylabel("transformer layer")
+    if image is not None:
+        figure.colorbar(image, ax=axes.ravel().tolist(), label="mean normalized causal transfer")
+    for suffix in ("png", "pdf"):
+        figure.savefig(stem.with_suffix(f".{suffix}"), dpi=240)
+    plt.close(figure)
+
+
+def _plot_position_cells(rows: list[dict[str, Any]], stem: Path) -> None:
+    metrics = sorted({row["metric"] for row in rows})
+    layers = sorted({row["layer"] for row in rows})
+    steps = sorted({row["flow_step"] for row in rows})
+    positions = sorted({row["action_position"] for row in rows})
+    limit = max(abs(row["mean_symmetric_ncte"]) for row in rows) or 1.0
+    figure, axes = plt.subplots(
+        len(metrics),
+        len(layers),
+        figsize=(3.2 * len(layers), 2.5 * len(metrics)),
+        squeeze=False,
+        constrained_layout=True,
+    )
+    image = None
+    for metric_index, metric in enumerate(metrics):
+        for layer_index, layer in enumerate(layers):
+            axis = axes[metric_index, layer_index]
+            selected = {
+                (row["flow_step"], row["action_position"]): row
+                for row in rows
+                if row["metric"] == metric and row["layer"] == layer
+            }
+            values = np.asarray(
+                [[selected[(step, position)]["mean_symmetric_ncte"] for position in positions] for step in steps]
+            )
+            image = axis.imshow(
+                values,
+                origin="lower",
+                aspect="auto",
+                cmap="RdBu_r",
+                vmin=-limit,
+                vmax=limit,
+            )
+            for y, step in enumerate(steps):
+                for x, position in enumerate(positions):
+                    if selected[(step, position)]["q_bh_within_metric_family"] < 0.05:
+                        axis.plot(x, y, ".", color="black", markersize=3)
+            axis.set(
+                title=f"{metric.replace('_', ' ')} · layer {layer}",
+                xlabel="action-token position" if metric_index == len(metrics) - 1 else None,
+                xticks=np.arange(len(positions)),
+                xticklabels=positions if metric_index == len(metrics) - 1 else [],
+                yticks=np.arange(len(steps)),
+                yticklabels=steps if layer_index == 0 else [],
+            )
+    axes[0, 0].set_ylabel("flow step")
     if image is not None:
         figure.colorbar(image, ax=axes.ravel().tolist(), label="mean normalized causal transfer")
     for suffix in ("png", "pdf"):
