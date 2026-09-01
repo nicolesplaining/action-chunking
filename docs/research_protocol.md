@@ -32,6 +32,17 @@ The computational axes are:
 - future action position `p`;
 - robot action dimension or preregistered dimension group `d`.
 
+The population action-token follow-up uses all 15 clean-eligible target states,
+flow steps `{0, 7, 8, 9}`, action-expert layers `{0, 8, 14, 17}`, and each of
+the ten pi0.5 action-token positions. This 160-cell grid was frozen before any
+population target-token outcome was generated. At flow step 9 and layer 17,
+the primary token-position contrast is the scene-cluster mean NCTE over the
+five positions executed before replanning minus the mean over positions 5--9.
+The contrast is tested separately for each preregistered eligible property with
+a scene bootstrap interval and exact sign-flip test. The complete grid remains
+visible and uses BH adjustment within each property family; the primary grouped
+contrast is not selected from the heatmap peak.
+
 The behavioral properties are target identity, initial trajectory direction,
 grasp orientation, gripper-closure timing, and post-perturbation recovery.
 

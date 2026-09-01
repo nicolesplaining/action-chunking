@@ -16,6 +16,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from action_chunking.analysis import benjamini_hochberg, commitment_step
+from action_chunking.token_analysis import executed_token_contrast
 
 
 def parse_args() -> argparse.Namespace:
@@ -257,6 +258,11 @@ def main() -> int:
         args,
         seed_offset=3,
     )
+    token_position_primary_contrast = executed_token_contrast(
+        position_rows,
+        bootstrap_replicates=args.bootstrap_replicates,
+        seed=args.bootstrap_seed + 5,
+    )
     dimension_cells = _aggregate_intervention_cells(
         dimension_rows,
         ("flow_step", "patched_tensor", "patched_dimension_group"),
@@ -311,6 +317,7 @@ def main() -> int:
                 ("flow_step", "patched_tensor", "patched_dimension_group"),
             ),
         },
+        "token_position_primary_contrast": token_position_primary_contrast,
         "seed_eligible_units_by_metric": {
             metric: sum(row["seed_eligible"] for row in units if row["metric"] == metric)
             for metric in sorted({row["metric"] for row in units})
