@@ -26,6 +26,8 @@ boundaries are reported; the single selected scene is descriptive and cannot
 support a population timing-prediction claim. This amendment was motivated by
 the construct-validity concern that successful instruction redirection is good
 instruction following, not evidence that a policy was previously undecided.
+The implementation runs only restart and the fully old-conditioned `k=10`
+endpoint first; intermediate boundaries remain sealed unless this gate passes.
 
 ## 2026-09-01: chunk-boundary recovery decomposition frozen
 

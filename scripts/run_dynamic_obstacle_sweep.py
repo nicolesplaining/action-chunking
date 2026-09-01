@@ -39,45 +39,60 @@ def main() -> int:
         raise ValueError("dynamic obstacle sweep requires an obstacle-pose pair")
     args.output.mkdir(parents=True, exist_ok=True)
     launcher = Path(__file__).with_name("run_pair_validation.sh")
-    for strategy, boundary in [("restart", 0), *(("continue", value) for value in boundaries)]:
-        run_output = args.output / f"{strategy}_after_{boundary}"
-        summary_path = run_output / "summary.json"
-        if not summary_path.is_file():
-            command = [
-                str(launcher),
-                str(args.manifest),
-                args.pair_id,
-                str(args.gpu),
-                str(args.port),
-                str(args.noise_seed),
-                str(run_output),
-                "",
-                "strict",
-                "false",
-                "",
-                "0",
-                "false",
-                "false",
-                strategy,
-                str(boundary),
-                "400",
-                "donor",
-                "0",
-            ]
-            completed = subprocess.run(command, check=False)
-            if completed.returncode not in {0, 1} or not summary_path.is_file():
-                raise RuntimeError(
-                    f"dynamic obstacle {strategy} boundary {boundary} produced no summary"
-                )
-        _validate_run(
-            json.loads(summary_path.read_text()),
-            args.pair_id,
-            args.noise_seed,
-            strategy,
-            boundary,
-        )
+    for strategy, boundary in [("restart", 0), ("continue", 10)]:
+        _run_one(args, launcher, strategy, boundary)
+        _write_tables(args.output, entry, args.noise_seed, args.timing_isolated)
+    endpoint = json.loads((args.output / "summary.json").read_text())
+    if not endpoint["endpoint_gate_pass"]:
+        return 0
+    for strategy, boundary in [("continue", value) for value in boundaries if value != 10]:
+        _run_one(args, launcher, strategy, boundary)
         _write_tables(args.output, entry, args.noise_seed, args.timing_isolated)
     return 0
+
+
+def _run_one(
+    args: argparse.Namespace,
+    launcher: Path,
+    strategy: str,
+    boundary: int,
+) -> None:
+    run_output = args.output / f"{strategy}_after_{boundary}"
+    summary_path = run_output / "summary.json"
+    if not summary_path.is_file():
+        command = [
+            str(launcher),
+            str(args.manifest),
+            args.pair_id,
+            str(args.gpu),
+            str(args.port),
+            str(args.noise_seed),
+            str(run_output),
+            "",
+            "strict",
+            "false",
+            "",
+            "0",
+            "false",
+            "false",
+            strategy,
+            str(boundary),
+            "400",
+            "donor",
+            "0",
+        ]
+        completed = subprocess.run(command, check=False)
+        if completed.returncode not in {0, 1} or not summary_path.is_file():
+            raise RuntimeError(
+                f"dynamic obstacle {strategy} boundary {boundary} produced no summary"
+            )
+    _validate_run(
+        json.loads(summary_path.read_text()),
+        args.pair_id,
+        args.noise_seed,
+        strategy,
+        boundary,
+    )
 
 
 def _write_tables(
@@ -168,18 +183,27 @@ def _write_tables(
         and row["applied_only_at_first_replan"]
         for row in rows
     )
-    complete = restart is not None and set(continuation) == set(range(11))
+    endpoint_gate_complete = restart is not None and 10 in continuation
+    endpoint_exact_controls = endpoint_gate_complete and all(
+        row["initial_input_exact"]
+        and row["simulator_state_exact"]
+        and row["source_condition_is_frozen_fixture"]
+        and row["donor_live_input_is_frozen_fixture"]
+        and row["visual_condition_switch"]
+        and row["applied_only_at_first_replan"]
+        for row in (restart, continuation[10])
+    )
+    endpoint_gate_pass = bool(
+        endpoint_exact_controls
+        and restart["collision_free_task_success"]
+        and continuation[10]["first_chunk_obstacle_collision"]
+    )
+    complete = endpoint_gate_complete and set(continuation) == set(range(11))
     nfe_exact = complete and all(
         int(row["post_event_velocity_evaluations"]) == 10 - boundary
         for boundary, row in continuation.items()
     ) and int(restart["post_event_velocity_evaluations"]) == 10
-    eligible = bool(
-        complete
-        and exact_controls
-        and boundary_zero_actions_exact
-        and restart["collision_free_task_success"]
-        and continuation[10]["first_chunk_obstacle_collision"]
-    )
+    eligible = endpoint_gate_pass
     successful_boundaries = [
         boundary
         for boundary, row in sorted(continuation.items())
@@ -201,6 +225,8 @@ def _write_tables(
         "pair_id": entry["pair_id"],
         "noise_seed": noise_seed,
         "registered_boundaries_complete": complete,
+        "endpoint_gate_complete": endpoint_gate_complete,
+        "endpoint_gate_pass": endpoint_gate_pass,
         "timing_isolated": timing_isolated,
         "all_exact_controls_pass": exact_controls,
         "boundary_zero_continue_restart_actions_exact": boundary_zero_actions_exact,

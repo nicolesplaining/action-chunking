@@ -295,6 +295,8 @@ contact and eventually completes the unchanged task. Boundary-zero continue
 and restart actions must be exactly equal. Every rollout must exactly restore
 the registered simulator state and robot proprioception; the counterfactual
 source image and live donor image must each exactly equal their frozen fixture.
+Only restart and `k=10` are run for endpoint screening. Boundaries `0..9`
+remain sealed and are evaluated only after that endpoint gate passes.
 
 A no-restart safety correction is counted only when it avoids obstacle contact
 through the first five controls and eventually completes the task. Report the
