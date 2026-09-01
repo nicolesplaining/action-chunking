@@ -160,6 +160,16 @@ The model comparison is a matched experimental protocol, not a pure
 architectural ablation: pi0 and pi0.5 differ in pretraining and checkpoint
 history. Model-by-property contrasts must be reported with that limitation.
 
+## Obstacle-position extension
+
+Move only a task-irrelevant distractor's planar free-joint coordinates onto a
+fixed grid around the clean end-effector-to-target corridor. Freeze geometric
+exclusions and clean behavioral eligibility before interventions. The selected
+pair must preserve exact restoration, target-first dual success, and first-chunk
+obstacle avoidance while the unmodified trajectory would intersect the moved
+obstacle corridor. Interpret its causal grid as obstacle-sensitive trajectory
+editability, not yet as successful response to a late safety constraint.
+
 ## Required figures
 
 The current figure build is generated directly from immutable CSV tables by

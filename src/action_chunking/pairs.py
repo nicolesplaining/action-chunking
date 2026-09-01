@@ -106,9 +106,9 @@ class InstructionPair:
             if self.base_prompt == self.donor_prompt:
                 raise ValueError("instruction pair prompts must differ")
             equal_fields = ("image", "wrist_image", "state", "sim_state")
-        elif self.registered_variable == "target_pose":
+        elif self.registered_variable in {"target_pose", "obstacle_pose"}:
             if self.base_prompt != self.donor_prompt:
-                raise ValueError("target-pose pair prompts must match")
+                raise ValueError("pose pair prompts must match")
             equal_fields = ("state",)
         else:
             raise ValueError(f"unsupported registered pair variable {self.registered_variable!r}")
