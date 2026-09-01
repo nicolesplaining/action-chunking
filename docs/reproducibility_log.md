@@ -503,6 +503,15 @@ decision boundary, and a negative-latency case verifies that behavioral
 preservation alone cannot pass. No outcome, threshold, denominator, estimand,
 or active rollout code changed.
 
+At 57/500 rows, a post-run handoff was added without reading another outcome
+field or changing the active checkout. The registered original analyzer must
+finish first in its existing `analysis` directory. The handoff then copies that
+summary into an immutable original slot, runs the current hardened analyzer in
+a distinct directory, and requires exact equality for every registered field,
+all ten task strata, and all 500 rows. Only the hardened 1,505-file count and
+source-manifest digest may be additional fields. A disagreement produces no
+audit-positive comparison and never overwrites the original result.
+
 ## 2026-09-01: publication-artifact audit
 
 The six current manuscript figures were independently checked against
