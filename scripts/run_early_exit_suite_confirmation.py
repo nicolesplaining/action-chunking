@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run the frozen paired 500-episode pi0.5 early-exit confirmation.
+"""Run the frozen 500-pair, 1,000-rollout pi0.5 early-exit confirmation.
 
 The environment loop is adapted from OpenPI's public ``examples/libero/main.py``
 at the repository-pinned revision. This wrapper adds paired condition order,
@@ -343,6 +343,8 @@ def _write_progress(args: argparse.Namespace, jobs: list[dict[str, Any]], warmup
         "suite": SUITE,
         "expected_pairs": TOTAL_PAIRS,
         "completed_pairs": len(jobs),
+        "expected_condition_rollouts": 2 * TOTAL_PAIRS,
+        "completed_condition_rollouts": 2 * len(jobs),
         "seed": args.seed,
         "noise_seed": args.noise_seed,
         "conditions": CONDITIONS,

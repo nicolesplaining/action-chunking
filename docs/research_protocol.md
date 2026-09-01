@@ -379,7 +379,8 @@ This threshold is descriptive and is not called noninferiority.
 
 If the pilot passes, the confirmatory test uses the unchanged public LIBERO Goal
 task order and 50 trials per task for 500 paired reset seeds under `k=7` and
-`k=10`. A paired loss occurs when the full sampler succeeds and early exit does
+`k=10`: 500 episodes per condition and 1,000 condition rollouts in total. A
+paired loss occurs when the full sampler succeeds and early exit does
 not. A practical positive requires the one-sided 95% Clopper--Pearson upper
 bound on the paired loss probability to be below 0.02, exactly 30% fewer
 velocity evaluations at every replan, and a scene-paired bootstrap interval for

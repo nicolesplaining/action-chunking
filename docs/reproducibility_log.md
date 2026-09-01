@@ -1,5 +1,14 @@
 # Reproducibility log
 
+## 2026-09-01: confirmation rollout count made explicit
+
+Before the first scored confirmation pair, reporting was clarified to state the
+actual execution count: 500 paired task/trial reset keys, 500 episodes per
+condition, and 1,000 condition rollouts total. The paired statistical unit and
+registered exact loss bound remain `n=500`. Progress and final summaries now
+record both the pair and condition-rollout counts. This is a terminology and
+accounting correction, not a denominator or outcome-rule change.
+
 ## 2026-09-01: matched-control comparison inputs fail closed
 
 Before any converted-pi0 activation intervention existed, the cross-model
@@ -40,7 +49,7 @@ only missing pairs. This is a resume fix and changes no selection rule.
 ## 2026-09-01: paired early-exit confirmation execution frozen
 
 Protocol version 0.20 was frozen after the 15-cluster pilot passed and before
-any 500-episode suite-confirmation rollout. It preserves the original LIBERO
+any suite-confirmation rollout. It preserves the original LIBERO
 Goal task order, 50 trials per task, two-percentage-point paired-loss margin,
 and exact compute/latency gates. Each task/trial key now requires a serialized
 reset and shared replan-indexed Gaussian-noise stream; condition order is
@@ -110,8 +119,9 @@ states remain the pilot clusters; no state can be selected using early-exit
 behavior. A pilot positive requires at least 14/15 clusters to preserve both
 directions' target-first contact and task success, exact 30% evaluation savings,
 and lower isolated integration latency. Only a passing pilot opens the frozen
-500-episode paired LIBERO Goal confirmation with a two-percentage-point paired-
-loss margin. The new server path reuses the public fixed ten-step time grid and
+500-pair LIBERO Goal confirmation (1,000 condition rollouts) with a two-
+percentage-point paired-loss margin. The new server path reuses the public
+fixed ten-step time grid and
 records every replan's evaluation count; `k=10` returns the ordinary integrated
 sampler tensor exactly.
 

@@ -160,7 +160,8 @@ loss from instruction following: both conditions contact the instructed bowl
 first at step 35, but only the ten-evaluation control finishes. Report the wide
 14/15 exact interval, all 15 paired latency differences, and the fixed-order
 limitation. The pilot reuses the mechanistic population and therefore opens but
-does not replace the frozen 500-episode paired confirmation.
+does not replace the frozen confirmation on 500 episode pairs (1,000 condition
+rollouts).
 
 ## Matched pi0 control
 

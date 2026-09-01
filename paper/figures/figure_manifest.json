@@ -1,6 +1,6 @@
 {
   "closure_caveat": "descriptive one-state, one-noise-mode case; no population significance markers",
-  "early_exit_caveat": "15-cluster exploratory pilot; frozen 500-episode paired confirmation pending",
+  "early_exit_caveat": "15-cluster exploratory pilot; frozen 500-pair / 1,000-rollout confirmation pending",
   "inputs": {
     "closure_position_cells": {
       "path": "outputs/analysis/pi05_target_pose_020mm_positions_aggregate/position_cells.csv",

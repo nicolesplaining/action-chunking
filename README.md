@@ -26,4 +26,5 @@ controls executed before the next replan after seven rather than ten velocity
 evaluations preserved correct target-first contact in 15/15 eligible scene
 clusters and the target-first-plus-eventual-success composite in 14/15, with
 exactly 30% fewer evaluations and 30.0% median paired integration-latency
-savings. A frozen 500-episode paired confirmation is pending.
+savings. A frozen confirmation with 500 episode pairs (500 episodes per
+condition; 1,000 condition rollouts total) is pending.

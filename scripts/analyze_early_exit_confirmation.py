@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Analyze the frozen 500-episode paired early-exit confirmation."""
+"""Analyze the frozen 500-pair, 1,000-rollout early-exit confirmation."""
 
 from __future__ import annotations
 
@@ -64,6 +64,8 @@ def _load_pairs(root: Path) -> list[dict[str, Any]]:
         or progress.get("suite") != SUITE
         or int(progress.get("expected_pairs", -1)) != EXPECTED
         or int(progress.get("completed_pairs", -1)) != EXPECTED
+        or int(progress.get("expected_condition_rollouts", -1)) != 2 * EXPECTED
+        or int(progress.get("completed_condition_rollouts", -1)) != 2 * EXPECTED
         or progress.get("conditions") != CONDITIONS
         or re.fullmatch(r"[0-9a-f]{40}", str(progress.get("code_commit"))) is None
         or len(progress.get("jobs", [])) != EXPECTED
@@ -143,10 +145,12 @@ def analyze_confirmation(
     positive = bool(loss_upper < 0.02 and latency_interval[0] > 0.0 and losses <= 4)
     return rows, {
         "schema_version": 1,
-        "analysis_unit": "paired_libero_episode",
+        "analysis_unit": "paired_libero_episode_pair",
         "suite": SUITE,
         "code_commit": next(iter(code_commits)),
         "episode_pairs": EXPECTED,
+        "episodes_per_condition": EXPECTED,
+        "condition_rollouts": 2 * EXPECTED,
         "condition_order_counts": order_counts,
         "early_exit_successes": early_successes,
         "early_exit_success_rate": early_successes / EXPECTED,

@@ -16,6 +16,9 @@ def test_confirmation_passes_with_four_paired_losses() -> None:
     rows, summary = analyze_confirmation(_pairs(losses=4))
 
     assert len(rows) == 500
+    assert summary["episode_pairs"] == 500
+    assert summary["episodes_per_condition"] == 500
+    assert summary["condition_rollouts"] == 1000
     assert summary["paired_losses"] == 4
     assert summary["paired_loss_clopper_pearson_upper95"] < 0.02
     assert summary["condition_order_counts"] == {

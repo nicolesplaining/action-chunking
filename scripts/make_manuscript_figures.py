@@ -115,12 +115,10 @@ def main() -> int:
         "schema_version": 3,
         "inputs": {name: {"path": str(path), "sha256": _sha256(path)} for name, path in inputs.items()},
         "outputs": output_names,
-        "output_sha256": {
-            name: _sha256(args.output / name) for name in output_names
-        },
+        "output_sha256": {name: _sha256(args.output / name) for name in output_names},
         "marker_definition": "open circles require BH q < 0.05 and a scene-cluster 95% CI strictly above zero",
         "closure_caveat": "descriptive one-state, one-noise-mode case; no population significance markers",
-        "early_exit_caveat": "15-cluster exploratory pilot; frozen 500-episode paired confirmation pending",
+        "early_exit_caveat": "15-cluster exploratory pilot; frozen 500-pair / 1,000-rollout confirmation pending",
     }
     (args.output / "figure_manifest.json").write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
     return 0
@@ -196,13 +194,7 @@ def _plot_population_token_localization(rows: list[dict[str, str]], stem: Path) 
             if int(row["layer"]) == layer
         }
         values = np.asarray(
-            [
-                [
-                    float(indexed[(step, position)]["mean_symmetric_ncte"])
-                    for position in positions
-                ]
-                for step in steps
-            ]
+            [[float(indexed[(step, position)]["mean_symmetric_ncte"]) for position in positions] for step in steps]
         )
         image = axis.imshow(
             values,
@@ -215,10 +207,7 @@ def _plot_population_token_localization(rows: list[dict[str, str]], stem: Path) 
         for y, step in enumerate(steps):
             for x, position in enumerate(positions):
                 row = indexed[(step, position)]
-                if (
-                    float(row["q_bh_within_metric_family"]) < 0.05
-                    and float(row["symmetric_ci95_low"]) > 0.0
-                ):
+                if float(row["q_bh_within_metric_family"]) < 0.05 and float(row["symmetric_ci95_low"]) > 0.0:
                     axis.plot(
                         x,
                         y,
@@ -255,13 +244,7 @@ def _plot_population_token_localization(rows: list[dict[str, str]], stem: Path) 
     profile = axes[4]
     for metric in ("all", "translation", "rotation"):
         selected = sorted(
-            (
-                row
-                for row in rows
-                if row["metric"] == metric
-                and int(row["flow_step"]) == 9
-                and int(row["layer"]) == 17
-            ),
+            (row for row in rows if row["metric"] == metric and int(row["flow_step"]) == 9 and int(row["layer"]) == 17),
             key=lambda row: int(row["action_position"]),
         )
         if [int(row["action_position"]) for row in selected] != positions:
@@ -479,9 +462,7 @@ def _plot_early_exit_pilot(summary: dict[str, Any], stem: Path) -> None:
     )
 
     eligible_rows = [row for row in summary["rows"] if row["eligible"]]
-    savings = np.asarray(
-        [float(row["first_replan_latency_savings_fraction"]) for row in eligible_rows]
-    )
+    savings = np.asarray([float(row["first_replan_latency_savings_fraction"]) for row in eligible_rows])
     preserved = np.asarray([bool(row["composite_preserved"]) for row in eligible_rows])
     if savings.size != eligible or np.any(~np.isfinite(savings)):
         raise ValueError("early-exit figure has invalid cluster latencies")
