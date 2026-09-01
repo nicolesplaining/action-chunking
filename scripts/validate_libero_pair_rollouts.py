@@ -16,7 +16,7 @@ from libero.libero.envs import OffScreenRenderEnv
 from openpi_client import image_tools, websocket_client_policy
 
 from action_chunking.metrics import gripper_closure_position
-from action_chunking.pairs import load_instruction_pair
+from action_chunking.pairs import action_noise_shape, advance_action_noise, load_instruction_pair
 
 
 def parse_args() -> argparse.Namespace:
@@ -27,6 +27,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--host", default="0.0.0.0")
     parser.add_argument("--port", type=int, default=8002)
     parser.add_argument("--noise-seed", type=int, default=0)
+    parser.add_argument("--noise-start-index", type=int, default=0)
     parser.add_argument("--max-steps", type=int, default=400)
     parser.add_argument("--replan-steps", type=int, default=5)
     parser.add_argument("--resolution", type=int, default=256)
@@ -52,6 +53,8 @@ def main() -> int:
     args.output.mkdir(parents=True, exist_ok=True)
     if args.destination_radius <= 0.0 or args.destination_persistence_steps <= 0:
         raise ValueError("destination radius and persistence steps must be positive")
+    if args.noise_start_index < 0:
+        raise ValueError("noise start index must be nonnegative")
     dynamic_retarget = _dynamic_retarget_spec(args)
     sides = _sides(args.sides)
     manifest = json.loads(args.manifest.read_text())
@@ -61,6 +64,7 @@ def main() -> int:
     server_metadata = client.get_server_metadata()
     if not server_metadata.get("accepts_action_noise"):
         raise ValueError("server does not advertise explicit action-noise support")
+    noise_shape = action_noise_shape(server_metadata)
     intervention = json.loads(args.intervention.read_text()) if args.intervention is not None else None
     if intervention is not None and not server_metadata.get("accepts_causal_intervention"):
         raise ValueError("server does not advertise causal-intervention support")
@@ -99,6 +103,7 @@ def main() -> int:
             intervention,
             intervention_replans,
             dynamic_retarget,
+            noise_shape,
             args,
         )
         results.append(result)
@@ -106,7 +111,9 @@ def main() -> int:
         "schema_version": 1,
         "pair_id": args.pair_id,
         "noise_seed": args.noise_seed,
+        "noise_start_index": args.noise_start_index,
         "shared_noise_by_replan_index": True,
+        "action_noise_shape": list(noise_shape),
         "requested_sides": sides,
         "all_successful": all(result["success"] for result in results),
         "both_successful": all(result["success"] for result in results),
@@ -141,6 +148,7 @@ def _rollout(
     intervention: dict[str, Any] | None,
     intervention_replans: set[int] | None,
     dynamic_retarget: dict[str, Any] | None,
+    noise_shape: tuple[int, int],
     args: argparse.Namespace,
 ) -> dict[str, Any]:
     env = OffScreenRenderEnv(
@@ -154,10 +162,12 @@ def _rollout(
     other_side = "donor" if side == "base" else "base"
     old_prompt = getattr(pair, f"{other_side}_prompt") if dynamic_retarget is not None else prompt
     rng = np.random.default_rng(args.noise_seed)
+    advance_action_noise(rng, args.noise_start_index, noise_shape)
     frames = []
     action_chunks = []
     trajectory_records = []
     simulator_states = []
+    replan_inputs = []
     contacts: dict[str, int] = {}
     first_chunk_error = None
     first_chunk_closure_position = None
@@ -195,10 +205,20 @@ def _rollout(
             model_input = _model_input(obs, prompt, args.resize)
             frames.append(model_input["observation/image"])
             if not action_plan:
-                noise = rng.standard_normal((10, 32), dtype=np.float32)
+                noise = rng.standard_normal(noise_shape, dtype=np.float32)
                 policy_input = fixture_initial if replans == 0 and args.initial_input_mode == "fixture" else model_input
                 if dynamic_retarget is not None and replans == 0:
                     policy_input = {**policy_input, "prompt": old_prompt}
+                if args.save_sim_states:
+                    replan_inputs.append(
+                        {
+                            "image": np.asarray(policy_input["observation/image"]).copy(),
+                            "wrist_image": np.asarray(
+                                policy_input["observation/wrist_image"]
+                            ).copy(),
+                            "state": np.asarray(policy_input["observation/state"]).copy(),
+                        }
+                    )
                 request = {**policy_input, "_action_noise": noise}
                 if dynamic_retarget is not None and replans == 0:
                     request["_donor_prompt"] = prompt
@@ -278,6 +298,15 @@ def _rollout(
                 step_indices=np.arange(len(simulator_states), dtype=np.int64),
                 sim_states=np.stack(simulator_states),
             )
+            np.savez_compressed(
+                args.output / f"{side}_replan_inputs.npz",
+                replan_indices=np.arange(len(replan_inputs), dtype=np.int64),
+                images=np.stack([record["image"] for record in replan_inputs]),
+                wrist_images=np.stack(
+                    [record["wrist_image"] for record in replan_inputs]
+                ),
+                states=np.stack([record["state"] for record in replan_inputs]),
+            )
         destination_evaluation = _destination_evaluation(env, entry, target)
         return {
             "side": side,
@@ -291,8 +320,10 @@ def _rollout(
             "first_chunk_gripper_closure_position": first_chunk_closure_position,
             "restored_sim_state_max_abs_error": 0.0,
             "initial_input_mode": args.initial_input_mode,
+            "first_policy_input_is_fixture": args.initial_input_mode == "fixture",
             "live_initial_input_diagnostics": initial_input_diagnostics,
             "saved_simulator_states": len(simulator_states),
+            "saved_replan_inputs": len(replan_inputs),
             "intervention_replans_applied": applied_replans,
             "retarget_diagnostics": retarget_diagnostics,
             "terminated_after_first_task_contact": terminated_after_first_task_contact,

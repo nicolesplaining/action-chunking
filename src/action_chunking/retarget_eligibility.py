@@ -10,6 +10,9 @@ def eligibility_row(
     event_summary: dict[str, Any],
     execution_horizon: int,
     competence_summary: dict[str, Any] | None = None,
+    *,
+    source_chunk_exact: bool = True,
+    source_input_exact: bool = True,
 ) -> dict[str, Any]:
     """Classify one pre-contact state without inspecting continuation outcomes."""
     if execution_horizon <= 0:
@@ -35,7 +38,13 @@ def eligibility_row(
     restart_avoids_old_event = (
         restart_old_event_step is None or restart_old_event_step > execution_horizon
     )
-    event_gate_pass = event_exact and old_event_induced and restart_avoids_old_event
+    event_gate_pass = (
+        event_exact
+        and source_chunk_exact
+        and source_input_exact
+        and old_event_induced
+        and restart_avoids_old_event
+    )
 
     competence_exact = None
     restart_first_contact = None
@@ -68,6 +77,11 @@ def eligibility_row(
         "new_side": new_side,
         "snapshot_step": int(entry["snapshot_step"]),
         "precontact_offset_steps": int(entry["precontact_offset_steps"]),
+        "source_replan_index": (
+            int(entry["source_replan_index"])
+            if entry.get("source_replan_index") is not None
+            else 0
+        ),
         "noise_seed": int(event_summary["noise_seed"]),
         "execution_horizon": execution_horizon,
         "old_target": old_target,
@@ -76,6 +90,8 @@ def eligibility_row(
         "restart_old_event_step": restart_old_event_step,
         "restart_first_contact_object": restart_first_contact,
         "event_exact_initial_state": event_exact,
+        "source_chunk_exact": source_chunk_exact,
+        "source_input_exact": source_input_exact,
         "old_event_induced": old_event_induced,
         "restart_avoids_old_event": restart_avoids_old_event,
         "event_gate_pass": event_gate_pass,
@@ -98,9 +114,18 @@ def _first_contact_object(result: dict[str, Any]) -> str | None:
 
 
 def _result_exact(result: dict[str, Any]) -> bool:
+    fixture_exact = bool(
+        result.get("initial_input_mode") == "fixture"
+        and result.get("first_policy_input_is_fixture")
+    )
     diagnostics = result.get("live_initial_input_diagnostics", {})
     return (
-        bool(diagnostics)
-        and all(bool(field.get("array_equal")) for field in diagnostics.values())
+        (
+            fixture_exact
+            or (
+                bool(diagnostics)
+                and all(bool(field.get("array_equal")) for field in diagnostics.values())
+            )
+        )
         and result.get("restored_sim_state_max_abs_error") == 0.0
     )

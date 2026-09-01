@@ -45,6 +45,7 @@ def main() -> int:
             )
     args.output.mkdir(parents=True, exist_ok=True)
     launcher = Path(__file__).with_name("run_pair_validation.sh")
+    initial_input_mode = "fixture" if entry.get("source_replan_index") is not None else "strict"
     jobs = [("restart", 0), *(('continue', boundary) for boundary in boundaries)]
     for strategy, boundary in jobs:
         run_output = args.output / f"{strategy}_after_{boundary}"
@@ -62,7 +63,7 @@ def main() -> int:
             str(args.noise_seed),
             str(run_output),
             clean_screen,
-            "strict",
+            initial_input_mode,
             "false",
             "",
             "0",
@@ -72,6 +73,7 @@ def main() -> int:
             str(boundary),
             "400",
             ",".join(sides),
+            str(int(entry.get("source_replan_index") or 0)),
         ]
         completed = subprocess.run(command, check=False)
         if completed.returncode not in {0, 1} or not summary_path.is_file():
@@ -130,8 +132,12 @@ def _write_tables(
                     "donor_condition_ms": float(diagnostics["donor_condition_ms"]),
                     "post_event_integration_ms": float(diagnostics["post_event_integration_ms"]),
                     "post_event_total_ms": float(diagnostics["post_event_total_ms"]),
-                    "initial_input_exact": all(
-                        field["array_equal"] for field in result["live_initial_input_diagnostics"].values()
+                    "initial_input_exact": bool(
+                        result.get("first_policy_input_is_fixture")
+                        or all(
+                            field["array_equal"]
+                            for field in result["live_initial_input_diagnostics"].values()
+                        )
                     ),
                     "simulator_state_exact": result["restored_sim_state_max_abs_error"] == 0.0,
                     "applied_only_at_first_replan": result["intervention_replans_applied"] == [0],
@@ -216,6 +222,10 @@ def _validate_run(
         raise ValueError("existing dynamic-retarget output has different pair or noise seed")
     if summary.get("dynamic_retarget") != expected:
         raise ValueError("existing dynamic-retarget output has different strategy or boundary")
+    manifest = json.loads(args.manifest.read_text())
+    entry = _manifest_entry(manifest, args.pair_id)
+    if int(summary.get("noise_start_index", 0)) != int(entry.get("source_replan_index") or 0):
+        raise ValueError("existing dynamic-retarget output has different source replan noise")
     if {result["side"] for result in summary["results"]} != set(_sides(args.sides)):
         raise ValueError("existing dynamic-retarget output has different requested sides")
     for result in summary["results"]:
@@ -223,7 +233,13 @@ def _validate_run(
             raise ValueError("dynamic retargeting must be applied only at the first replan")
         if result.get("retarget_diagnostics") is None:
             raise ValueError("dynamic-retarget output omitted compute diagnostics")
-        if not all(field["array_equal"] for field in result["live_initial_input_diagnostics"].values()):
+        if entry.get("source_replan_index") is not None:
+            if not result.get("first_policy_input_is_fixture"):
+                raise ValueError("pre-contact retargeting did not use the saved clean model input")
+        elif not all(
+            field["array_equal"]
+            for field in result["live_initial_input_diagnostics"].values()
+        ):
             raise ValueError("dynamic-retarget rollout did not restore the exact model input")
         if result["restored_sim_state_max_abs_error"] != 0.0:
             raise ValueError("dynamic-retarget rollout did not restore the exact simulator state")

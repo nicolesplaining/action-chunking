@@ -16,7 +16,7 @@ from typing import Any
 import numpy as np
 from openpi_client import websocket_client_policy
 
-from action_chunking.pairs import load_instruction_pair
+from action_chunking.pairs import action_noise_shape, load_instruction_pair
 
 
 def parse_args() -> argparse.Namespace:
@@ -45,6 +45,7 @@ def main() -> int:
     metadata = client.get_server_metadata()
     if "dynamic_retarget" not in metadata.get("causal_intervention_families", []):
         raise ValueError("server does not advertise dynamic retargeting")
+    noise_shape = action_noise_shape(metadata)
 
     jobs = [
         (side, boundary, strategy)
@@ -52,7 +53,7 @@ def main() -> int:
         for boundary in boundaries
         for strategy in ("continue", "restart")
     ]
-    warmup_noise = np.zeros((10, 32), dtype=np.float32)
+    warmup_noise = np.zeros(noise_shape, dtype=np.float32)
     for side, boundary, strategy in jobs:
         for _ in range(args.warmup):
             _infer(client, pair, side, boundary, strategy, warmup_noise)
@@ -62,7 +63,7 @@ def main() -> int:
     rows = []
     for side, boundary, strategy, repeat in trials:
         noise = np.random.default_rng(args.noise_seed + repeat).standard_normal(
-            (10, 32), dtype=np.float32
+            noise_shape, dtype=np.float32
         )
         response, roundtrip_ms = _infer(client, pair, side, boundary, strategy, noise)
         actions = np.asarray(response["actions"])

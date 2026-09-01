@@ -1,5 +1,56 @@
 # Reproducibility log
 
+## 2026-08-31: exact clean-replan input correction
+
+The first protocol-0.4 aligned candidate was screened using endpoint controls
+only. Its simulator state, fixture-relative live inputs, and indexed seed-zero
+noise were exact, but its old-condition first chunk differed from saved clean
+chunk 8 (maximum absolute action difference 0.00913). It was therefore rejected
+by the source-chunk identity gate before competence or any intermediate
+continuation boundary was run. This was a construct-control failure, not a
+negative recovery outcome.
+
+Inspection showed that the candidate fixture contained observations regenerated
+from the saved MuJoCo flat state rather than the exact observations used by the
+clean policy at that replan. Equality between a newly generated fixture and a
+new live regeneration cannot establish equality to the historical clean policy
+input. Protocol version 0.5 therefore records exact external image, wrist image,
+and proprioception arrays at every clean replan. A valid fork uses these arrays
+for its first policy call, restores the saved simulator state for execution,
+advances to the matching clean noise draw, verifies registered input hashes,
+and reproduces the saved old action chunk byte-for-byte. Later replans use live
+observations normally.
+
+The protocol-0.4 candidate generator was stopped after this failure; its partial
+fixtures and one endpoint-only screen are retained as rejected diagnostics. No
+intermediate continuation outcome was produced. Clean trajectories are rerun
+to create versioned exact-replan input traces before aligned screening resumes.
+
+## 2026-08-31: replan-alignment correction before held-out interventions
+
+Before any held-out intermediate-boundary continuation was generated, an audit
+found that an arbitrary pre-contact environment state does not necessarily
+coincide with a policy replan and that resetting the seed-zero generator at
+that state reuses noise draw zero rather than the clean trajectory's draw for
+that replan. Those forks can therefore sample a different old-condition chunk
+and do not isolate editability of the clean in-progress plan.
+
+Protocol version 0.4 corrects the fork. For each clean trajectory it selects the
+latest five-action replan boundary strictly before first instructed-target
+contact, records its clean replan index, advances the identical Gaussian-noise
+sequence to that index, and hashes the corresponding saved clean action chunk.
+Eligibility now additionally requires the bounded old-condition endpoint's
+first chunk to match that hash exactly. Prediction and dynamic-retargeting runs
+consume the same indexed noise draw. Unit tests cover boundary selection, RNG
+advancement, and saved-chunk lookup.
+
+The earlier state-zero offsets-one-through-five screen is retained only as a
+superseded diagnostic. It generated no intermediate continuation outcomes and
+cannot exclude those scene states under the corrected gate. The corrected
+held-out clean-competence run itself contains no retargeting outcomes. Replan-
+aligned candidate generation, endpoint eligibility, frozen action-only
+predictions, and only then closed-loop continuation occur in that order.
+
 ## 2026-08-31: construct-validity amendment and utility registration
 
 An internal construct-validity review identified that the suffix-switch result
@@ -75,7 +126,7 @@ screening outcomes and excluded states will be retained. The five-action
 execution horizon remains frozen for the primary receding-horizon comparison,
 with longer execution horizons reported only as sensitivity analyses.
 
-The first failure-induction calibration used the saved state-zero clean
+The superseded first failure-induction diagnostic used the saved state-zero clean
 trajectories and offsets one through five steps before each original contact.
 The bounded event screen evaluated ten origin directions using only the fully
 old-conditioned endpoint and a clean new-instruction restart. Zero of ten
@@ -84,9 +135,11 @@ contacted the old target within five actions. Across offsets two through five,
 the donor-origin old controls contacted the bowl within the horizon, but restart
 did so as well; several base-origin old controls did not induce wine-bottle
 contact under the shared event noise. No intermediate continuation outcome was
-generated for these candidates. The entire state-zero calibration block is
-excluded, and fresh initial-state indices 16--31 were generated as the sealed
-held-out screening pool.
+generated for these candidates. Because those snapshots were not constrained
+to replan boundaries and their RNG restarted at draw zero, this block is not a
+valid eligibility screen and makes no exclusion decision. Fresh initial-state
+indices 16--31 were generated as the first sealed held-out screening pool for
+the corrected procedure.
 
 The first nonzero-index fixture batch was rejected before inference because
 strict restoration found unequal external and wrist images at index 16. The

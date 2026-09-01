@@ -21,6 +21,68 @@ def advance_reset_sequence(env: Any, start_index: int) -> None:
         env.reset()
 
 
+def replan_snapshot_step(contact_step: int, replan_steps: int) -> tuple[int, int]:
+    """Return the latest replan boundary before a one-indexed contact step."""
+    if contact_step <= 0 or replan_steps <= 0:
+        raise ValueError("contact_step and replan_steps must be positive")
+    snapshot_step = ((contact_step - 1) // replan_steps) * replan_steps
+    return snapshot_step, snapshot_step // replan_steps
+
+
+def advance_action_noise(rng: Any, replan_index: int, shape: tuple[int, int]) -> None:
+    """Advance a NumPy generator to the noise draw at ``replan_index``."""
+    if replan_index < 0 or any(value <= 0 for value in shape):
+        raise ValueError("replan_index must be nonnegative and noise shape positive")
+    for _ in range(replan_index):
+        rng.standard_normal(shape, dtype=np.float32)
+
+
+def action_noise_shape(
+    metadata: dict[str, Any], default: tuple[int, int] = (10, 32)
+) -> tuple[int, int]:
+    """Read a model-native action-noise shape from server metadata."""
+    horizon = int(metadata.get("action_horizon", default[0]))
+    dimension = int(metadata.get("action_dim", default[1]))
+    if horizon <= 0 or dimension <= 0:
+        raise ValueError("server action horizon and dimension must be positive")
+    return horizon, dimension
+
+
+def load_action_chunk(path: Path, replan_index: int) -> NDArray[np.float64]:
+    """Load one saved clean action chunk without changing its numeric values."""
+    if replan_index < 0:
+        raise ValueError("replan index must be nonnegative")
+    chunks = json.loads(path.read_text())
+    if replan_index >= len(chunks):
+        raise IndexError(f"replan index {replan_index} is absent from {path}")
+    chunk = np.asarray(chunks[replan_index], dtype=np.float64)
+    if chunk.ndim != 2:
+        raise ValueError(f"saved action chunk has invalid shape in {path}")
+    return chunk
+
+
+def load_replan_input(path: Path, replan_index: int) -> dict[str, NDArray[Any]]:
+    """Load the exact model observation used for one saved clean replan."""
+    if replan_index < 0:
+        raise ValueError("replan index must be nonnegative")
+    with np.load(path, allow_pickle=False) as trace:
+        indices = np.asarray(trace["replan_indices"], dtype=np.int64)
+        if not np.array_equal(indices, np.arange(len(indices))):
+            raise ValueError("saved replan inputs must have contiguous zero-based indices")
+        if replan_index >= len(indices):
+            raise IndexError(f"replan index {replan_index} is absent from {path}")
+        result = {
+            "image": np.asarray(trace["images"][replan_index]).copy(),
+            "wrist_image": np.asarray(trace["wrist_images"][replan_index]).copy(),
+            "state": np.asarray(trace["states"][replan_index]).copy(),
+        }
+    if result["image"].ndim != 3 or result["wrist_image"].ndim != 3:
+        raise ValueError(f"saved replan input has invalid image shape in {path}")
+    if result["state"].ndim != 1:
+        raise ValueError(f"saved replan input has invalid state shape in {path}")
+    return result
+
+
 @dataclasses.dataclass(frozen=True)
 class InstructionPair:
     """Model-ready inputs for one explicitly registered paired intervention."""

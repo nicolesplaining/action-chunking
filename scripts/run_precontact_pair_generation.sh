@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-if [[ $# -lt 5 || $# -gt 6 ]]; then
-  echo "usage: $0 <manifest> <pair-id> <gpu> <rollout-dir> <output-dir> [precontact-offset]" >&2
+if [[ $# -lt 5 || $# -gt 7 ]]; then
+  echo "usage: $0 <manifest> <pair-id> <gpu> <rollout-dir> <output-dir> [precontact-offset] [replan-steps]" >&2
   exit 2
 fi
 
@@ -12,7 +12,13 @@ gpu="$3"
 rollout_dir="$(realpath "$4")"
 output_dir="$(realpath -m "$5")"
 precontact_offset="${6:-10}"
+replan_steps="${7:-}"
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+replan_args=()
+if [[ -n "$replan_steps" ]]; then
+  replan_args=(--replan-steps "$replan_steps")
+fi
 
 mkdir -p "$output_dir"
 if docker info >/dev/null 2>&1; then
@@ -39,4 +45,5 @@ fi
     --pair-id '$pair_id' \
     --rollout /rollout \
     --output /data \
-    --precontact-offset '$precontact_offset'"
+    --precontact-offset '$precontact_offset' \
+    ${replan_args[*]}"
