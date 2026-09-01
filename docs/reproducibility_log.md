@@ -1,5 +1,16 @@
 # Reproducibility log
 
+## 2026-09-01: obstacle restart identity extended to behavior
+
+Protocol version 0.30 strengthens the future obstacle-update pilot before its
+dynamic intervention outcome exists. Byte-exact boundary-zero actions remain
+necessary but are no longer sufficient for a practical flag: continue and
+restart must also agree exactly in obstacle-contact timing, first-chunk
+collision, eventual and collision-free success, minimum first-chunk planar
+clearance, and episode length. The endpoint is still explicitly restricted to
+gripper--obstacle contact and an end-effector clearance proxy, not whole-robot
+safety.
+
 ## 2026-09-01: boundary prediction tied to chosen-action utility
 
 Protocol version 0.29 strengthens the future held-out U1 decision before any

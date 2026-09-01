@@ -1,6 +1,6 @@
 # Research protocol: causal editability and retargeting in action chunks
 
-Protocol version: 0.28 (independently reconstructed conversion parity)
+Protocol version: 0.30 (obstacle boundary-zero behavioral identity)
 
 ## 1. Research question
 
@@ -359,11 +359,14 @@ The pilot is behaviorally eligible only if the fully source-conditioned first
 chunk (`k=10`) contacts the registered obstacle within the first five executed
 controls, while full restart under the moved-obstacle condition avoids that
 contact and eventually completes the unchanged task. Boundary-zero continue
-and restart actions must be exactly equal. Every rollout must exactly restore
-the registered simulator state and robot proprioception; the counterfactual
-source image and live donor image must each exactly equal their frozen fixture.
-Only restart and `k=10` are run for endpoint screening. Boundaries `0..9`
-remain sealed and are evaluated only after that endpoint gate passes.
+and restart actions must be exactly equal. Their obstacle-contact step,
+first-chunk collision flag, eventual task success, collision-free success,
+minimum first-chunk planar clearance, and episode length must also agree
+exactly. Every rollout must exactly restore the registered simulator state and
+robot proprioception; the counterfactual source image and live donor image must
+each exactly equal their frozen fixture. Only restart and `k=10` are run for
+endpoint screening. Boundaries `0..9` remain sealed and are evaluated only
+after that endpoint gate passes.
 
 A no-restart safety correction is counted only when it avoids obstacle contact
 through the first five controls and eventually completes the task. Report the

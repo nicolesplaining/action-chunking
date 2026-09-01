@@ -1,6 +1,6 @@
 study:
   name: pi05_libero_conditional_editability
-  protocol_version: "0.29"
+  protocol_version: "0.30"
   pilot_pairs_per_family: 16
   primary_noise_seed: 0
   robustness_noise_seeds_per_pair: 4
@@ -128,3 +128,5 @@ obstacle_pilot:
   clearance_definition: eef_center_planar_distance_minus_obstacle_bounding_radius
   whole_robot_collision_measured: false
   population_claim_allowed: false
+  practical_gate_requires_boundary_zero_actions_exact: true
+  practical_gate_requires_boundary_zero_behavior_equivalence: true

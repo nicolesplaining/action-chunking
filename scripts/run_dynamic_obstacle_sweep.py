@@ -133,6 +133,7 @@ def _write_tables(
                 "first_chunk_obstacle_collision": first_chunk_collision,
                 "first_chunk_collision_free": not first_chunk_collision,
                 "eventual_task_success": bool(result["success"]),
+                "episode_steps": int(result["steps"]),
                 "collision_free_task_success": bool(
                     not first_chunk_collision and result["success"]
                 ),
@@ -174,6 +175,11 @@ def _write_tables(
         if row["strategy"] == "continue"
     }
     boundary_zero_actions_exact = _boundary_zero_actions_exact(output)
+    boundary_zero_behavior_exact = (
+        _boundary_zero_behavior_exact(restart, continuation.get(0))
+        if restart is not None
+        else None
+    )
     exact_controls = all(
         row["initial_input_exact"]
         and row["simulator_state_exact"]
@@ -220,6 +226,7 @@ def _write_tables(
     practical_positive = bool(
         eligible
         and boundary_zero_actions_exact is True
+        and boundary_zero_behavior_exact is True
         and exact_controls
         and nfe_exact
         and timing_isolated
@@ -235,6 +242,7 @@ def _write_tables(
         "timing_isolated": timing_isolated,
         "all_exact_controls_pass": exact_controls,
         "boundary_zero_continue_restart_actions_exact": boundary_zero_actions_exact,
+        "boundary_zero_continue_restart_behavior_exact": boundary_zero_behavior_exact,
         "velocity_evaluation_counts_exact": nfe_exact,
         "behaviorally_eligible": eligible,
         "restart_collision_free_task_success": (
@@ -317,6 +325,23 @@ def _boundary_zero_actions_exact(output: Path) -> bool | None:
     if not all(path.is_file() for path in paths):
         return None
     return bool(np.array_equal(_first_chunk(paths[0]), _first_chunk(paths[1])))
+
+
+def _boundary_zero_behavior_exact(
+    restart: dict[str, Any],
+    continuation: dict[str, Any] | None,
+) -> bool | None:
+    if continuation is None:
+        return None
+    fields = (
+        "obstacle_contact_step",
+        "first_chunk_obstacle_collision",
+        "eventual_task_success",
+        "collision_free_task_success",
+        "minimum_first_chunk_planar_clearance_m",
+        "episode_steps",
+    )
+    return all(restart[field] == continuation[field] for field in fields)
 
 
 def _first_chunk(path: Path) -> np.ndarray:

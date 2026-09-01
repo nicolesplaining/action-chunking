@@ -18,7 +18,7 @@ def test_machine_readable_protocol_matches_executable_frozen_defaults() -> None:
 
     utility_defaults = inspect.signature(summarize_utility_jobs).parameters
     catalog_defaults = inspect.signature(build_retarget_screening_plan).parameters
-    assert protocol["study"]["protocol_version"] == "0.29"
+    assert protocol["study"]["protocol_version"] == "0.30"
     assert protocol["inference"]["flow_steps"] == 10
     assert protocol["inference"]["receding_horizon_steps"] == 5
     assert protocol["study"]["editability_retention_threshold"] == 0.8
@@ -84,3 +84,8 @@ def test_machine_readable_protocol_matches_executable_frozen_defaults() -> None:
     assert analysis["pi05_action_horizon"] == 10
     assert analysis["pi0_action_horizon"] == 50
     assert protocol["obstacle_pilot"]["whole_robot_collision_measured"] is False
+    assert protocol["obstacle_pilot"]["practical_gate_requires_boundary_zero_actions_exact"] is True
+    assert (
+        protocol["obstacle_pilot"]["practical_gate_requires_boundary_zero_behavior_equivalence"]
+        is True
+    )

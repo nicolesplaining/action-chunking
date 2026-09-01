@@ -314,6 +314,13 @@ sided exact upper bound on the conservative paired-loss probability. No utility
 decision is emitted until every cluster selected by the frozen endpoint gate is
 complete.
 
+The obstacle pilot applies the same identity principle at `k=0`: continue and
+restart must match not only in action bytes but also in obstacle-contact timing,
+first-chunk collision, eventual and collision-free success, minimum first-chunk
+clearance, and episode length. Its collision endpoint remains explicitly limited
+to registered gripper--obstacle contact plus an end-effector clearance proxy; it
+is not a whole-robot safety certificate.
+
 Held-out candidates use the latest five-action replan boundary strictly before
 the source clean target contact. Because robosuite controller and interpolator
 state is not fully represented in MuJoCo's flat state, each fork reproduces the
