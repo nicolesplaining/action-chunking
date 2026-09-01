@@ -1,12 +1,12 @@
 # Figure captions
 
-## Figure 1: Formation is not commitment
+## Figure 1: Formation precedes loss of conditional editability
 
 **a,** Mean relative error between each intermediate clean paired contrast and
 the final clean contrast across 15 dual-success scene states; ribbons are 95%
 scene-cluster bootstrap intervals and the dashed line is the preregistered 0.20
 formation tolerance. **b,** Isotonic source retention under a suffix
-conditioning switch. The horizontal line is the registered 0.80 commitment
+conditioning switch. The horizontal line is the registered 0.80 editability
 threshold. Full action, translation, and target direction do not cross it until
 the final update; rotation crosses at update nine. **c,** Repeated closed-loop
 target-identity intervention. Source retention remains zero through seven
@@ -27,19 +27,30 @@ Property-matched coordinate interchanges in the evolving action state `x_t`
 0.537 of translation and 0.900 of rotation. Ribbons are 95% scene-cluster
 bootstrap intervals over 15 states.
 
-## Figure 3: Late behavioral commitment at two rollout phases
+## Figure 3: Late behavioral editability at two rollout phases
 
-**a,** Target-identity commitment from task initialization across 15 scene
-states and 30 directional curves. **b,** Post-grasp destination commitment from
+**a,** Target-identity editability from task initialization across 15 scene
+states and 30 directional curves. **b,** Post-grasp destination editability from
 two independently selected held-object physical-state blocks and four
 directional curves. Every curve is monotonic and both endpoint controls pass.
 The destination reaches complete source retention after eight updates, while
 target identity requires nine. These contrasts begin at different rollout
 phases and are not interpreted as a universal semantic hierarchy. Ribbons are
 95% scene-cluster bootstrap intervals; the line marks the registered 0.80
-commitment threshold.
+editability threshold.
 
-## Figure 4: Noise-conditional future-token localization of closure
+## Figure 4: Late residual effects concentrate in deferred action positions
+
+**a,** Full-action NCTE for the preregistered population position grid crossing
+flow steps 0, 7, 8, and 9; action-expert layers 0, 8, 14, and 17; and all ten
+future positions in 15 scene states. Open circles require both BH-adjusted
+`q < 0.05` and a 95% scene-cluster interval above zero. The dotted line divides
+the five positions executed before the next clean replan from positions 5--9,
+which are deferred. **b,** Final-update, final-layer position profiles. The
+preregistered executed-minus-deferred contrast is negative for full action,
+translation, and rotation, with every interval excluding zero.
+
+## Figure 5: Noise-conditional future-token localization of closure
 
 Bidirectional closure-time NCTE for 120 single-position residual interchanges in
 one eligible scene/noise mode. Only future action position 9 transfers closure

@@ -1,0 +1,278 @@
+{
+  "all_seed_eligible_state_clusters_by_metric": {
+    "all": 15,
+    "gripper": 0,
+    "gripper_closure_time": 0,
+    "rotation": 15,
+    "target_direction": 15,
+    "translation": 15
+  },
+  "bootstrap": {
+    "replicates": 10000,
+    "seed": 23,
+    "unit": "scene_state_sha256"
+  },
+  "commitment_threshold": 0.8,
+  "eligible_units_by_metric": {
+    "all": 15,
+    "gripper": 0,
+    "gripper_closure_time": 0,
+    "rotation": 15,
+    "target_direction": 15,
+    "translation": 15
+  },
+  "flow_statistics": {
+    "all": {
+      "aggregate_commitment_step": 10,
+      "commitment_step_ci95_high": 10.0,
+      "commitment_step_ci95_low": 9.0,
+      "directional_asymmetry_auc_ci95_high": 0.0489129906629586,
+      "directional_asymmetry_auc_ci95_low": 0.03298942473197049,
+      "eligible_state_clusters": 15,
+      "late_weighting_index": 0.26830124986792636,
+      "mean_directional_asymmetry_auc": 0.040752697119731125,
+      "retention_auc": 0.23169875013207364
+    },
+    "gripper": null,
+    "rotation": {
+      "aggregate_commitment_step": 9,
+      "commitment_step_ci95_high": 9.0,
+      "commitment_step_ci95_low": 9.0,
+      "directional_asymmetry_auc_ci95_high": 0.07675695836669372,
+      "directional_asymmetry_auc_ci95_low": 0.046777621373612625,
+      "eligible_state_clusters": 15,
+      "late_weighting_index": 0.1899374667550423,
+      "mean_directional_asymmetry_auc": 0.06222107071190068,
+      "retention_auc": 0.3100625332449577
+    },
+    "target_direction": {
+      "aggregate_commitment_step": 10,
+      "commitment_step_ci95_high": 10.0,
+      "commitment_step_ci95_low": 9.0,
+      "directional_asymmetry_auc_ci95_high": 0.3201789273910871,
+      "directional_asymmetry_auc_ci95_low": 0.15630292622433417,
+      "eligible_state_clusters": 15,
+      "late_weighting_index": 0.3413818911484152,
+      "mean_directional_asymmetry_auc": 0.22483967739982214,
+      "retention_auc": 0.15861810885158478
+    },
+    "translation": {
+      "aggregate_commitment_step": 10,
+      "commitment_step_ci95_high": 10.0,
+      "commitment_step_ci95_low": 9.0,
+      "directional_asymmetry_auc_ci95_high": 0.058320106857716845,
+      "directional_asymmetry_auc_ci95_low": 0.03953521822074428,
+      "eligible_state_clusters": 15,
+      "late_weighting_index": 0.28044658487259183,
+      "mean_directional_asymmetry_auc": 0.0491340835799028,
+      "retention_auc": 0.21955341512740817
+    }
+  },
+  "formation_relative_error_tolerance": 0.2,
+  "formation_statistics": {
+    "all": {
+      "aggregate_formation_step": 0,
+      "eligible_state_clusters": 15,
+      "formation_step_ci95_high": 0.0,
+      "formation_step_ci95_low": 0.0
+    },
+    "gripper": null,
+    "rotation": {
+      "aggregate_formation_step": 0,
+      "eligible_state_clusters": 15,
+      "formation_step_ci95_high": 0.0,
+      "formation_step_ci95_low": 0.0
+    },
+    "target_direction": {
+      "aggregate_formation_step": 0,
+      "eligible_state_clusters": 15,
+      "formation_step_ci95_high": 3.0,
+      "formation_step_ci95_low": 0.0
+    },
+    "translation": {
+      "aggregate_formation_step": 0,
+      "eligible_state_clusters": 15,
+      "formation_step_ci95_high": 0.0,
+      "formation_step_ci95_low": 0.0
+    }
+  },
+  "intervention_statistics": {
+    "dimension_patch": null,
+    "position_patch": {
+      "all": {
+        "cells": 160,
+        "eligible_state_clusters": 15,
+        "fdr_significant_positive_cells": 63,
+        "peak": {
+          "action_position": 9,
+          "flow_step": 9,
+          "layer": 17,
+          "mean_symmetric_ncte": 0.016345140109245246,
+          "q_bh_within_metric_family": 9.765625e-05,
+          "symmetric_ci95_high": 0.017738919319605063,
+          "symmetric_ci95_low": 0.014953328571455935
+        }
+      },
+      "rotation": {
+        "cells": 160,
+        "eligible_state_clusters": 15,
+        "fdr_significant_positive_cells": 80,
+        "peak": {
+          "action_position": 8,
+          "flow_step": 9,
+          "layer": 14,
+          "mean_symmetric_ncte": 0.019570228254660246,
+          "q_bh_within_metric_family": 0.00010067654639175257,
+          "symmetric_ci95_high": 0.021783845323318094,
+          "symmetric_ci95_low": 0.017314246749108173
+        }
+      },
+      "translation": {
+        "cells": 160,
+        "eligible_state_clusters": 15,
+        "fdr_significant_positive_cells": 55,
+        "peak": {
+          "action_position": 9,
+          "flow_step": 9,
+          "layer": 17,
+          "mean_symmetric_ncte": 0.016689867143815026,
+          "q_bh_within_metric_family": 0.00010731456043956044,
+          "symmetric_ci95_high": 0.01816384896373949,
+          "symmetric_ci95_low": 0.015186982769777141
+        }
+      }
+    },
+    "residual_patch": null
+  },
+  "jobs": 15,
+  "noise_seeds": [
+    0
+  ],
+  "pairs": 15,
+  "schema_version": 1,
+  "seed_eligible_units_by_metric": {
+    "all": 15,
+    "gripper": 0,
+    "gripper_closure_time": 0,
+    "rotation": 15,
+    "target_direction": 15,
+    "translation": 15
+  },
+  "state_clusters": 15,
+  "timing_separation_statistics": {
+    "all": {
+      "eligible_state_clusters": 15,
+      "mean_commitment_minus_formation_steps": 9.533333333333333,
+      "mean_gap_ci95_high": 9.8,
+      "mean_gap_ci95_low": 9.266666666666667,
+      "median_commitment_minus_formation_steps": 10.0,
+      "median_gap_ci95_high": 10.0,
+      "median_gap_ci95_low": 9.0,
+      "positive_gap_state_fraction": 1.0
+    },
+    "rotation": {
+      "eligible_state_clusters": 15,
+      "mean_commitment_minus_formation_steps": 8.8,
+      "mean_gap_ci95_high": 9.0,
+      "mean_gap_ci95_low": 8.6,
+      "median_commitment_minus_formation_steps": 9.0,
+      "median_gap_ci95_high": 9.0,
+      "median_gap_ci95_low": 9.0,
+      "positive_gap_state_fraction": 1.0
+    },
+    "target_direction": {
+      "eligible_state_clusters": 15,
+      "mean_commitment_minus_formation_steps": 8.2,
+      "mean_gap_ci95_high": 9.4,
+      "mean_gap_ci95_low": 6.8,
+      "median_commitment_minus_formation_steps": 10.0,
+      "median_gap_ci95_high": 10.0,
+      "median_gap_ci95_low": 9.0,
+      "positive_gap_state_fraction": 1.0
+    },
+    "translation": {
+      "eligible_state_clusters": 15,
+      "mean_commitment_minus_formation_steps": 9.533333333333333,
+      "mean_gap_ci95_high": 9.8,
+      "mean_gap_ci95_low": 9.266666666666667,
+      "median_commitment_minus_formation_steps": 10.0,
+      "median_gap_ci95_high": 10.0,
+      "median_gap_ci95_low": 9.0,
+      "positive_gap_state_fraction": 1.0
+    }
+  },
+  "token_position_primary_contrast": {
+    "all": {
+      "ci95_high": -0.010099394162015135,
+      "ci95_low": -0.011851446799704233,
+      "deferred_positions": [
+        5,
+        6,
+        7,
+        8,
+        9
+      ],
+      "eligible_state_clusters": 15,
+      "executed_positions": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "flow_step": 9,
+      "layer": 17,
+      "mean_executed_minus_deferred_ncte": -0.011002294682507876,
+      "p_two_sided_exact_sign_flip": 6.103515625e-05,
+      "positive_state_fraction": 0.0
+    },
+    "rotation": {
+      "ci95_high": -0.0056885400989970985,
+      "ci95_low": -0.010503129528513558,
+      "deferred_positions": [
+        5,
+        6,
+        7,
+        8,
+        9
+      ],
+      "eligible_state_clusters": 15,
+      "executed_positions": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "flow_step": 9,
+      "layer": 17,
+      "mean_executed_minus_deferred_ncte": -0.008134029452422028,
+      "p_two_sided_exact_sign_flip": 0.0001220703125,
+      "positive_state_fraction": 0.06666666666666667
+    },
+    "translation": {
+      "ci95_high": -0.01053974159484686,
+      "ci95_low": -0.01239890468518301,
+      "deferred_positions": [
+        5,
+        6,
+        7,
+        8,
+        9
+      ],
+      "eligible_state_clusters": 15,
+      "executed_positions": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "flow_step": 9,
+      "layer": 17,
+      "mean_executed_minus_deferred_ncte": -0.011493912000984019,
+      "p_two_sided_exact_sign_flip": 6.103515625e-05,
+      "positive_state_fraction": 0.0
+    }
+  }
+}

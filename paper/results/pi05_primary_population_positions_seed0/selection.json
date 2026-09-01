@@ -1,0 +1,55 @@
+{
+  "clean_validation": "/lambda/nfs/action-chunking/outputs/rollouts/pi05_libero_goal_wine_to_bowl_16_strict",
+  "eligibility": "dual_success",
+  "mode": "population_positions",
+  "mode_parameters": {
+    "dimension_mode": "none",
+    "identity_sites": "anchors",
+    "layers": "0,8,14,17",
+    "position_mode": "single",
+    "skip_residual_patches": false,
+    "steps": "0,7,8,9"
+  },
+  "model_clean_eligible_pairs": [
+    "libero_goal_000_wine_bottle_1_to_akita_black_bowl_1",
+    "libero_goal_001_wine_bottle_1_to_akita_black_bowl_1",
+    "libero_goal_002_wine_bottle_1_to_akita_black_bowl_1",
+    "libero_goal_004_wine_bottle_1_to_akita_black_bowl_1",
+    "libero_goal_005_wine_bottle_1_to_akita_black_bowl_1",
+    "libero_goal_006_wine_bottle_1_to_akita_black_bowl_1",
+    "libero_goal_007_wine_bottle_1_to_akita_black_bowl_1",
+    "libero_goal_008_wine_bottle_1_to_akita_black_bowl_1",
+    "libero_goal_009_wine_bottle_1_to_akita_black_bowl_1",
+    "libero_goal_010_wine_bottle_1_to_akita_black_bowl_1",
+    "libero_goal_011_wine_bottle_1_to_akita_black_bowl_1",
+    "libero_goal_012_wine_bottle_1_to_akita_black_bowl_1",
+    "libero_goal_013_wine_bottle_1_to_akita_black_bowl_1",
+    "libero_goal_014_wine_bottle_1_to_akita_black_bowl_1",
+    "libero_goal_015_wine_bottle_1_to_akita_black_bowl_1"
+  ],
+  "noise_seeds": [
+    0
+  ],
+  "pairs": [
+    "libero_goal_000_wine_bottle_1_to_akita_black_bowl_1",
+    "libero_goal_001_wine_bottle_1_to_akita_black_bowl_1",
+    "libero_goal_002_wine_bottle_1_to_akita_black_bowl_1",
+    "libero_goal_004_wine_bottle_1_to_akita_black_bowl_1",
+    "libero_goal_005_wine_bottle_1_to_akita_black_bowl_1",
+    "libero_goal_006_wine_bottle_1_to_akita_black_bowl_1",
+    "libero_goal_007_wine_bottle_1_to_akita_black_bowl_1",
+    "libero_goal_008_wine_bottle_1_to_akita_black_bowl_1",
+    "libero_goal_009_wine_bottle_1_to_akita_black_bowl_1",
+    "libero_goal_010_wine_bottle_1_to_akita_black_bowl_1",
+    "libero_goal_011_wine_bottle_1_to_akita_black_bowl_1",
+    "libero_goal_012_wine_bottle_1_to_akita_black_bowl_1",
+    "libero_goal_013_wine_bottle_1_to_akita_black_bowl_1",
+    "libero_goal_014_wine_bottle_1_to_akita_black_bowl_1",
+    "libero_goal_015_wine_bottle_1_to_akita_black_bowl_1"
+  ],
+  "reference_clean_eligible_pairs": null,
+  "reference_clean_validation": null,
+  "schema_version": 1,
+  "selection_is_clean_eligible_intersection": false,
+  "selection_uses_interventions": false
+}

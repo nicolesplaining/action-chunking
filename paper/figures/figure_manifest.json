@@ -1,0 +1,63 @@
+{
+  "closure_caveat": "descriptive one-state, one-noise-mode case; no population significance markers",
+  "inputs": {
+    "closure_position_cells": {
+      "path": "outputs/analysis/pi05_target_pose_020mm_positions_aggregate/position_cells.csv",
+      "sha256": "f55ec3bc6cf48c239f13df2d8bff48371c96d1994f8a0c2c9fb612551eb863ff"
+    },
+    "destination_curve": {
+      "path": "outputs/analysis/pi05_online_destination_postgrasp_combined_seed0/curve.csv",
+      "sha256": "4866c93b5f291abf753320c38b17fc350e9863b69659e2bd2b72f368d9405a3f"
+    },
+    "dimension_cells": {
+      "path": "outputs/analysis/pi05_primary_coarse_seed0/dimension_cells.csv",
+      "sha256": "e981d84f0a00bfbaa98e1b9ff5d7a31af36f4604b1ab60337673eb8ca8e794dd"
+    },
+    "flow_curve": {
+      "path": "outputs/analysis/pi05_primary_coarse_seed0/flow_curve.csv",
+      "sha256": "9c9573b61ea0dc85946d3aebf070945468c036e3f2ad6ab92c1b32cdd8efb8bd"
+    },
+    "formation_curve": {
+      "path": "outputs/analysis/pi05_primary_coarse_seed0/formation_curve.csv",
+      "sha256": "9da2a03d5f074c9672dd1f3f56539430298779fa1f479af07daa5fda31c81e55"
+    },
+    "population_position_cells": {
+      "path": "outputs/analysis/pi05_primary_population_positions_seed0/position_cells.csv",
+      "sha256": "e06a2ac28a2b58dbae8e34112b94ef167486eb69d5e54d74014de54537e1d44d"
+    },
+    "residual_cells": {
+      "path": "outputs/analysis/pi05_primary_coarse_seed0/residual_cells.csv",
+      "sha256": "f2a8080f286693473d22363e151a63de833977a8c4fd07690efb7416c62d48a2"
+    },
+    "target_curve": {
+      "path": "outputs/analysis/pi05_online_flow_primary_seed0/curve.csv",
+      "sha256": "fd0f5c9e109d5f7d6a37a22d69810f5ac440ce1fa395715ea37d8b164607e9fc"
+    }
+  },
+  "marker_definition": "open circles require BH q < 0.05 and a scene-cluster 95% CI strictly above zero",
+  "output_sha256": {
+    "fig1_formation_and_editability.pdf": "d5a89596a376e0c2c0d8d006404ebc65e06192cc6183d185eb3113fbd5dbf9b0",
+    "fig1_formation_and_editability.png": "958e4079cbf4cf0cc24dc3ef83317985bbaf9d9ee21fb5a058aaa4a5c06c0715",
+    "fig2_causal_localization.pdf": "e41ab4babef5d1ccb90698932a58794124625edf5e778a1298d77de46152cb5c",
+    "fig2_causal_localization.png": "edbfd3e36a479688986de41d66f8506dd03e4ca49838f1b18c4cc0d769aef871",
+    "fig3_behavioral_editability.pdf": "28446e6f3db33eb720314ce6ed3bb057debe86a36d6b09ce3b8cea0b20a57a73",
+    "fig3_behavioral_editability.png": "e0704c4948f8792c62617b7b823faed66fd368d93e732ebfb7ce5a307c271c9d",
+    "fig4_population_token_localization.pdf": "d03fc06027194eaa0ee8fae45ab5794ab6e4918c9c9998465a74dd57bb466acc",
+    "fig4_population_token_localization.png": "bd4a65369251d3e8a6cf2b42c1da00c11a1c92be6820c071d6b75475b634f3bf",
+    "fig5_closure_token_case.pdf": "e2966ead88bb4782bd48ce6a6956207fcf7bf19b8bf6bcedd15103819dd9ffb1",
+    "fig5_closure_token_case.png": "78149f29a11c5c2731e2a63b25d61d5dae6ddfd0fe7465db166a977d5e5044d5"
+  },
+  "outputs": [
+    "fig1_formation_and_editability.pdf",
+    "fig1_formation_and_editability.png",
+    "fig2_causal_localization.pdf",
+    "fig2_causal_localization.png",
+    "fig3_behavioral_editability.pdf",
+    "fig3_behavioral_editability.png",
+    "fig4_population_token_localization.pdf",
+    "fig4_population_token_localization.png",
+    "fig5_closure_token_case.pdf",
+    "fig5_closure_token_case.png"
+  ],
+  "schema_version": 2
+}
