@@ -40,7 +40,8 @@ seven instead of ten velocity evaluations preserves correct target-first
 contact in 15/15 eligible scene clusters and the target-first-plus-eventual-
 success composite in 14/15, with exact 30% evaluation savings and 30.0% median
 paired integration-latency savings. This passes the frozen pilot rule but not
-confirmatory noninferiority; a paired 500-episode confirmation is pending. A
+confirmatory noninferiority; confirmation on 500 episode pairs (1,000 condition
+rollouts) is pending. A
 matched pi0 control is trained before cross-model claims.
 If its frozen competence and conversion-parity gates pass, the control is run on
 the clean-eligible scene intersection with the same ten flow updates and layer
@@ -121,10 +122,14 @@ where and when a fixed trained model causally constructs a chunk.
 Iterative action generation also creates a latency problem. One-Step Diffusion
 Policy distills a diffusion controller and reports both task success and action
 frequency [@wang2025onedp], while One-Step Flow Policy applies self-distillation
-to flow policies and includes a pi0.5 integration [@li2026ofp]. Our practical
-experiment does not distill or retrain the model. It addresses a different
-online event: when an instruction changes after some flow evaluations are
-already sunk, can the current action state be reused rather than restarted?
+to flow policies and includes a pi0.5 integration [@li2026ofp]. Streaming Flow
+Policy instead trains flow states to be executable actions during integration,
+supporting tighter receding-horizon control [@jiang2025streaming]. Our practical
+experiment neither retrains nor changes the released flow semantics: it emits a
+predicted clean endpoint from a partial ordinary pi0.5 trajectory. It addresses
+a different online event: when an instruction changes after some flow
+evaluations are already sunk, can the current action state be reused rather
+than restarted?
 SafeDiffuser embeds constraints into iterative diffusion planning and separates
 safety satisfaction from planning quality and overhead
 [@xiao2025safediffuser]. We adopt that measurement separation for the planned
@@ -314,7 +319,8 @@ and executes only positions 0--4 before replanning; the exact ten-evaluation
 sampler is the control. The pilot keeps resets, observations, noise by replan,
 task directions, and the clean-selected 15-state denominator fixed. It is
 distinct from policy distillation: model weights and the public Euler time grid
-are unchanged. A confirmatory 500-episode paired benchmark is opened only if the
+are unchanged. A confirmatory benchmark with 500 episode pairs (500 episodes
+per condition) is opened only if the
 pilot preserves both target-first contact and task success in at least 14/15
 scene clusters while using exactly 30% fewer velocity evaluations and lower
 isolated integration latency.
@@ -476,7 +482,7 @@ within 400 steps, whereas the exact ten-evaluation control succeeds in 78
 steps. Thus target following is preserved in that scene while eventual success
 is not. The pilot reuses the scene population that motivated the fixed `k=7`
 rule and is neither held out nor powered for a two-percentage-point margin. It
-opens, but cannot replace, the frozen 500-episode paired confirmation.
+opens, but cannot replace, the frozen 500-pair, 1,000-rollout confirmation.
 
 ## 5. Discussion
 
@@ -547,9 +553,10 @@ eventual task success; it cannot be inferred from success after a patch alone.
 The early-exit preservation interval is wide at 15 clusters, and the pilot ran
 the ten-evaluation stage before the seven-evaluation stage. CUDA synchronization
 and an otherwise isolated policy GPU make the paired integration measurements
-auditable, but do not eliminate order drift. The 500-episode confirmation uses
-paired reset/noise schedules and balanced condition order and remains necessary
-before claiming noninferiority or deployment-level latency gains.
+auditable, but do not eliminate order drift. The confirmation uses 500 paired
+reset/noise keys, 500 episodes per condition, and balanced condition order; its
+1,000 condition rollouts remain necessary before claiming noninferiority or
+deployment-level latency gains.
 
 The pi0 comparison is a matched protocol and dataset control, not a pure
 architectural intervention: pi0 and pi0.5 differ in pretraining, checkpoint

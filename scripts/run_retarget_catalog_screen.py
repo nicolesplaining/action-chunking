@@ -83,25 +83,24 @@ def _run_row(
 
     clean = row_root / "clean"
     validation_path = clean / "validation_summary.json"
-    if not validation_path.is_file():
-        subprocess.run(
-            [
-                sys.executable,
-                str(repo / "scripts" / "run_manifest_pair_validations.py"),
-                "--manifest",
-                str(source_manifest),
-                "--output",
-                str(clean),
-                "--gpu",
-                str(args.gpu),
-                "--port",
-                str(args.port),
-                "--noise-seed",
-                str(args.noise_seed),
-                "--save-sim-states",
-            ],
-            check=True,
-        )
+    subprocess.run(
+        [
+            sys.executable,
+            str(repo / "scripts" / "run_manifest_pair_validations.py"),
+            "--manifest",
+            str(source_manifest),
+            "--output",
+            str(clean),
+            "--gpu",
+            str(args.gpu),
+            "--port",
+            str(args.port),
+            "--noise-seed",
+            str(args.noise_seed),
+            "--save-sim-states",
+        ],
+        check=True,
+    )
     validation = json.loads(validation_path.read_text())
     job = validation["jobs"][0]
     base_result = {

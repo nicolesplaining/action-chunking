@@ -1,9 +1,73 @@
 # Reproducibility log
 
+## 2026-09-01: streaming inference comparison added from public sources
+
+The practical-inference positioning now cites the peer-reviewed Streaming Flow
+Policy paper and its public implementation. The distinction is explicit:
+Streaming Flow Policy trains integration states to be executable actions,
+whereas this study leaves released pi0.5 weights and flow semantics unchanged
+and emits the predicted clean endpoint from a partial ordinary trajectory. No
+method, threshold, or result changed.
+
+## 2026-09-01: converted-control weights receive content identity
+
+Before the matched pi0 conversion completed, the frozen conversion-parity
+summary was extended to include the already-pinned finalized JAX checkpoint
+identity and SHA-256 digests of the converted PyTorch `config.json` and
+`model.safetensors`. Missing converted artifacts now fail before a parity
+summary can be written. The parity cases and preregistered numerical tolerances
+are unchanged.
+
+## 2026-09-01: confirmation rollout count made explicit
+
+Before the first scored confirmation pair, reporting was clarified to state the
+actual execution count: 500 paired task/trial reset keys, 500 episodes per
+condition, and 1,000 condition rollouts total. The paired statistical unit and
+registered exact loss bound remain `n=500`. Progress and final summaries now
+record both the pair and condition-rollout counts. This is a terminology and
+accounting correction, not a denominator or outcome-rule change.
+
+## 2026-09-01: matched-control comparison inputs fail closed
+
+Before any converted-pi0 activation intervention existed, the cross-model
+analyzer was made to reject an incomplete registered grid. It now requires all
+11 flow-switch boundaries; the full 10-flow-step by 18-layer residual grid; the
+registered action-state tensor/dimension groups; and the complete 4-step by
+4-layer native action-position grids (10 positions for pi0.5 and 50 for pi0).
+It also validates the frozen analysis threshold, formation tolerance, and
+seed-zero design. The comparison manifest now hashes every CSV unit table that
+enters an estimate, rather than only the four upstream summary files. This is a
+pre-outcome provenance and completeness check and changes no model-comparison
+hypothesis or statistic.
+
+## 2026-09-01: confirmation sessions bound to code provenance
+
+Protocol version 0.21 was frozen before the first scored confirmation pair.
+Every newly started confirmation client/server process now performs and logs a
+fresh unscored warm-up of both conditions, including on resume, so a cold
+process cannot contribute scored latency. Warm-up sessions, condition records,
+pair summaries, and progress now carry one exact full Git commit; the launcher
+rejects tracked worktree changes, and both resume and final analysis reject
+mixed commits. The analyzer independently checks the warm-up count and hashes
+the append-only session log. This changes no task, trial, condition order,
+outcome, margin, stopping rule, or compute/latency gate.
+
+## 2026-09-01: partial catalog resume repaired
+
+The resumed public obstacle screen lost its websocket connection while writing
+row 37. Its clean pair validator correctly retained a partial summary, but the
+outer catalog driver treated summary-file existence as catalog completion and
+the downstream obstacle gate failed on a missing pair. No row result or
+top-level selection was written: the frozen obstacle denominator remains 37
+processed source rows, 20 clean-screened obstacle pairs, and no selected pair.
+Both target and obstacle catalog drivers now always call the idempotent pair
+validator for an unfinished row; it validates existing pair artifacts and runs
+only missing pairs. This is a resume fix and changes no selection rule.
+
 ## 2026-09-01: paired early-exit confirmation execution frozen
 
 Protocol version 0.20 was frozen after the 15-cluster pilot passed and before
-any 500-episode suite-confirmation rollout. It preserves the original LIBERO
+any suite-confirmation rollout. It preserves the original LIBERO
 Goal task order, 50 trials per task, two-percentage-point paired-loss margin,
 and exact compute/latency gates. Each task/trial key now requires a serialized
 reset and shared replan-indexed Gaussian-noise stream; condition order is
@@ -12,6 +76,10 @@ must have no competing client. Resume is pair-atomic. The exact bound can pass
 with at most four paired losses in 500 trials and fails with five. These are
 execution details for the already-opened confirmation, not changes to the
 observed pilot or its interpretation.
+Before the first confirmation pair existed, the analyzer was also made to
+regenerate and hash every expected replan-indexed Gaussian action-noise tensor,
+rather than accepting pairwise equality alone. The launcher now fails if either
+the policy or simulator GPU has a pre-existing compute process.
 
 ## 2026-09-01: construct-validity decision rule frozen
 
@@ -69,8 +137,9 @@ states remain the pilot clusters; no state can be selected using early-exit
 behavior. A pilot positive requires at least 14/15 clusters to preserve both
 directions' target-first contact and task success, exact 30% evaluation savings,
 and lower isolated integration latency. Only a passing pilot opens the frozen
-500-episode paired LIBERO Goal confirmation with a two-percentage-point paired-
-loss margin. The new server path reuses the public fixed ten-step time grid and
+500-pair LIBERO Goal confirmation (1,000 condition rollouts) with a two-
+percentage-point paired-loss margin. The new server path reuses the public
+fixed ten-step time grid and
 records every replan's evaluation count; `k=10` returns the ordinary integrated
 sampler tensor exactly.
 

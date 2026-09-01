@@ -1,6 +1,6 @@
 # Research protocol: causal editability and retargeting in action chunks
 
-Protocol version: 0.20 (paired early-exit confirmation execution)
+Protocol version: 0.21 (confirmation session provenance)
 
 ## 1. Research question
 
@@ -379,7 +379,8 @@ This threshold is descriptive and is not called noninferiority.
 
 If the pilot passes, the confirmatory test uses the unchanged public LIBERO Goal
 task order and 50 trials per task for 500 paired reset seeds under `k=7` and
-`k=10`. A paired loss occurs when the full sampler succeeds and early exit does
+`k=10`: 500 episodes per condition and 1,000 condition rollouts in total. A
+paired loss occurs when the full sampler succeeds and early exit does
 not. A practical positive requires the one-sided 95% Clopper--Pearson upper
 bound on the paired loss probability to be below 0.02, exactly 30% fewer
 velocity evaluations at every replan, and a scene-paired bootstrap interval for
@@ -394,11 +395,15 @@ before any suite-confirmation rollout. Each task/trial key has one serialized
 reset and one deterministic Gaussian-noise stream indexed by replan; both
 conditions must reproduce their hashes exactly. Within each task, condition
 order is balanced 25/25 by the rank of a frozen SHA-256 digest of the
-task/trial key, rather than chosen from behavior. A fixed unscored warm-up precedes timing, no other client may use
-the policy GPU, and each episode contributes one paired success/loss outcome
-regardless of its number of replans. The registered 0.02 exact bound permits at
-most four paired losses among 500 trials; five or more cannot pass. A resume may
-skip only a pair whose two condition artifacts and hashes are complete.
+task/trial key, rather than chosen from behavior. A fixed unscored warm-up of
+both conditions precedes timing in every new inference-server process, no other
+client may use the policy GPU, and each episode contributes one paired
+success/loss outcome regardless of its number of replans. Every warm-up,
+condition, pair, and progress artifact must name the same full Git commit, and
+the launcher rejects tracked worktree changes. The registered 0.02 exact bound
+permits at most four paired losses among 500 trials; five or more cannot pass. A
+resume may skip only a pair whose two condition artifacts and hashes are
+complete and whose code commit matches the current process.
 
 The observed pilot passes the descriptive rule: target-first contact is
 preserved in 15/15 eligible clusters, eventual success and the registered

@@ -48,6 +48,16 @@ paper version, not this summary.
 
 ## Efficient and constrained generative control
 
+- **Streaming Flow Policy:** changes the learned flow so successive integration
+  states are executable robot actions, enabling online streaming rather than
+  constructing and discarding intermediate action trajectories
+  ([paper](https://proceedings.mlr.press/v305/jiang25a.html),
+  [code](https://github.com/siddancha/streaming-flow-policy)). It is the closest
+  public precedent for acting before a conventional action-flow sampler has
+  fully completed. Our early-exit experiment instead leaves released pi0.5
+  weights and flow semantics unchanged and emits the current predicted clean
+  endpoint, so it does not inherit Streaming Flow Policy's training-time
+  guarantees.
 - **One-Step Diffusion Policy:** distills an iterative visuomotor diffusion
   policy to one action-generation step and evaluates success together with
   action-prediction frequency

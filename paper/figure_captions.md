@@ -71,5 +71,5 @@ latency savings for the same 15 physical scene clusters. The line is the 30.0%
 median and the band is its seed-zero 10,000-resample scene-bootstrap 95%
 interval (27.4--32.9%). All differences favor early exit. The red cross marks
 the one cluster that retained correct target-first contact but lost eventual
-task success. The pilot reuses the mechanistic scene population; frozen paired
-500-episode confirmation is pending.
+task success. The pilot reuses the mechanistic scene population; frozen
+confirmation on 500 episode pairs (1,000 condition rollouts) is pending.

@@ -234,24 +234,23 @@ def _run_row(
 
     clean = row_root / "clean"
     validation_path = clean / "validation_summary.json"
-    if not validation_path.is_file():
-        subprocess.run(
-            [
-                sys.executable,
-                str(repo / "scripts" / "run_manifest_pair_validations.py"),
-                "--manifest",
-                str(obstacle_manifest),
-                "--output",
-                str(clean),
-                "--gpu",
-                str(args.gpu),
-                "--port",
-                str(args.port),
-                "--noise-seed",
-                str(args.noise_seed),
-            ],
-            check=True,
-        )
+    subprocess.run(
+        [
+            sys.executable,
+            str(repo / "scripts" / "run_manifest_pair_validations.py"),
+            "--manifest",
+            str(obstacle_manifest),
+            "--output",
+            str(clean),
+            "--gpu",
+            str(args.gpu),
+            "--port",
+            str(args.port),
+            "--noise-seed",
+            str(args.noise_seed),
+        ],
+        check=True,
+    )
     screen = row_root / "screen"
     screen_summary_path = screen / "summary.json"
     if not screen_summary_path.is_file():

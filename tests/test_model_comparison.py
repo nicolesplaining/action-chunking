@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import runpy
+
 import pytest
 
 from action_chunking.model_comparison import (
@@ -11,6 +13,8 @@ from action_chunking.model_comparison import (
     paired_timing_summary,
 )
 
+_script = runpy.run_path("scripts/compare_pi0_models.py")
+
 
 def test_paired_timing_uses_common_eligible_scene_states() -> None:
     pi05 = [_unit("a", formation=0, boundary=9), _unit("b", formation=1, boundary=8)]
@@ -21,9 +25,7 @@ def test_paired_timing_uses_common_eligible_scene_states() -> None:
 
     assert len(rows) == 2
     assert rows[0]["editability_boundary_difference_pi05_minus_pi0"] == 2.0
-    assert summary["translation"]["editability_boundary_difference_pi05_minus_pi0"][
-        "mean_difference"
-    ] == 1.0
+    assert summary["translation"]["editability_boundary_difference_pi05_minus_pi0"]["mean_difference"] == 1.0
 
 
 def test_paired_cells_and_normalized_positions() -> None:
@@ -54,10 +56,25 @@ def test_flow_shape_compares_transition_width_and_swap_asymmetry() -> None:
     rows = paired_flow_shape_rows(pi05, pi0)
 
     assert len(rows) == 1
-    assert rows[0]["directional_asymmetry_auc_difference_pi05_minus_pi0"] == pytest.approx(
-        -0.05
-    )
+    assert rows[0]["directional_asymmetry_auc_difference_pi05_minus_pi0"] == pytest.approx(-0.05)
     assert rows[0]["transition_width_10_to_90_difference_pi05_minus_pi0"] < 0
+
+
+def test_comparison_rejects_incomplete_registered_position_grid() -> None:
+    rows = [
+        {
+            "flow_step": flow_step,
+            "layer": layer,
+            "action_position": position,
+        }
+        for flow_step in (0, 7, 8, 9)
+        for layer in (0, 8, 14, 17)
+        for position in range(10)
+    ]
+    rows.pop()
+
+    with pytest.raises(ValueError, match="position grid is incomplete"):
+        _script["_validate_position_grid"](rows, 10, "pi0.5")
 
 
 def _unit(cluster: str, *, formation: int, boundary: int) -> dict:
