@@ -18,7 +18,7 @@ def test_machine_readable_protocol_matches_executable_frozen_defaults() -> None:
 
     utility_defaults = inspect.signature(summarize_utility_jobs).parameters
     catalog_defaults = inspect.signature(build_retarget_screening_plan).parameters
-    assert protocol["study"]["protocol_version"] == "0.32"
+    assert protocol["study"]["protocol_version"] == "0.33"
     assert protocol["inference"]["flow_steps"] == 10
     assert protocol["inference"]["receding_horizon_steps"] == 5
     assert protocol["study"]["editability_retention_threshold"] == 0.8
@@ -86,6 +86,17 @@ def test_machine_readable_protocol_matches_executable_frozen_defaults() -> None:
     assert comparison["require_frozen_normalization_assets"] is True
     assert comparison["require_new_conversion_output_directories"] is True
     assert comparison["require_final_output_lineage_audit"] is True
+    assert comparison["comparison_generated_files"] == 10
+    assert comparison["require_comparison_output_hashes"] is True
+    assert comparison["publication_figure_requires_final_audit"] is True
+    assert comparison["publication_figure_requires_new_path"] is True
+    assert comparison["publication_figure_primary_metric"] == "all"
+    assert comparison["publication_figure_panels"] == [
+        "paired_formation_and_editability_timing",
+        "all_metric_residual_flow_by_layer",
+        "all_metric_action_state_dimension_groups",
+        "all_metric_normalized_position_at_layer_17",
+    ]
     assert analysis["population_position_flow_steps"] == [0, 7, 8, 9]
     assert analysis["population_position_layers"] == [0, 8, 14, 17]
     assert analysis["pi05_action_horizon"] == 10

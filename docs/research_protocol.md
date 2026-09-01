@@ -1,6 +1,6 @@
 # Research protocol: causal editability and retargeting in action chunks
 
-Protocol version: 0.32 (isolated two-GPU matched-control execution)
+Protocol version: 0.33 (audited matched-control comparison artifacts)
 
 ## 1. Research question
 
@@ -624,8 +624,9 @@ architectural causal effect.
 After the comparison is written, an independent final audit recomputes the
 passed conversion/checkpoint binding, both clean-validation summary maps, the
 ordered common-state intersection, all job identities and metadata, both
-analysis populations, and all 14 comparison-source digests. Coarse and
-position grids must use the same ordered set of at least 12 independent scene
+analysis populations, all 14 comparison-source digests, and all ten generated
+comparison-CSV digests. Coarse and position grids must use the same ordered set
+of at least 12 independent scene
 states. Before aggregation, every eligible raw intervention unit, identified by
 pair ID, serialized scene state, noise seed, and metric, must contain the exact
 registered cell set for its flow, residual, action-dimension, or position grid.
@@ -633,6 +634,15 @@ This prevents a complete union across scenes from hiding cell-specific missing
 data and changing the denominator across the heatmap. The launcher writes a
 passing `final_audit.json` only after every check succeeds; a missing or failed
 audit makes the matched-control result unreportable.
+
+Only a passing final audit may be used to render the matched-control figure,
+and the renderer refuses an existing output path. Its four panels are frozen
+before the matched intervention outcome exists: paired formation/editability
+timing; the all-metric residual flow-by-layer grid; all-metric translation,
+rotation, and gripper effects for `x_t` and `v_t`; and all-metric normalized
+position effects at layer 17 for flow updates 0, 7, 8, and 9. The figure
+manifest hashes the summary, final audit, each plotted comparison CSV, and both
+rendered files.
 
 1. **Instruction target:** identical scene with two valid objects; change only
    the target phrase in the instruction.

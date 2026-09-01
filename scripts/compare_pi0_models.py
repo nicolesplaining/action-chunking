@@ -20,6 +20,7 @@ from action_chunking.model_comparison import (
     paired_timing_summary,
 )
 from action_chunking.pairs import file_digest
+from action_chunking.pi0_intervention import COMPARISON_OUTPUT_FILENAMES
 
 
 def parse_args() -> argparse.Namespace:
@@ -164,6 +165,9 @@ def main() -> int:
             "position_normalized": _cell_summary(normalized_cells),
         },
         "source_files": {name: {"path": str(path), "sha256": file_digest(path)} for name, path in source_paths.items()},
+        "output_files": {
+            name: file_digest(args.output / name) for name in COMPARISON_OUTPUT_FILENAMES
+        },
     }
     (args.output / "summary.json").write_text(json.dumps(summary, indent=2, sort_keys=True) + "\n")
     print(json.dumps(summary, indent=2, sort_keys=True))
