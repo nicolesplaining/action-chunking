@@ -1,6 +1,6 @@
 # Research protocol: causal editability and retargeting in action chunks
 
-Protocol version: 0.6 (public-catalog expansion order)
+Protocol version: 0.7 (independent-cluster utility handoff and analysis)
 
 ## 1. Research question
 
@@ -167,10 +167,24 @@ before the corrected held-out endpoint screen completed. Eligibility uses only
 the frozen old-condition and restart endpoints; no intermediate continuation
 outcome can affect where screening stops.
 
+After the endpoint screen reaches its frozen stop rule (or exhausts the public
+catalog), an immutable handoff gathers every eligible endpoint row and its
+candidate-manifest hash. For the primary utility analysis, exactly one direction
+is retained per independent scene cluster: the first endpoint-eligible direction
+in the already frozen gate order. Additional eligible directions in that cluster
+are recorded but cannot increase the primary denominator. The initial 16-state
+pilot and the catalog population use the same rule. All action-only predictions
+for a selected population are serialized and hashed before its first continuation
+rollout. The catalog screen runs after the pilot regardless of whether the pilot
+contains an eligible state; pilot convenience therefore cannot replace the
+registered confirmatory population.
+
 For each accepted state, the separately measured first-chunk editability
 boundary predicts the last continued boundary that preserves new-target-first
 contact and eventual task success. Association is reported with paired
-state-level accuracy and Spearman correlation; the useful claim requires
+state-level exact accuracy, within-one-boundary accuracy, mean absolute error,
+and Spearman correlation. We also report whether the predicted boundary itself
+succeeds and whether the immediately following boundary fails. The useful claim requires
 out-of-sample scene states and cannot be established from the original 15
 mechanistic states alone.
 
@@ -190,6 +204,16 @@ U1 evaluates all eleven integer boundaries from 0 through 10 so that the last
 successful correction is identifiable. U2 remains the primary efficiency test
 at boundaries 0 and 7, while boundaries 9 and 10 remain U3's negative controls;
 the dense grid is not used to replace those preregistered comparisons.
+
+U2 uses a paired composite endpoint requiring both new-target-first contact and
+eventual new-task success. A paired loss is a cluster where restart passes this
+composite and continuation at boundary seven does not. The one-sided 95%
+Clopper--Pearson upper bound on that loss probability must be strictly below the
+frozen 0.05 margin. Directions, target contrasts, tokens, and noise seeds never
+enter this denominator. Post-event velocity evaluations must be exactly 10 for
+restart and 3 for boundary-seven continuation; otherwise the compute comparison
+is invalid. Wall-time savings are summarized by the median paired fractional
+reduction and a 10,000-resample scene-cluster bootstrap interval with seed zero.
 
 ### 2.5 Post-pilot behavioral-sensitivity amendment
 

@@ -109,6 +109,18 @@ allowed only if the measured editability boundary predicts the last successful
 continue boundary and `k=7` is noninferior to restart while using three rather
 than ten post-event velocity evaluations.
 
+The confirmatory population expands in the frozen public-catalog order until 59
+independent endpoint-eligible scene clusters are available or the catalog is
+exhausted, regardless of whether the 16-state pilot is eligible. Select the first
+endpoint-eligible direction in frozen gate order within each cluster and retain
+all additional directions only in the audit trail. Freeze every selected
+action-only prediction before the first continuation rollout in that population.
+Report exact and within-one-boundary prediction accuracy, mean absolute error,
+Spearman correlation, success at the predicted boundary, and failure at its
+successor. For boundary seven, report the one-sided exact upper confidence bound
+on paired composite losses, with one scene cluster per trial, alongside median
+paired latency savings and its frozen cluster-bootstrap interval.
+
 The first state-zero pilot gives a qualified positive result. At `k=7`, both
 directions reached the newly instructed object first and completed the new task,
 matching restart while using 3/10 post-event velocity evaluations. Median

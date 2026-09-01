@@ -27,7 +27,7 @@ eligible_directions="$(
 )"
 
 if (( eligible_directions > 0 )); then
-  exec env PYTHONPATH="$repo_root/src" "$repo_root/.venv/bin/python" \
+  env PYTHONPATH="$repo_root/src" "$repo_root/.venv/bin/python" \
     "$repo_root/scripts/run_eligible_retarget_study.py" \
     --gate-summary "$gate_summary" \
     --candidate-root "$candidate_root" \
@@ -37,10 +37,32 @@ if (( eligible_directions > 0 )); then
     --noise-seed "$noise_seed"
 fi
 
-exec env PYTHONPATH="$repo_root/src" "$repo_root/.venv/bin/python" \
+env PYTHONPATH="$repo_root/src" "$repo_root/.venv/bin/python" \
   "$repo_root/scripts/run_retarget_catalog_screen.py" \
   --plan "$catalog_plan" \
   --output "$catalog_output" \
   --gpu "$gpu" \
   --port "$port" \
   --noise-seed "$noise_seed"
+
+handoff="$catalog_output/handoff"
+env PYTHONPATH="$repo_root/src" "$repo_root/.venv/bin/python" \
+  "$repo_root/scripts/prepare_catalog_retarget_study.py" \
+  --catalog-summary "$catalog_output/summary.json" \
+  --output "$handoff"
+
+catalog_eligible_directions="$(
+  PYTHONPATH="$repo_root/src" "$repo_root/.venv/bin/python" -c \
+    'import json,sys; value=json.load(open(sys.argv[1])); assert value.get("selection_uses_continuation_outcomes") is False; print(int(value["eligible_directions"]))' \
+    "$handoff/gate_summary.json"
+)"
+if (( catalog_eligible_directions > 0 )); then
+  exec env PYTHONPATH="$repo_root/src" "$repo_root/.venv/bin/python" \
+    "$repo_root/scripts/run_eligible_retarget_study.py" \
+    --gate-summary "$handoff/gate_summary.json" \
+    --candidate-index "$handoff/candidate_index.json" \
+    --output "$catalog_output/utility" \
+    --gpu "$gpu" \
+    --port "$port" \
+    --noise-seed "$noise_seed"
+fi
