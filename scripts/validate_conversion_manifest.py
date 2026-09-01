@@ -14,6 +14,7 @@ from pathlib import Path
 import numpy as np
 
 from action_chunking.conversion import (
+    PARITY_ARTIFACT_NAMES,
     conversion_parity_summary,
     converted_checkpoint_artifact_hashes,
     validate_prior_conversion_failure,
@@ -139,6 +140,10 @@ def run_parent(args: argparse.Namespace) -> int:
             "pytorch_checkpoint_artifact_sha256": _checkpoint_hashes(args.pytorch_checkpoint),
             "conversion_provenance": conversion_provenance,
             "prior_failed_conversion": prior_failure,
+            "parity_artifact_sha256": {
+                name: file_digest(args.output / name)
+                for name in PARITY_ARTIFACT_NAMES
+            },
         }
     )
     (args.output / "summary.json").write_text(json.dumps(result, indent=2, sort_keys=True) + "\n")

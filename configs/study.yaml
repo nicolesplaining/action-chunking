@@ -1,6 +1,6 @@
 study:
   name: pi05_libero_conditional_editability
-  protocol_version: "0.27"
+  protocol_version: "0.28"
   pilot_pairs_per_family: 16
   primary_noise_seed: 0
   robustness_noise_seeds_per_pair: 4
@@ -111,6 +111,8 @@ matched_pi0:
   minimum_common_scene_pairs: 12
   require_complete_grid_per_intervention_unit: true
   require_prior_failure_digest_in_conversion_provenance: true
+  require_parity_reconstruction_from_worker_artifacts: true
+  require_prior_failure_digest_equality: true
   require_frozen_normalization_assets: true
   require_new_conversion_output_directories: true
   require_normalization_asset_hashes: true

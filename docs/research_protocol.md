@@ -1,6 +1,6 @@
 # Research protocol: causal editability and retargeting in action chunks
 
-Protocol version: 0.27 (lossless-conversion execution and lineage repair)
+Protocol version: 0.28 (independently reconstructed conversion parity)
 
 ## 1. Research question
 
@@ -558,7 +558,12 @@ all 16 held-out target fixtures under identical seed-zero `50 x 32` action
 noise. Every physical-action case must have maximum absolute JAX/PyTorch error
 at most 0.02 and cosine similarity at least 0.999. A failed case blocks the
 mechanistic comparison and is reported as conversion-limited; these tolerances
-are not relaxed after conversion.
+are not relaxed after conversion. The parity summary hashes both backend action
+arrays and both ordered identifier files. Before an intervention is authorized,
+the gate verifies those hashes, reconstructs every per-case error and cosine
+from the saved arrays, requires exact agreement with the summary, and requires
+the conversion-provenance prior-failure digest to equal the digest independently
+carried by the parity result.
 
 If and only if competence and conversion parity pass, both models are analyzed
 on the intersection of their clean dual-success, instructed-target-first scene

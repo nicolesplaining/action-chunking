@@ -7,7 +7,10 @@ import re
 from pathlib import Path
 from typing import Any
 
-from action_chunking.conversion import converted_checkpoint_artifact_hashes
+from action_chunking.conversion import (
+    converted_checkpoint_artifact_hashes,
+    validate_saved_conversion_parity,
+)
 from action_chunking.pairs import file_digest
 
 PINNED_OPENPI_REVISION = "215abfb217dbac7d5f1273282331b9b1866c0479"
@@ -20,7 +23,7 @@ def validate_pi0_intervention_inputs(
     manifest_path: Path,
 ) -> dict[str, Any]:
     """Bind an intervention run to the exact checkpoint that passed parity."""
-    parity = json.loads(parity_summary_path.read_text())
+    parity = validate_saved_conversion_parity(parity_summary_path)
     manifest = json.loads(manifest_path.read_text())
     entries = manifest.get("pairs", [])
     pair_ids = [str(entry.get("pair_id")) for entry in entries]
@@ -82,6 +85,7 @@ def validate_pi0_intervention_inputs(
         int(prior.get("cases", -1)) != 32
         or int(prior.get("passed_cases", -1)) != 24
         or re.fullmatch(r"[0-9a-f]{64}", str(prior.get("sha256"))) is None
+        or provenance.get("prior_failed_summary_sha256") != prior.get("sha256")
     ):
         raise ValueError("pi0 parity summary is not bound to the preserved conversion failure")
     identity = parity.get("jax_checkpoint_identity", {})

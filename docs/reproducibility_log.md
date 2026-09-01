@@ -1,5 +1,16 @@
 # Reproducibility log
 
+## 2026-09-01: conversion parity made independently reconstructible
+
+Protocol version 0.28 strengthens the future lossless pi0 result before it
+exists. The parity summary now hashes the ordered identifiers and physical-action
+arrays emitted independently by the JAX and PyTorch workers. The intervention
+gate verifies those hashes and reconstructs all 32 per-case errors, cosines,
+pass flags, and aggregate extrema from the arrays rather than trusting the JSON
+decision. It also requires equality between the prior-failure digest in
+conversion provenance and the independently validated digest in the parity
+result. No case, action transform, threshold, or model changed.
+
 ## 2026-09-01: lossless pi0 conversion made executable and lineage-bound
 
 Protocol version 0.27 repairs the future lossless pi0 conversion before its
