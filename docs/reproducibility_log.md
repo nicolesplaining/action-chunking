@@ -1,5 +1,18 @@
 # Reproducibility log
 
+## 2026-09-01: fixed-rule utility comparator frozen
+
+Protocol version 0.17 was frozen while the public target catalog had produced
+zero eligible scene clusters and before any catalog continuation boundary was
+opened. U1 must now beat the fixed boundary-seven rule already implied by the
+mechanistic population result. The primary comparison is the paired
+scene-cluster difference in absolute last-successful-boundary error, with a
+10,000-resample seed-zero cluster-bootstrap interval. A useful timing-prediction
+positive requires that interval's upper endpoint to be below zero; correlation
+or apparent accuracy without improvement over the fixed rule is insufficient.
+The eligibility screen, action-only predictor, outcome seals, denominator, and
+all intervention thresholds are unchanged.
+
 ## 2026-09-01: exact obstacle base-endpoint cache frozen
 
 Protocol version 0.16 was frozen after seven public obstacle source rows were
