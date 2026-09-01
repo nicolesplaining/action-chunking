@@ -21,6 +21,29 @@ The access credential was supplied only to the downloader process and was not
 written to the repository, shell history, or experiment metadata. These frozen
 statistics are the input to the preregistered two-device pi0 control training.
 
+## 2026-08-31: matched pi0 control smoke
+
+The exact upstream `pi0_libero` full-finetuning recipe passed a two-update smoke
+test with batch size 32 and two-device FSDP. The launcher verified the pinned
+OpenPI revision, the frozen normalization-statistics hash, and a complete public
+LeRobot cache containing 1,693 parquet files. LeRobot indexed 273,465 examples,
+the official public pi0 base parameters restored without error, and both H100s
+held an approximately 60.7 GiB JAX allocation during the update.
+
+The first reported update had finite metrics: loss 0.1812, gradient norm 3.7253,
+and parameter norm 1377.8652. Both requested updates completed in 55 seconds
+after initialization, including first-step compilation, and Orbax checkpoint 1
+finalized without an asynchronous-save error. This establishes that the matched
+training pipeline is executable; it is not a policy-performance result.
+
+The first smoke attempt exposed two reproducibility hazards and produced no
+update. It used LeRobot's incomplete default cache and received an anonymous
+Hugging Face HTTP 429 while fetching missing shards. Both training launchers now
+require an explicit LeRobot cache root and reject caches that do not contain the
+frozen 1,693-file dataset. A second launch correctly refused to overwrite the
+empty checkpoint directory created by that failed attempt, so the successful
+run used a fresh experiment name and retained the failed directory for audit.
+
 This log records environment validation and discrepancies encountered while
 executing the pinned public implementation. Raw machine-readable outputs remain
 in the experiment artifact store and are summarized here at coherent milestones.
@@ -320,15 +343,17 @@ closure into the horizon also places the robot close enough to the origin object
 to invalidate the counterfactual instruction. Gripper timing is not inferred
 from these data and requires a separately registered target-pose family.
 
-The first eight completed scene states in the repeated-intervention closed-loop
-target sweep provide 16 directional seed-0 curves. All 16 are monotonic, all
-full-donor endpoints transfer target identity, and all full-source endpoints
-retain it. Source-target retention is zero through boundary 7, rises to 0.5625
-(cluster-bootstrap 95% interval 0.375--0.750) at boundary 8, and is 1.0 at
-boundaries 9 and 10. The median directional categorical commitment boundary is
-8, with interquartile range 8--9 and source-retention AUC 0.206. This is a
-completed-job-only interim; the final aggregate requires all 15 preregistered
-states and does not read the partially written current job.
+The repeated-intervention closed-loop target sweep completed on all 15
+preregistered dual-success scene states, yielding 30 directional seed-0 curves.
+All 30 source-retention curves are monotonic, all full-donor endpoints transfer
+target identity, and all full-source endpoints retain it. Source retention is
+exactly zero through boundary 7, rises to 0.600 at boundary 8 (scene-cluster
+bootstrap 95% interval 0.433--0.767), and is exactly one at boundaries 9 and 10.
+Eighteen directions commit at boundary 8 and 12 at boundary 9; the median is 8,
+interquartile range 8--9, and source-retention AUC 0.210. One boundary-1 rollout
+selected neither registered target, so donor transfer is 0.967 there while
+source retention remains zero; the raw categorical outcome is retained. This is
+the final clean-selected seed-0 aggregate, not a partially completed interim.
 
 ## 2026-08-31: phase-aligned destination positive control
 

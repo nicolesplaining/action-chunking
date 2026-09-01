@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-if [[ $# -lt 4 || $# -gt 5 ]]; then
-  echo "usage: $0 <openpi-root> <checkpoint-base-dir> <experiment-name> <lerobot-cache-root> [resume|fresh]" >&2
+if [[ $# -ne 4 ]]; then
+  echo "usage: $0 <openpi-root> <checkpoint-base-dir> <experiment-name> <lerobot-cache-root>" >&2
   exit 2
 fi
 
@@ -10,7 +10,6 @@ openpi_root="$(realpath "$1")"
 checkpoint_base="$(realpath -m "$2")"
 experiment_name="$3"
 lerobot_home="$(realpath "$4")"
-run_mode="${5:-fresh}"
 expected_revision="215abfb217dbac7d5f1273282331b9b1866c0479"
 observed_revision="$(git -C "$openpi_root" rev-parse HEAD)"
 norm_stats="$openpi_root/assets/pi0_libero/physical-intelligence/libero/norm_stats.json"
@@ -23,7 +22,7 @@ if [[ "$observed_revision" != "$expected_revision" ]]; then
   exit 1
 fi
 if [[ ! -f "$norm_stats" ]]; then
-  echo "pi0_libero normalization statistics are missing; run the pinned compute_norm_stats.py first" >&2
+  echo "pi0_libero normalization statistics are missing" >&2
   exit 1
 fi
 observed_norm_sha256="$(sha256sum "$norm_stats" | cut -d" " -f1)"
@@ -40,16 +39,8 @@ if [[ "$observed_data_file_count" -ne "$expected_data_file_count" ]]; then
   echo "LIBERO dataset cache is incomplete: expected $expected_data_file_count parquet files, found $observed_data_file_count" >&2
   exit 1
 fi
-if [[ "$run_mode" == "resume" ]]; then
-  resume_args=(--resume)
-elif [[ "$run_mode" == "fresh" ]]; then
-  resume_args=(--no-resume)
-else
-  echo "run mode must be resume or fresh" >&2
-  exit 2
-fi
-if [[ "$(nvidia-smi --list-gpus | wc -l | tr -d ' ')" -lt 2 ]]; then
-  echo "the matched control launcher requires two visible GPUs" >&2
+if [[ "$(nvidia-smi --list-gpus | wc -l | tr -d " ")" -lt 2 ]]; then
+  echo "the matched control smoke test requires two visible GPUs" >&2
   exit 1
 fi
 
@@ -63,9 +54,9 @@ exec ./.venv/bin/python scripts/train.py pi0_libero \
   --assets-base-dir "$openpi_root/assets" \
   --checkpoint-base-dir "$checkpoint_base" \
   --batch-size 32 \
-  --num-train-steps 30000 \
-  --save-interval 1000 \
-  --keep-period 5000 \
+  --num-train-steps 2 \
+  --save-interval 1 \
+  --keep-period 1 \
   --no-wandb-enabled \
   --fsdp-devices 2 \
-  "${resume_args[@]}"
+  --no-resume
