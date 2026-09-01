@@ -19,6 +19,12 @@ def test_confirmation_passes_with_four_paired_losses() -> None:
     assert summary["episode_pairs"] == 500
     assert summary["episodes_per_condition"] == 500
     assert summary["condition_rollouts"] == 1000
+    assert len(summary["per_task"]) == 10
+    assert summary["per_task"][0]["paired_losses"] == 4
+    assert all(
+        task["condition_order_counts"] == {"early_exit_first": 25, "full_control_first": 25}
+        for task in summary["per_task"]
+    )
     assert summary["paired_losses"] == 4
     assert summary["paired_loss_clopper_pearson_upper95"] < 0.02
     assert summary["condition_order_counts"] == {
@@ -112,6 +118,7 @@ def _pairs(*, losses: int) -> list[dict]:
                     "task_id": task_id,
                     "trial_index": trial_index,
                     "pair_key": f"task_{task_id:02d}_trial_{trial_index:02d}",
+                    "task_description": f"task {task_id}",
                     "condition_order": analysis["_condition_order"](task_id, trial_index),
                     "order_digest_sha256": analysis["_order_digest"](task_id, trial_index),
                     "initial_inputs_exact": True,

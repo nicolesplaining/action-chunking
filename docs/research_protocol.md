@@ -405,6 +405,12 @@ permits at most four paired losses among 500 trials; five or more cannot pass. A
 resume may skip only a pair whose two condition artifacts and hashes are
 complete and whose code commit matches the current process.
 
+The pooled gate is accompanied by reporting-only summaries for each of the ten
+unchanged LIBERO Goal tasks: both condition success counts, paired losses and
+gains, the exact paired-loss upper bound, the 25/25 condition-order audit, and
+paired first-replan latency. These strata are always shown and are not used to
+select tasks or create post hoc task-level pass criteria.
+
 The observed pilot passes the descriptive rule: target-first contact is
 preserved in 15/15 eligible clusters, eventual success and the registered
 composite in 14/15, all replan compute counts are exact, and median paired

@@ -108,6 +108,7 @@ def analyze_confirmation(
                 "pair_key": _pair_key(task_id, trial_index),
                 "task_id": task_id,
                 "trial_index": trial_index,
+                "task_description": str(pair["task_description"]),
                 "condition_order": pair["condition_order"],
                 "early_exit_success": bool(early["success"]),
                 "full_control_success": bool(full["success"]),
@@ -140,6 +141,7 @@ def analyze_confirmation(
     }
     if order_counts != {"early_exit_first": 250, "full_control_first": 250}:
         raise ValueError("confirmation condition order is not exactly balanced")
+    per_task = _task_summaries(rows)
     early_interval = wilson_interval(early_successes, EXPECTED)
     full_interval = wilson_interval(full_successes, EXPECTED)
     positive = bool(loss_upper < 0.02 and latency_interval[0] > 0.0 and losses <= 4)
@@ -152,6 +154,7 @@ def analyze_confirmation(
         "episodes_per_condition": EXPECTED,
         "condition_rollouts": 2 * EXPECTED,
         "condition_order_counts": order_counts,
+        "per_task": per_task,
         "early_exit_successes": early_successes,
         "early_exit_success_rate": early_successes / EXPECTED,
         "early_exit_success_wilson_ci95": list(early_interval),
@@ -176,6 +179,8 @@ def _validate_pair(pair: dict[str, Any], task_id: int, trial_index: int) -> None
     if (
         pair.get("schema_version") != 1
         or pair.get("suite") != SUITE
+        or not isinstance(pair.get("task_description"), str)
+        or not pair["task_description"].strip()
         or re.fullmatch(r"[0-9a-f]{40}", str(pair.get("code_commit"))) is None
         or pair.get("pair_key") != _pair_key(task_id, trial_index)
         or pair.get("condition_order") != _condition_order(task_id, trial_index)
@@ -262,6 +267,51 @@ def _bootstrap_median_interval(values: np.ndarray, *, samples: int = 10_000, see
     indices = rng.integers(0, values.size, size=(samples, values.size))
     medians = np.median(values[indices], axis=1)
     return [float(value) for value in np.quantile(medians, [0.025, 0.975])]
+
+
+def _task_summaries(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    output = []
+    for task_id in range(TASKS):
+        selected = [row for row in rows if int(row["task_id"]) == task_id]
+        descriptions = {str(row["task_description"]) for row in selected}
+        if len(selected) != TRIALS or len(descriptions) != 1:
+            raise ValueError("confirmation task stratum is incomplete or inconsistent")
+        order_counts = {
+            "early_exit_first": sum(row["condition_order"][0] == "early_exit_7" for row in selected),
+            "full_control_first": sum(row["condition_order"][0] == "full_control_10" for row in selected),
+        }
+        if order_counts != {"early_exit_first": 25, "full_control_first": 25}:
+            raise ValueError("confirmation task condition order is not exactly balanced")
+        early_successes = sum(row["early_exit_success"] for row in selected)
+        full_successes = sum(row["full_control_success"] for row in selected)
+        losses = sum(row["paired_loss"] for row in selected)
+        gains = sum(row["paired_gain"] for row in selected)
+        latency = np.asarray(
+            [row["first_replan_latency_savings_fraction"] for row in selected],
+            dtype=np.float64,
+        )
+        output.append(
+            {
+                "task_id": task_id,
+                "task_description": descriptions.pop(),
+                "episode_pairs": TRIALS,
+                "condition_order_counts": order_counts,
+                "early_exit_successes": early_successes,
+                "early_exit_success_rate": early_successes / TRIALS,
+                "full_control_successes": full_successes,
+                "full_control_success_rate": full_successes / TRIALS,
+                "paired_losses": losses,
+                "paired_gains": gains,
+                "paired_loss_rate": losses / TRIALS,
+                "paired_loss_clopper_pearson_upper95": float(binomial_upper_bound(losses, TRIALS, alpha=0.05)),
+                "median_first_replan_latency_savings_fraction": float(np.median(latency)),
+                "median_first_replan_latency_savings_fraction_bootstrap_ci95": (
+                    _bootstrap_median_interval(latency, seed=task_id + 1)
+                ),
+                "reporting_only": True,
+            }
+        )
+    return output
 
 
 def _load_warmups(root: Path) -> list[dict[str, Any]]:

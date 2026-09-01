@@ -1,5 +1,15 @@
 # Reproducibility log
 
+## 2026-09-01: confirmation task heterogeneity cannot be hidden
+
+Before the first scored confirmation pair, the analyzer was extended with
+mandatory reporting-only summaries for all ten unchanged LIBERO Goal tasks.
+Each reports both success counts, paired losses and gains, an exact paired-loss
+upper bound, first-replan latency, and its independently verified 25/25
+condition order. The preregistered pooled gate remains the only confirmation
+decision; no task can be excluded and no post hoc task-level pass criterion was
+added.
+
 ## 2026-09-01: streaming inference comparison added from public sources
 
 The practical-inference positioning now cites the peer-reviewed Streaming Flow
