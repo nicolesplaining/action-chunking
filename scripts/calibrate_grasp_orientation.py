@@ -5,11 +5,13 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 from pathlib import Path
 from typing import Any
 
 import numpy as np
 
+import action_chunking.orientation as orientation_module
 from action_chunking.orientation import (
     GRASP_ORIENTATION_WINDOW_STEPS,
     MINIMUM_GRASP_REFERENCE_CONTRAST_RAD,
@@ -23,11 +25,14 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--selection", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--code-commit", required=True)
     return parser.parse_args()
 
 
 def main() -> int:
     args = parse_args()
+    if re.fullmatch(r"[0-9a-f]{40}", args.code_commit) is None:
+        raise ValueError("code commit must be a full lowercase Git SHA")
     selection = json.loads(args.selection.read_text())
     root = Path(selection["clean_validation"])
     rows = [
@@ -43,6 +48,11 @@ def main() -> int:
         "selection_uses_continuation_outcomes": False,
         "selection": str(args.selection),
         "selection_sha256": file_digest(args.selection),
+        "code_commit": args.code_commit,
+        "calibrator": str(Path(__file__).resolve()),
+        "calibrator_sha256": file_digest(Path(__file__)),
+        "orientation_module": str(Path(orientation_module.__file__).resolve()),
+        "orientation_module_sha256": file_digest(Path(orientation_module.__file__)),
         "clean_validation": str(root),
         "quaternion_convention": "xyzw",
         "metric": "2*acos(abs(dot(q1,q2)))",
@@ -75,17 +85,22 @@ def main() -> int:
 
 def _clean_pair_row(root: Path, pair_id: str, window_steps: int) -> dict[str, Any]:
     run = root / pair_id / "noise_0"
-    summary = json.loads((run / "summary.json").read_text())
+    summary_path = run / "summary.json"
+    summary = json.loads(summary_path.read_text())
     frames = {}
     dispersions = {}
     contact_steps = {}
     targets = {}
+    source_artifacts = {
+        "summary": {"path": str(summary_path), "sha256": file_digest(summary_path)}
+    }
     for result in summary["results"]:
         side = result["side"]
         target = result["target"]
         contact_step = int(result["first_contact_step_by_object"][target])
+        trajectory_path = run / f"{side}_trajectory_records.jsonl"
         frame = contact_aligned_grasp_frame(
-            _jsonl(run / f"{side}_trajectory_records.jsonl"),
+            _jsonl(trajectory_path),
             contact_step,
             window_steps=window_steps,
         )
@@ -93,6 +108,10 @@ def _clean_pair_row(root: Path, pair_id: str, window_steps: int) -> dict[str, An
         dispersions[side] = frame["maximum_window_dispersion_rad"]
         contact_steps[side] = contact_step
         targets[side] = target
+        source_artifacts[f"{side}_trajectory"] = {
+            "path": str(trajectory_path),
+            "sha256": file_digest(trajectory_path),
+        }
     if set(frames) != {"base", "donor"}:
         raise ValueError(f"clean pair {pair_id} must contain base and donor controls")
     return {
@@ -101,6 +120,7 @@ def _clean_pair_row(root: Path, pair_id: str, window_steps: int) -> dict[str, An
         "contact_steps": contact_steps,
         "reference_contrast_rad": quaternion_geodesic_rad(frames["base"], frames["donor"]),
         "maximum_window_dispersion_rad_by_side": dispersions,
+        "source_artifacts": source_artifacts,
     }
 
 

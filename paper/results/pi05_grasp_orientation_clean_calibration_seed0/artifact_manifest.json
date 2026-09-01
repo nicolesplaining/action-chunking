@@ -1,0 +1,16 @@
+{
+  "analysis_code_commit": "a95cdaa23c38e0ecd1831e598af89ed5d1e88c64",
+  "analysis_unit": "physical_scene_state",
+  "artifacts": {
+    "summary.json": "b4585a054cd706339bb2ad21f89cb2862343d5097348817c1fe557dad0b15a42"
+  },
+  "clean_only": true,
+  "eligible_scene_clusters": 15,
+  "minimum_reference_contrast_rad": 0.2,
+  "openpi_commit": "215abfb217dbac7d5f1273282331b9b1866c0479",
+  "selection_sha256": "e97f7a24b73486d98d2b2fc6ac984b916b20e53f2ab5f32d258b14127ed189bc",
+  "selection_uses_continuation_outcomes": false,
+  "source_artifact_hashes_embedded": true,
+  "window_steps": 3,
+  "schema_version": 1
+}
