@@ -12,6 +12,10 @@ from typing import Any
 
 import numpy as np
 
+from action_chunking.retarget_eligibility import controller_replay_summary_exact
+
+FIRST_CHUNK_EXECUTION_HORIZON = 5
+
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
@@ -105,6 +109,21 @@ def _write_tables(
             old_side = "donor" if side == "base" else "base"
             contacts = {str(key): int(value) for key, value in result["first_contact_step_by_object"].items()}
             first_object = min(contacts, key=contacts.get) if contacts else None
+            first_contact_step = contacts.get(first_object) if first_object is not None else None
+            new_target_contact_step = contacts.get(entry[f"{side}_target"])
+            old_target_contact_step = contacts.get(entry[f"{old_side}_target"])
+            first_chunk_new_target_contact = bool(
+                new_target_contact_step is not None
+                and new_target_contact_step <= FIRST_CHUNK_EXECUTION_HORIZON
+            )
+            first_chunk_old_event = bool(
+                old_target_contact_step is not None
+                and old_target_contact_step <= FIRST_CHUNK_EXECUTION_HORIZON
+            )
+            no_registered_contact_first_chunk = bool(
+                first_contact_step is None
+                or first_contact_step > FIRST_CHUNK_EXECUTION_HORIZON
+            )
             diagnostics = result["retarget_diagnostics"]
             rows.append(
                 {
@@ -116,9 +135,30 @@ def _write_tables(
                     "new_target": entry[f"{side}_target"],
                     "old_target": entry[f"{old_side}_target"],
                     "first_contact_object": first_object,
+                    "first_contact_step": first_contact_step,
+                    "first_contact_replan_index": (
+                        (first_contact_step - 1) // FIRST_CHUNK_EXECUTION_HORIZON
+                        if first_contact_step is not None
+                        else None
+                    ),
+                    "new_target_contact_step": new_target_contact_step,
+                    "old_target_contact_step": old_target_contact_step,
                     "new_target_first": first_object == entry[f"{side}_target"],
                     "old_target_first": first_object == entry[f"{old_side}_target"],
+                    "first_chunk_new_target_contact": first_chunk_new_target_contact,
+                    "first_chunk_old_event": first_chunk_old_event,
+                    "no_registered_contact_first_chunk": no_registered_contact_first_chunk,
                     "eventual_new_task_success": bool(result["success"]),
+                    "clean_replanning_rescue": bool(
+                        no_registered_contact_first_chunk
+                        and first_object == entry[f"{side}_target"]
+                        and result["success"]
+                    ),
+                    "first_chunk_correction_survives": bool(
+                        first_chunk_new_target_contact
+                        and first_object == entry[f"{side}_target"]
+                        and result["success"]
+                    ),
                     "completion_steps": int(result["steps"]),
                     "post_event_velocity_evaluations": int(
                         diagnostics["post_event_velocity_evaluations"]
@@ -140,6 +180,13 @@ def _write_tables(
                         )
                     ),
                     "simulator_state_exact": result["restored_sim_state_max_abs_error"] == 0.0,
+                    "controller_replay_exact": bool(
+                        not result.get("controller_replay_required")
+                        or (
+                            result.get("controller_replay_applied")
+                            and result.get("controller_replay_trajectory_max_abs_error") == 0.0
+                        )
+                    ),
                     "applied_only_at_first_replan": result["intervention_replans_applied"] == [0],
                 }
             )
@@ -177,6 +224,7 @@ def _write_tables(
         "directions": len(restart),
         "all_initial_inputs_exact": all(row["initial_input_exact"] for row in rows),
         "all_simulator_states_exact": all(row["simulator_state_exact"] for row in rows),
+        "all_controller_replays_exact": all(row["controller_replay_exact"] for row in rows),
         "all_retargets_only_at_first_replan": all(
             row["applied_only_at_first_replan"] for row in rows
         ),
@@ -193,6 +241,22 @@ def _write_tables(
                 "new_task_success_rate": _rate(
                     [row for row in continuation if row["switch_after_steps"] == boundary],
                     "eventual_new_task_success",
+                ),
+                "first_chunk_old_event_rate": _rate(
+                    [row for row in continuation if row["switch_after_steps"] == boundary],
+                    "first_chunk_old_event",
+                ),
+                "first_chunk_new_target_contact_rate": _rate(
+                    [row for row in continuation if row["switch_after_steps"] == boundary],
+                    "first_chunk_new_target_contact",
+                ),
+                "no_registered_contact_first_chunk_rate": _rate(
+                    [row for row in continuation if row["switch_after_steps"] == boundary],
+                    "no_registered_contact_first_chunk",
+                ),
+                "clean_replanning_rescue_rate": _rate(
+                    [row for row in continuation if row["switch_after_steps"] == boundary],
+                    "clean_replanning_rescue",
                 ),
                 "mean_post_event_velocity_evaluations": _mean(
                     [row for row in continuation if row["switch_after_steps"] == boundary],
@@ -228,6 +292,12 @@ def _validate_run(
         raise ValueError("existing dynamic-retarget output has different source replan noise")
     if {result["side"] for result in summary["results"]} != set(_sides(args.sides)):
         raise ValueError("existing dynamic-retarget output has different requested sides")
+    if not controller_replay_summary_exact(
+        summary,
+        bool(entry.get("controller_replay_required")),
+        expected_results=len(_sides(args.sides)),
+    ):
+        raise ValueError("dynamic-retarget rollout did not reconstruct controller state exactly")
     for result in summary["results"]:
         if result.get("intervention_replans_applied") != [0]:
             raise ValueError("dynamic retargeting must be applied only at the first replan")

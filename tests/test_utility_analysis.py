@@ -21,6 +21,8 @@ def test_cluster_summary_reports_prediction_and_noninferiority_statistics() -> N
     assert result["boundary7_velocity_evaluation_counts_exact"] is True
     assert result["boundary7_post_event_velocity_evaluation_savings_fraction"] == 0.7
     assert result["boundary7_noninferior"] is False
+    assert result["boundary7_first_chunk_old_events"] == 0
+    assert result["wrong_target_failure_first_contact_replan_histogram"] == {"0": 6}
 
 
 def test_cluster_summary_rejects_direction_pseudoreplication() -> None:
@@ -37,6 +39,7 @@ def _job(
     latency: float = 180.0,
 ) -> dict:
     curve = [boundary <= observed for boundary in range(11)]
+    old_target_first = [not value for value in curve]
     return {
         "cluster_id": cluster,
         "prediction_valid": True,
@@ -44,12 +47,20 @@ def _job(
         "observed_last_successful_boundary": observed,
         "prediction_exact": predicted == observed,
         "success_curve": curve,
+        "first_chunk_old_event_curve": old_target_first,
+        "old_target_first_curve": old_target_first,
+        "clean_replanning_rescue_curve": [False] * 11,
+        "first_contact_replan_index_curve": [1 if value else 0 for value in curve],
         "boundary7_new_target_first": boundary7,
         "boundary7_new_task_success": boundary7,
+        "boundary7_first_chunk_old_event": False,
+        "boundary7_clean_replanning_rescue": False,
         "boundary7_post_event_velocity_evaluations": 3,
         "boundary7_post_event_total_ms": latency,
         "restart_new_target_first": True,
         "restart_new_task_success": True,
+        "restart_first_chunk_old_event": False,
+        "restart_clean_replanning_rescue": False,
         "restart_post_event_velocity_evaluations": 10,
         "restart_post_event_total_ms": 400.0,
     }

@@ -152,12 +152,16 @@ def _result_controller_replay_exact(result: dict[str, Any], required: bool) -> b
     )
 
 
-def controller_replay_summary_exact(summary: dict[str, Any], required: bool) -> bool:
-    """Require exactly two transition-exact sides when controller replay is registered."""
+def controller_replay_summary_exact(
+    summary: dict[str, Any], required: bool, *, expected_results: int = 2
+) -> bool:
+    """Require the registered number of transition-exact rollout sides."""
+    if expected_results <= 0:
+        raise ValueError("expected controller replay results must be positive")
     if not required:
         return True
     results = summary.get("results", [])
     return bool(
-        len(results) == 2
+        len(results) == expected_results
         and all(_result_controller_replay_exact(result, required=True) for result in results)
     )

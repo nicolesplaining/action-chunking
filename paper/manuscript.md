@@ -260,6 +260,14 @@ must avoid that event, and both clean tasks must remain competent. Intermediate
 boundaries stay sealed until this gate and the action-only prediction are frozen
 [@zhu2020robosuite].
 
+The primary recovery composite is new-target-first contact plus eventual new-
+task success. Secondary preregistered fields separate old- or new-target contact
+within the five intervened actions, no registered contact before the first clean
+replan, first-contact replan index, success rescued only by later clean
+replanning, and eventual failure after correct target selection. Thus a useful
+boundary can be evaluated both as immediate event avoidance and as a predictor
+of downstream recovery across chunk boundaries.
+
 ### 3.6 Layer, action-state, and token interventions
 
 At flow step `s` and action-expert layer `l`, residual interchange replaces all
