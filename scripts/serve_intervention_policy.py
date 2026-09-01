@@ -22,7 +22,13 @@ from typing_extensions import override
 
 from action_chunking.condition_switch import pop_donor_observation
 from action_chunking.retargeting import retarget_plan
-from action_chunking.sampling import PreparedCondition, SamplingTrace, prepare_condition, sample_actions
+from action_chunking.sampling import (
+    PreparedCondition,
+    SamplingTrace,
+    prepare_condition,
+    sample_actions,
+    select_early_exit_actions,
+)
 from action_chunking.tracing import PatchSpec, ResidualTrace, ResidualTracer
 
 
@@ -47,6 +53,7 @@ class InterventionPolicy(base_policy.BasePolicy):
         source, source_transformed = _condition(self.policy, request, self.device)
         output_transformed = source_transformed
         retarget_diagnostics = None
+        early_exit_diagnostics = None
 
         if raw_spec is None:
             actions_t, _ = sample_actions(
@@ -57,22 +64,31 @@ class InterventionPolicy(base_policy.BasePolicy):
             )
             family = "clean"
         else:
-            if not isinstance(donor_prompt, str) or not donor_prompt.strip():
-                raise ValueError("an intervention request requires a nonempty _donor_prompt")
-            donor_request = {**request, "prompt": donor_prompt}
-            if donor_observation is not None:
-                donor_request.update(donor_observation)
             family = str(raw_spec.get("family"))
-            if family == "dynamic_retarget":
-                actions_t, output_transformed, retarget_diagnostics = self._dynamic_retarget(
+            if family == "early_exit":
+                if donor_observation is not None:
+                    raise ValueError("early exit does not accept a donor observation")
+                actions_t, early_exit_diagnostics = self._early_exit(
                     noise,
                     source,
-                    donor_request,
                     raw_spec,
                 )
             else:
-                donor, _ = _condition(self.policy, donor_request, self.device)
-                actions_t = self._intervene(noise, source, donor, raw_spec)
+                if not isinstance(donor_prompt, str) or not donor_prompt.strip():
+                    raise ValueError("a counterfactual intervention requires a nonempty _donor_prompt")
+                donor_request = {**request, "prompt": donor_prompt}
+                if donor_observation is not None:
+                    donor_request.update(donor_observation)
+                if family == "dynamic_retarget":
+                    actions_t, output_transformed, retarget_diagnostics = self._dynamic_retarget(
+                        noise,
+                        source,
+                        donor_request,
+                        raw_spec,
+                    )
+                else:
+                    donor, _ = _condition(self.policy, donor_request, self.device)
+                    actions_t = self._intervene(noise, source, donor, raw_spec)
 
         result = {
             "actions": _physical_actions(self.policy, output_transformed, actions_t),
@@ -80,7 +96,48 @@ class InterventionPolicy(base_policy.BasePolicy):
         }
         if retarget_diagnostics is not None:
             result["retarget_diagnostics"] = retarget_diagnostics
+        if early_exit_diagnostics is not None:
+            result["early_exit_diagnostics"] = early_exit_diagnostics
         return result
+
+    def _early_exit(
+        self,
+        noise: torch.Tensor,
+        source: PreparedCondition,
+        spec: dict[str, Any],
+    ) -> tuple[torch.Tensor, dict[str, Any]]:
+        if spec.get("total_flow_steps") != self.num_steps:
+            raise ValueError("early-exit total_flow_steps must match the server sampler")
+        completed = _bounded_int(spec, "after_steps", 1, self.num_steps + 1)
+        _synchronize(noise)
+        start = time.perf_counter()
+        integrated, trace = sample_actions(
+            self.model,
+            noise,
+            lambda _step: source,
+            num_steps=self.num_steps,
+            stop_step=completed,
+        )
+        actions, final_step_estimate_max_abs_error = select_early_exit_actions(
+            integrated,
+            trace,
+            completed,
+            self.num_steps,
+        )
+        _synchronize(noise)
+        end = time.perf_counter()
+        return actions, {
+            "after_steps": completed,
+            "total_flow_steps": self.num_steps,
+            "velocity_field_evaluations": completed,
+            "velocity_field_evaluation_savings": self.num_steps - completed,
+            "velocity_field_evaluation_savings_fraction": (
+                (self.num_steps - completed) / self.num_steps
+            ),
+            "integration_ms": 1000.0 * (end - start),
+            "full_step_estimate_max_abs_error": final_step_estimate_max_abs_error,
+            "full_step_output_exact": completed == self.num_steps,
+        }
 
     def _dynamic_retarget(
         self,
@@ -241,6 +298,7 @@ class InterventionPolicy(base_policy.BasePolicy):
                 "residual_patch",
                 "action_dimension_patch",
                 "dynamic_retarget",
+                "early_exit",
             ],
             "dynamic_retarget_strategies": ["continue", "restart"],
             "accepts_donor_observation": True,

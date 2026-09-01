@@ -292,7 +292,21 @@ not clipped. Every patch is run in both directions. Identity patches must match
 the clean action exactly, and full-donor interventions define the transfer
 ceiling.
 
-### 3.7 Statistics
+### 3.7 Post-grid executed-action early exit
+
+After observing the registered population token-position result but before any
+early-exit rollout, we added a zero-training inference pilot. After seven of the
+ordinary ten velocity evaluations, it outputs the current clean-action estimate
+and executes only positions 0--4 before replanning; the exact ten-evaluation
+sampler is the control. The pilot keeps resets, observations, noise by replan,
+task directions, and the clean-selected 15-state denominator fixed. It is
+distinct from policy distillation: model weights and the public Euler time grid
+are unchanged. A confirmatory 500-episode paired benchmark is opened only if the
+pilot preserves both target-first contact and task success in at least 14/15
+scene clusters while using exactly 30% fewer velocity evaluations and lower
+isolated integration latency.
+
+### 3.8 Statistics
 
 The physical scene-state hash is the resampling cluster. Primary intervals use
 10,000 scene-cluster bootstrap replicates with frozen seeds. Cellwise two-sided
@@ -421,7 +435,7 @@ gates fix its metadata and manifest hashes and accept no other checkpoint. The
 competence and conversion-parity evaluations must complete before any
 pi0-versus-pi0.5 timing contrast is inserted here.
 
-### 4.8 Registered inference-utility experiment
+### 4.8 Registered inference-utility experiments
 
 Dynamic-retargeting outcomes are not yet reported. The continuation and restart
 paths, compute accounting, latency instrumentation, eligibility gates, tested
@@ -430,6 +444,12 @@ critique but before running held-out retargeting episodes. This section will
 report negative as well as positive outcomes, including the possibility that
 the editability boundary predicts immediate target correction but not eventual
 success after subsequent clean replanning.
+
+The post-position-grid early-exit pilot is also registered but has no behavioral
+outcome yet. It asks whether the five controls actually executed before a clean
+replan can be emitted after seven rather than ten velocity evaluations. The
+15-state pilot and its exact compute/latency gates precede any 500-episode
+noninferiority claim.
 
 ## 5. Discussion
 

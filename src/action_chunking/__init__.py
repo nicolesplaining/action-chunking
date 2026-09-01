@@ -10,6 +10,7 @@ __all__ = [
     "ResidualTrace",
     "ResidualTracer",
     "SamplingTrace",
+    "early_exit_action_estimate",
     "prepare_condition",
     "sample_actions",
 ]
@@ -18,7 +19,13 @@ __all__ = [
 def __getattr__(name: str) -> Any:
     """Lazily expose torch instrumentation without loading it for pair tools."""
 
-    if name in {"PreparedCondition", "SamplingTrace", "prepare_condition", "sample_actions"}:
+    if name in {
+        "PreparedCondition",
+        "SamplingTrace",
+        "early_exit_action_estimate",
+        "prepare_condition",
+        "sample_actions",
+    }:
         from action_chunking import sampling
 
         return getattr(sampling, name)

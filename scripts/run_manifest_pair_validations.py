@@ -18,6 +18,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--port", type=int, default=8003)
     parser.add_argument("--noise-seed", type=int, default=0)
     parser.add_argument("--save-sim-states", action="store_true")
+    parser.add_argument("--intervention", type=Path)
+    parser.add_argument("--intervene-replans", default="all")
     return parser.parse_args()
 
 
@@ -46,6 +48,8 @@ def main() -> int:
                 "",
                 "strict",
                 str(args.save_sim_states).lower(),
+                str(args.intervention) if args.intervention is not None else "",
+                args.intervene_replans,
             ]
             completed = subprocess.run(command, check=False)
             if completed.returncode not in {0, 1} or not summary_path.is_file():
@@ -66,6 +70,14 @@ def _job_record(
         raise ValueError("existing clean validation has a different pair id")
     if int(summary.get("noise_seed", -1)) != args.noise_seed:
         raise ValueError("existing clean validation has a different noise seed")
+    expected_intervention = (
+        json.loads(args.intervention.read_text()) if args.intervention is not None else None
+    )
+    if summary.get("intervention") != expected_intervention:
+        raise ValueError("existing validation has a different intervention")
+    expected_replans = args.intervene_replans if expected_intervention is not None else None
+    if summary.get("intervene_replans") != expected_replans:
+        raise ValueError("existing validation has a different intervention-replan set")
     exact = all(
         result.get("restored_sim_state_max_abs_error") == 0.0
         and all(
@@ -93,6 +105,30 @@ def _job_record(
     exact_dual_success_target_first = bool(
         exact and summary["both_successful"] and instructed_target_first
     )
+    early_exit_compute_exact = None
+    if expected_intervention is not None and expected_intervention.get("family") == "early_exit":
+        after_steps = int(expected_intervention["after_steps"])
+        total_steps = int(expected_intervention["total_flow_steps"])
+        expected_savings = total_steps - after_steps
+        expected_fraction = expected_savings / total_steps
+        early_exit_compute_exact = all(
+            bool(result.get("early_exit_diagnostics", []))
+            and len(result.get("early_exit_diagnostics", []))
+            == len(result.get("intervention_replans_applied", []))
+            and all(
+                int(diagnostic["after_steps"]) == after_steps
+                and int(diagnostic["total_flow_steps"]) == total_steps
+                and int(diagnostic["velocity_field_evaluations"]) == after_steps
+                and int(diagnostic["velocity_field_evaluation_savings"])
+                == expected_savings
+                and float(diagnostic["velocity_field_evaluation_savings_fraction"])
+                == expected_fraction
+                for diagnostic in result.get("early_exit_diagnostics", [])
+            )
+            for result in summary["results"]
+        )
+        if not early_exit_compute_exact:
+            raise ValueError("early-exit validation failed exact compute accounting")
     return {
         "pair_id": entry["pair_id"],
         "init_index": int(entry["init_index"]),
@@ -102,6 +138,7 @@ def _job_record(
         "replan_input_traces_present": replan_inputs_present,
         "instructed_target_first_both": instructed_target_first,
         "exact_dual_success_target_first": exact_dual_success_target_first,
+        "early_exit_compute_exact": early_exit_compute_exact,
         "summary": str(output / "summary.json"),
     }
 
@@ -115,6 +152,14 @@ def _write_summary(
     payload = {
         "schema_version": 1,
         "noise_seed": args.noise_seed,
+        "intervention": (
+            json.loads(args.intervention.read_text())
+            if args.intervention is not None
+            else None
+        ),
+        "intervene_replans": (
+            args.intervene_replans if args.intervention is not None else None
+        ),
         "expected_pairs": expected,
         "completed_pairs": len(jobs),
         "dual_success_pairs": sum(job["both_successful"] for job in jobs),
@@ -128,6 +173,9 @@ def _write_summary(
                 job["simulator_traces_present"] and job["replan_input_traces_present"]
                 for job in jobs
             )
+        ),
+        "early_exit_compute_exact_pairs": sum(
+            job["early_exit_compute_exact"] is True for job in jobs
         ),
         "jobs": jobs,
     }

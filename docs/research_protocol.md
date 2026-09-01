@@ -1,6 +1,6 @@
 # Research protocol: causal editability and retargeting in action chunks
 
-Protocol version: 0.17 (state-specific utility predictor baseline)
+Protocol version: 0.18 (post-grid executed-action early-exit pilot)
 
 ## 1. Research question
 
@@ -326,6 +326,50 @@ sample was undecided, and it does not provide a formal safety guarantee. A
 population claim that editability timing predicts the last safe correction
 point requires independently selected obstacle scenes and predictions frozen
 before their dynamic rollouts.
+
+### 2.7 Registered executed-action early-exit pilot
+
+This post-mechanistic amendment was frozen after the 15-state position grid but
+before any early-exit action or rollout outcome. The position result shows that
+the final layer/update has less causal transfer on positions 0--4, which are
+executed before the next replan, than on deferred positions 5--9. That finding
+does not itself establish that fewer flow evaluations preserve behavior. The
+new pilot tests the consequence directly without retraining or changing the
+public OpenPI velocity field.
+
+After `k` evaluations on the unchanged public ten-step Euler time grid, output
+the latest clean-action estimate `x_t - t v_t` and execute only its first five
+controls before replanning. Every later replan uses the same rule. The primary
+comparison is `k=7` versus the exact full-sampler control `k=10`; `k=7` is fixed
+from the last boundary with complete donor control in the prior target curve,
+not selected from early-exit behavior. The implementation substitutes the
+ordinary integrated sampler output at `k=10`, making the control byte-exact even
+though repeated float32 time subtraction can leave the algebraically equivalent
+clean estimate about one ulp away. Boundary `k=4` is a frozen aggressive
+sensitivity condition and cannot replace the primary comparison.
+
+The first stage reuses all 16 serialized wine/bowl scene states and both task
+directions with identical resets, observations, Gaussian noise by replan index,
+and five-action execution horizon. Clean full-sampler competence and target-
+first contact determine eligibility without inspecting early-exit outcomes; the
+existing 15 dual-success scene clusters define the pilot population. Report
+both directions but keep the physical scene as the inference cluster. A pilot
+positive requires exact seven-versus-ten velocity-evaluation accounting at
+every replan, lower isolated integration latency, and preservation of both
+target-first contact and eventual task success in at least 14 of 15 clusters.
+This threshold is descriptive and is not called noninferiority.
+
+If the pilot passes, the confirmatory test uses the unchanged public LIBERO Goal
+task order and 50 trials per task for 500 paired reset seeds under `k=7` and
+`k=10`. A paired loss occurs when the full sampler succeeds and early exit does
+not. A practical positive requires the one-sided 95% Clopper--Pearson upper
+bound on the paired loss probability to be below 0.02, exactly 30% fewer
+velocity evaluations at every replan, and a scene-paired bootstrap interval for
+median isolated integration-latency savings strictly above zero. Success with
+an altered task denominator, adaptive boundary choice, or approximate compute
+accounting is not accepted. This test complements public distillation and warm-
+start approaches by evaluating zero-training reuse of the released sampler; it
+does not claim the training-time gains of those methods.
 
 ## 3. Mechanistic hypotheses and utility amendment
 

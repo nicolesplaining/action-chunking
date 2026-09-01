@@ -39,6 +39,41 @@ class SamplingTrace:
         )
 
 
+def early_exit_action_estimate(trace: SamplingTrace) -> Tensor:
+    """Return the latest clean-action estimate from a nonempty partial trajectory."""
+    lengths = {
+        len(trace.times),
+        len(trace.x_t),
+        len(trace.v_t),
+        len(trace.clean_action_estimates),
+    }
+    if len(lengths) != 1:
+        raise ValueError("sampling trace fields have inconsistent lengths")
+    if not trace.clean_action_estimates:
+        raise ValueError("early exit requires at least one velocity-field evaluation")
+    return trace.clean_action_estimates[-1].clone()
+
+
+def select_early_exit_actions(
+    integrated_state: Tensor,
+    trace: SamplingTrace,
+    completed_steps: int,
+    total_steps: int,
+) -> tuple[Tensor, float | None]:
+    """Select a partial clean estimate with an exact integrated full-step control."""
+    if not 1 <= completed_steps <= total_steps:
+        raise ValueError("early-exit steps must satisfy 1 <= completed <= total")
+    if len(trace.clean_action_estimates) != completed_steps:
+        raise ValueError("early-exit trace length differs from completed steps")
+    estimate = early_exit_action_estimate(trace)
+    if integrated_state.shape != estimate.shape:
+        raise ValueError("integrated state and clean estimate have different shapes")
+    if completed_steps < total_steps:
+        return estimate, None
+    estimate_error = float(torch.max(torch.abs(estimate - integrated_state)).item())
+    return integrated_state.clone(), estimate_error
+
+
 @torch.no_grad()
 def prepare_condition(model: Any, observation: Any) -> PreparedCondition:
     """Run OpenPI's official preprocessing and cache the VLM prefix."""
