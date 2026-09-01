@@ -59,3 +59,67 @@ def test_sampler_applies_state_and_velocity_interventions_at_named_steps():
     torch.testing.assert_close(trace.x_t[0], torch.ones_like(noise))
     torch.testing.assert_close(trace.v_t[1], torch.full_like(noise, 2.0))
     torch.testing.assert_close(actions, torch.full_like(noise, -0.5))
+
+
+def test_resumed_sampler_exactly_matches_one_pass_condition_switch():
+    model = ConstantVelocityModel()
+    noise = torch.zeros(1, 2, 3)
+    source = PreparedCondition(
+        state=torch.tensor(1.0), prefix_pad_masks=torch.empty(0), past_key_values=None
+    )
+    donor = PreparedCondition(
+        state=torch.tensor(3.0), prefix_pad_masks=torch.empty(0), past_key_values=None
+    )
+
+    def velocity_from_condition(state, _masks, _cache, x_t, _time):
+        return torch.ones_like(x_t) * state
+
+    model.denoise_step = velocity_from_condition
+    one_pass, one_trace = sample_actions(
+        model,
+        noise,
+        lambda step: source if step < 2 else donor,
+        num_steps=4,
+    )
+    boundary_state, prefix_trace = sample_actions(
+        model,
+        noise,
+        lambda _step: source,
+        num_steps=4,
+        stop_step=2,
+    )
+    resumed, suffix_trace = sample_actions(
+        model,
+        noise,
+        lambda _step: donor,
+        num_steps=4,
+        start_step=2,
+        initial_state=boundary_state,
+    )
+
+    assert torch.equal(resumed, one_pass)
+    assert prefix_trace.times + suffix_trace.times == one_trace.times
+    for split, whole in zip(prefix_trace.x_t + suffix_trace.x_t, one_trace.x_t, strict=True):
+        assert torch.equal(split, whole)
+
+
+def test_resumed_sampler_requires_valid_range_and_state():
+    model = ConstantVelocityModel()
+    noise = torch.zeros(1, 2, 3)
+    condition = PreparedCondition(
+        state=torch.empty(0), prefix_pad_masks=torch.empty(0), past_key_values=None
+    )
+
+    try:
+        sample_actions(model, noise, lambda _step: condition, num_steps=4, start_step=2)
+    except ValueError as error:
+        assert "initial_state" in str(error)
+    else:
+        raise AssertionError("resumed sampling without state should fail")
+
+    try:
+        sample_actions(model, noise, lambda _step: condition, num_steps=4, start_step=3, stop_step=2)
+    except ValueError as error:
+        assert "start_step" in str(error)
+    else:
+        raise AssertionError("reversed sampling range should fail")

@@ -41,6 +41,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--stop-after-registered-destination", action="store_true")
     parser.add_argument("--destination-radius", type=float, default=0.08)
     parser.add_argument("--destination-persistence-steps", type=int, default=5)
+    parser.add_argument("--dynamic-retarget-strategy", choices=("continue", "restart"))
+    parser.add_argument("--dynamic-retarget-boundary", type=int)
     return parser.parse_args()
 
 
@@ -49,6 +51,7 @@ def main() -> int:
     args.output.mkdir(parents=True, exist_ok=True)
     if args.destination_radius <= 0.0 or args.destination_persistence_steps <= 0:
         raise ValueError("destination radius and persistence steps must be positive")
+    dynamic_retarget = _dynamic_retarget_spec(args)
     manifest = json.loads(args.manifest.read_text())
     entry = _manifest_entry(manifest, args.pair_id)
     pair = load_instruction_pair(args.manifest.parent / entry["fixture"])
@@ -59,6 +62,11 @@ def main() -> int:
     intervention = json.loads(args.intervention.read_text()) if args.intervention is not None else None
     if intervention is not None and not server_metadata.get("accepts_causal_intervention"):
         raise ValueError("server does not advertise causal-intervention support")
+    if dynamic_retarget is not None:
+        if intervention is not None:
+            raise ValueError("dynamic retargeting and causal intervention flags are mutually exclusive")
+        if "dynamic_retarget" not in server_metadata.get("causal_intervention_families", []):
+            raise ValueError("server does not advertise dynamic retargeting support")
     intervention_replans = _replan_selection(args.intervene_replans)
 
     source_paths = manifest["source"]
@@ -88,6 +96,7 @@ def main() -> int:
             expected,
             intervention,
             intervention_replans,
+            dynamic_retarget,
             args,
         )
         results.append(result)
@@ -99,6 +108,7 @@ def main() -> int:
         "both_successful": all(result["success"] for result in results),
         "intervention": intervention,
         "intervene_replans": args.intervene_replans if intervention is not None else None,
+        "dynamic_retarget": dynamic_retarget,
         "stop_after_first_task_contact": args.stop_after_first_task_contact,
         "stop_after_registered_destination": args.stop_after_registered_destination,
         "destination_radius_m": args.destination_radius,
@@ -119,6 +129,7 @@ def _rollout(
     expected: dict[str, np.ndarray] | None,
     intervention: dict[str, Any] | None,
     intervention_replans: set[int] | None,
+    dynamic_retarget: dict[str, Any] | None,
     args: argparse.Namespace,
 ) -> dict[str, Any]:
     env = OffScreenRenderEnv(
@@ -129,6 +140,8 @@ def _rollout(
     env.seed(7)
     target = entry[f"{side}_target"]
     prompt = getattr(pair, f"{side}_prompt")
+    other_side = "donor" if side == "base" else "base"
+    old_prompt = getattr(pair, f"{other_side}_prompt") if dynamic_retarget is not None else prompt
     rng = np.random.default_rng(args.noise_seed)
     frames = []
     action_chunks = []
@@ -141,6 +154,7 @@ def _rollout(
     terminated_after_first_task_contact = False
     terminated_after_registered_destination = False
     destination_stability_steps = 0
+    retarget_diagnostics = None
     try:
         # Fixture generation advances the seeded environment reset sequence once
         # per initialization index. Replay that sequence because observation-
@@ -172,13 +186,22 @@ def _rollout(
             if not action_plan:
                 noise = rng.standard_normal((10, 32), dtype=np.float32)
                 policy_input = fixture_initial if replans == 0 and args.initial_input_mode == "fixture" else model_input
+                if dynamic_retarget is not None and replans == 0:
+                    policy_input = {**policy_input, "prompt": old_prompt}
                 request = {**policy_input, "_action_noise": noise}
-                if intervention is not None and (intervention_replans is None or replans in intervention_replans):
-                    other_side = "donor" if side == "base" else "base"
+                if dynamic_retarget is not None and replans == 0:
+                    request["_donor_prompt"] = prompt
+                    request["_intervention"] = dynamic_retarget
+                    applied_replans.append(replans)
+                elif intervention is not None and (intervention_replans is None or replans in intervention_replans):
                     request["_donor_prompt"] = getattr(pair, f"{other_side}_prompt")
                     request["_intervention"] = intervention
                     applied_replans.append(replans)
                 response = client.infer(request)
+                if dynamic_retarget is not None and replans == 0:
+                    retarget_diagnostics = response.get("retarget_diagnostics")
+                    if retarget_diagnostics is None:
+                        raise ValueError("dynamic-retarget response omitted compute diagnostics")
                 chunk = np.asarray(response["actions"])
                 if replans == 0:
                     first_chunk_closure_position = gripper_closure_position(chunk)
@@ -249,6 +272,7 @@ def _rollout(
             "side": side,
             "target": target,
             "prompt": prompt,
+            "old_prompt": old_prompt if dynamic_retarget is not None else None,
             "success": success,
             "steps": steps,
             "replans": replans,
@@ -259,6 +283,7 @@ def _rollout(
             "live_initial_input_diagnostics": initial_input_diagnostics,
             "saved_simulator_states": len(simulator_states),
             "intervention_replans_applied": applied_replans,
+            "retarget_diagnostics": retarget_diagnostics,
             "terminated_after_first_task_contact": terminated_after_first_task_contact,
             "terminated_after_registered_destination": terminated_after_registered_destination,
             "destination_stability_steps": destination_stability_steps,
@@ -328,6 +353,22 @@ def _replan_selection(value: str) -> set[int] | None:
     if not replans or min(replans) < 0:
         raise ValueError("intervene-replans must contain nonnegative integers")
     return replans
+
+
+def _dynamic_retarget_spec(args: argparse.Namespace) -> dict[str, Any] | None:
+    strategy = args.dynamic_retarget_strategy
+    boundary = args.dynamic_retarget_boundary
+    if strategy is None and boundary is None:
+        return None
+    if strategy is None or boundary is None:
+        raise ValueError("dynamic retargeting requires both strategy and boundary")
+    if not 0 <= boundary <= 10:
+        raise ValueError("dynamic retarget boundary must lie within [0, 10]")
+    return {
+        "family": "dynamic_retarget",
+        "strategy": strategy,
+        "switch_after_steps": boundary,
+    }
 
 
 def _update_contacts(env: OffScreenRenderEnv, contacts: dict[str, int], step: int) -> None:

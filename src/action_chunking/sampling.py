@@ -71,6 +71,9 @@ def sample_actions(
     condition_for_step: Callable[[int], PreparedCondition],
     *,
     num_steps: int = 10,
+    start_step: int = 0,
+    stop_step: int | None = None,
+    initial_state: Tensor | None = None,
     tracer: ResidualTracer | None = None,
     state_intervention: Callable[[int, Tensor], Tensor] | None = None,
     velocity_intervention: Callable[[int, Tensor], Tensor] | None = None,
@@ -84,16 +87,22 @@ def sample_actions(
 
     if num_steps <= 0:
         raise ValueError("num_steps must be positive")
+    stop_step = num_steps if stop_step is None else stop_step
+    if not 0 <= start_step <= stop_step <= num_steps:
+        raise ValueError("sampling steps must satisfy 0 <= start_step <= stop_step <= num_steps")
+    if start_step > 0 and initial_state is None:
+        raise ValueError("resumed sampling requires an explicit initial_state")
     expected_tail = (model.config.action_horizon, model.config.action_dim)
     if noise.ndim != 3 or tuple(noise.shape[1:]) != expected_tail:
         raise ValueError(f"noise must have shape [batch, {expected_tail[0]}, {expected_tail[1]}]")
 
-    x_t = noise.clone()
+    x_t = noise.clone() if initial_state is None else initial_state.clone()
+    _validate_intervention_shape("initial state", x_t, noise)
     dt = torch.tensor(-1.0 / num_steps, dtype=torch.float32, device=noise.device)
-    time = torch.tensor(1.0, dtype=torch.float32, device=noise.device)
+    time = torch.tensor(1.0 - start_step / num_steps, dtype=torch.float32, device=noise.device)
     trace = SamplingTrace()
 
-    for step in range(num_steps):
+    for step in range(start_step, stop_step):
         expanded_time = time.expand(noise.shape[0])
         condition = condition_for_step(step)
         if state_intervention is not None:

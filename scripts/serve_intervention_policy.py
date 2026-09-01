@@ -7,6 +7,7 @@ import argparse
 import dataclasses
 import logging
 import os
+import time
 from typing import Any
 
 import jax
@@ -19,6 +20,7 @@ from openpi.training import config as training_config
 from openpi_client import base_policy
 from typing_extensions import override
 
+from action_chunking.retargeting import retarget_plan
 from action_chunking.sampling import PreparedCondition, SamplingTrace, prepare_condition, sample_actions
 from action_chunking.tracing import PatchSpec, ResidualTrace, ResidualTracer
 
@@ -41,6 +43,8 @@ class InterventionPolicy(base_policy.BasePolicy):
         raw_spec = request.pop("_intervention", None)
         noise = torch.from_numpy(noise_array).to(self.device)[None, ...]
         source, source_transformed = _condition(self.policy, request, self.device)
+        output_transformed = source_transformed
+        retarget_diagnostics = None
 
         if raw_spec is None:
             actions_t, _ = sample_actions(
@@ -54,14 +58,76 @@ class InterventionPolicy(base_policy.BasePolicy):
             if not isinstance(donor_prompt, str) or not donor_prompt.strip():
                 raise ValueError("an intervention request requires a nonempty _donor_prompt")
             donor_request = {**request, "prompt": donor_prompt}
-            donor, _ = _condition(self.policy, donor_request, self.device)
             family = str(raw_spec.get("family"))
-            actions_t = self._intervene(noise, source, donor, raw_spec)
+            if family == "dynamic_retarget":
+                actions_t, output_transformed, retarget_diagnostics = self._dynamic_retarget(
+                    noise,
+                    source,
+                    donor_request,
+                    raw_spec,
+                )
+            else:
+                donor, _ = _condition(self.policy, donor_request, self.device)
+                actions_t = self._intervene(noise, source, donor, raw_spec)
 
-        return {
-            "actions": _physical_actions(self.policy, source_transformed, actions_t),
+        result = {
+            "actions": _physical_actions(self.policy, output_transformed, actions_t),
             "intervention_family": family,
         }
+        if retarget_diagnostics is not None:
+            result["retarget_diagnostics"] = retarget_diagnostics
+        return result
+
+    def _dynamic_retarget(
+        self,
+        noise: torch.Tensor,
+        source: PreparedCondition,
+        donor_request: dict[str, Any],
+        spec: dict[str, Any],
+    ) -> tuple[torch.Tensor, dict[str, Any], dict[str, Any]]:
+        boundary = _bounded_int(spec, "switch_after_steps", 0, self.num_steps + 1)
+        plan = retarget_plan(str(spec.get("strategy")), boundary, self.num_steps)
+        boundary_state, _ = sample_actions(
+            self.model,
+            noise,
+            lambda _step: source,
+            num_steps=self.num_steps,
+            stop_step=boundary,
+        )
+
+        _synchronize(noise)
+        condition_start = time.perf_counter()
+        donor, donor_transformed = _condition(self.policy, donor_request, self.device)
+        _synchronize(noise)
+        condition_end = time.perf_counter()
+
+        if plan.strategy == "continue":
+            actions, _ = sample_actions(
+                self.model,
+                noise,
+                lambda _step: donor,
+                num_steps=self.num_steps,
+                start_step=boundary,
+                initial_state=boundary_state,
+            )
+        else:
+            actions, _ = sample_actions(
+                self.model,
+                noise,
+                lambda _step: donor,
+                num_steps=self.num_steps,
+            )
+        _synchronize(noise)
+        integration_end = time.perf_counter()
+        diagnostics = {
+            **dataclasses.asdict(plan),
+            "post_event_evaluation_savings": plan.post_event_evaluation_savings,
+            "post_event_evaluation_savings_fraction": plan.post_event_evaluation_savings_fraction,
+            "donor_condition_ms": 1000.0 * (condition_end - condition_start),
+            "post_event_integration_ms": 1000.0 * (integration_end - condition_end),
+            "post_event_total_ms": 1000.0 * (integration_end - condition_start),
+        }
+        return actions, donor_transformed, diagnostics
 
     def _intervene(
         self,
@@ -166,7 +232,13 @@ class InterventionPolicy(base_policy.BasePolicy):
             **self.policy.metadata,
             "accepts_action_noise": True,
             "accepts_causal_intervention": True,
-            "causal_intervention_families": ["flow_switch", "residual_patch", "action_dimension_patch"],
+            "causal_intervention_families": [
+                "flow_switch",
+                "residual_patch",
+                "action_dimension_patch",
+                "dynamic_retarget",
+            ],
+            "dynamic_retarget_strategies": ["continue", "restart"],
             "flow_steps": self.num_steps,
             "action_expert_layers": len(self.layers),
         }
@@ -192,6 +264,11 @@ def _physical_actions(policy: Any, transformed: dict[str, Any], actions: torch.T
         "actions": np.asarray(actions[0].detach().cpu()),
     }
     return np.asarray(policy._output_transform(outputs)["actions"])
+
+
+def _synchronize(reference: torch.Tensor) -> None:
+    if reference.is_cuda:
+        torch.cuda.synchronize(reference.device)
 
 
 def _bounded_int(spec: dict[str, Any], key: str, lower: int, upper: int) -> int:
