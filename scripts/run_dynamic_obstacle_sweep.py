@@ -218,7 +218,12 @@ def _write_tables(
         < float(restart["post_event_total_ms"])
     ] if restart is not None else []
     practical_positive = bool(
-        eligible and nfe_exact and timing_isolated and efficient_boundaries
+        eligible
+        and boundary_zero_actions_exact is True
+        and exact_controls
+        and nfe_exact
+        and timing_isolated
+        and efficient_boundaries
     )
     payload = {
         "schema_version": 1,
@@ -246,6 +251,10 @@ def _write_tables(
             max(successful_boundaries) if successful_boundaries else None
         ),
         "practical_positive": practical_positive,
+        "interpretation_scope": "exploratory_single_pair_gripper_obstacle_avoidance",
+        "contact_definition": "gripper_geom_x_obstacle_contact_geom",
+        "clearance_definition": "eef_center_planar_distance_minus_obstacle_bounding_radius",
+        "whole_robot_collision_measured": False,
         "population_timing_claim_allowed": False,
         "rows": rows,
     }

@@ -16,6 +16,19 @@ PRIOR_FAILURE_MAXIMUM_ABS_ERROR = 2.0130362831905284
 PRIOR_FAILURE_MINIMUM_COSINE = 0.805807150674655
 
 
+def converted_checkpoint_artifact_hashes(checkpoint: Path) -> dict[str, str]:
+    """Hash all runtime-defining files in a lossless converted checkpoint."""
+    required = ("config.json", "conversion_provenance.json", "model.safetensors")
+    missing = [name for name in required if not (checkpoint / name).is_file()]
+    if missing:
+        raise FileNotFoundError(f"converted checkpoint artifacts are missing: {missing}")
+    assets = sorted(path for path in (checkpoint / "assets").rglob("*") if path.is_file())
+    if not assets:
+        raise FileNotFoundError("converted checkpoint has no normalization assets")
+    paths = [*(checkpoint / name for name in required), *assets]
+    return {str(path.relative_to(checkpoint)): file_digest(path) for path in paths}
+
+
 def conversion_parity_summary(
     identifiers: list[str],
     reference: np.ndarray,

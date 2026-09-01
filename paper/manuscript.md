@@ -152,7 +152,10 @@ rollouts.
 SafeDiffuser embeds constraints into iterative diffusion planning and separates
 safety satisfaction from planning quality and overhead
 [@xiao2025safediffuser]. We adopt that measurement separation for the planned
-obstacle study without claiming formal barrier guarantees.
+obstacle study without claiming formal barrier guarantees. Our simulator event
+is explicitly gripper-geometry contact with the moved object, accompanied by an
+end-effector planar-clearance proxy; it is not a whole-arm or whole-robot
+collision certificate.
 
 Interchange interventions replace an internal variable in one computation with
 its value from a counterfactual computation, providing a test of causal
@@ -507,6 +510,10 @@ versioned. A lossless
 float32-intermediate conversion will be rerun on the same cases and unchanged
 0.02/0.999 thresholds; until it passes, pi0 is conversion-limited and no
 pi0-versus-pi0.5 activation comparison is reported.
+The rerun records hashes for the converted weights, model configuration,
+conversion provenance, and every normalization asset. The intervention launcher
+recomputes those hashes and the 16-pair manifest digest; a passed parity report
+cannot authorize a different checkpoint or case set.
 
 ### 4.8 Registered inference-utility experiments
 

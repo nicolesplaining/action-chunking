@@ -1,6 +1,6 @@
 # Research protocol: causal editability and retargeting in action chunks
 
-Protocol version: 0.22 (matched-control common-state gate)
+Protocol version: 0.23 (artifact and utility-gate audit)
 
 ## 1. Research question
 
@@ -153,9 +153,11 @@ Primary outcomes are new-target-first contact, eventual new-task success,
 completion steps, post-event velocity-field evaluations, and synchronized
 post-event wall time including new-condition preparation. Continue at `k=7`
 uses three post-event velocity evaluations versus ten for restart. It is useful
-only if its paired new-target and task-success rates are noninferior to restart
-within a frozen five-percentage-point margin and its measured post-event latency
-is lower. Scene state is the inference cluster. Full-restart success, exact
+only if new-target-first contact, eventual task success, and their primary
+composite each pass the conservative paired-loss noninferiority test within a
+frozen five-percentage-point margin, evaluation counts are exact, and the
+scene-bootstrap latency-savings interval lies strictly above zero. Scene state
+is the inference cluster. Full-restart success, exact
 initial-state restoration, and byte-exact `k=0` equivalence are eligibility
 gates selected without viewing continued outcomes.
 
@@ -238,15 +240,17 @@ a predictive claim. Smaller valid subsets remain descriptive. Correlation or
 accuracy without both sample-size sufficiency and improvement over this fixed
 rule is not called useful timing prediction.
 
-U2 uses a paired composite endpoint requiring both new-target-first contact and
-eventual new-task success. A paired loss is a cluster where restart passes this
-composite and continuation at boundary seven does not. The one-sided 95%
-Clopper--Pearson upper bound on that loss probability must be strictly below the
+U2 reports new-target-first contact, eventual new-task success, and their paired
+composite. For each outcome, a paired loss is a cluster where restart passes and
+boundary-seven continuation does not. Each one-sided 95% Clopper--Pearson upper
+bound on the conservative paired-loss probability must be strictly below the
 frozen 0.05 margin. Directions, target contrasts, tokens, and noise seeds never
-enter this denominator. Post-event velocity evaluations must be exactly 10 for
-restart and 3 for boundary-seven continuation; otherwise the compute comparison
-is invalid. Wall-time savings are summarized by the median paired fractional
-reduction and a 10,000-resample scene-cluster bootstrap interval with seed zero.
+enter these denominators. Post-event velocity evaluations must be exactly 10
+for restart and 3 for boundary-seven continuation; otherwise the compute
+comparison is invalid. Wall-time savings are summarized by the median paired
+fractional reduction and a 10,000-resample scene-cluster bootstrap interval with
+seed zero whose lower endpoint must be above zero. The decision remains pending
+until every cluster selected by the immutable handoff is complete.
 
 ### 2.5 Post-pilot behavioral-sensitivity amendment
 
