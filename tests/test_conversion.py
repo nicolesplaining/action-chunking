@@ -18,6 +18,12 @@ _manifest_script = runpy.run_path("scripts/validate_conversion_manifest.py")
 _lossless_script = runpy.run_path("scripts/convert_pi0_checkpoint_lossless.py")
 
 
+def test_conversion_launcher_passes_preserved_failure_to_final_parity() -> None:
+    launcher = Path("scripts/run_pi0_conversion.sh").read_text()
+
+    assert '--prior-failed-summary "$prior_failed_parity"' in launcher
+
+
 @dataclass(frozen=True)
 class _FakeModelConfig:
     dtype: str
@@ -84,6 +90,10 @@ def test_converted_checkpoint_hashes_required_artifacts(tmp_path) -> None:
     ):
         (tmp_path / name).write_bytes(content)
         expected[name] = hashlib.sha256(content).hexdigest()
+    asset = tmp_path / "assets" / "norm_stats.json"
+    asset.parent.mkdir()
+    asset.write_bytes(b"norms")
+    expected["assets/norm_stats.json"] = hashlib.sha256(b"norms").hexdigest()
 
     assert _manifest_script["_checkpoint_hashes"](tmp_path) == expected
 
@@ -92,6 +102,14 @@ def test_converted_checkpoint_hashes_reject_missing_weights(tmp_path) -> None:
     (tmp_path / "config.json").write_text("config")
 
     with pytest.raises(FileNotFoundError, match=r"model\.safetensors"):
+        _manifest_script["_checkpoint_hashes"](tmp_path)
+
+
+def test_converted_checkpoint_hashes_reject_missing_assets(tmp_path) -> None:
+    for name in ("config.json", "conversion_provenance.json", "model.safetensors"):
+        (tmp_path / name).write_text(name)
+
+    with pytest.raises(FileNotFoundError, match="normalization assets"):
         _manifest_script["_checkpoint_hashes"](tmp_path)
 
 

@@ -15,6 +15,7 @@ import numpy as np
 
 from action_chunking.conversion import (
     conversion_parity_summary,
+    converted_checkpoint_artifact_hashes,
     validate_prior_conversion_failure,
 )
 from action_chunking.pairs import file_digest
@@ -145,11 +146,7 @@ def run_parent(args: argparse.Namespace) -> int:
 
 
 def _checkpoint_hashes(checkpoint: Path) -> dict[str, str]:
-    required = ("config.json", "conversion_provenance.json", "model.safetensors")
-    missing = [name for name in required if not (checkpoint / name).is_file()]
-    if missing:
-        raise FileNotFoundError(f"converted checkpoint artifacts are missing: {missing}")
-    return {name: file_digest(checkpoint / name) for name in required}
+    return converted_checkpoint_artifact_hashes(checkpoint)
 
 
 def _validate_conversion_provenance(

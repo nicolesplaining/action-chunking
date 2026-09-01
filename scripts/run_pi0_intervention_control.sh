@@ -42,9 +42,11 @@ if ! PYTHONPATH="$repo_root/src" "$repo_root/.venv/bin/python" -c \
   echo "pi0 competence gate did not authorize intervention timing" >&2
   exit 1
 fi
-if ! PYTHONPATH="$repo_root/src" "$repo_root/.venv/bin/python" -c \
-  'import json,re,sys; value=json.load(open(sys.argv[1])); hashes=value.get("pytorch_checkpoint_artifact_sha256", {}); identity=value.get("jax_checkpoint_identity", {}); provenance=value.get("conversion_provenance", {}); prior=value.get("prior_failed_conversion", {}); assert value.get("passed") is True; assert int(value.get("cases", -1)) == 32 and int(value.get("passed_cases", -1)) == 32; assert value.get("shape_per_case") == [50, 7]; assert float(value.get("max_abs_tolerance", -1)) == 0.02; assert float(value.get("minimum_cosine_similarity", -1)) == 0.999; assert set(hashes) == {"config.json", "conversion_provenance.json", "model.safetensors"}; assert all(re.fullmatch(r"[0-9a-f]{64}", str(item)) for item in hashes.values()); assert identity.get("finalized") is True and int(identity.get("optimizer_updates", -1)) == 30000; assert provenance.get("source_precision_repair_commit") == "e5fe45e2c6784f315ffa59c207457701fb906c05"; assert provenance.get("upstream_openpi_revision") == "215abfb217dbac7d5f1273282331b9b1866c0479"; assert provenance.get("saved_checkpoint_precision") == "float32"; assert int(prior.get("cases", -1)) == 32 and int(prior.get("passed_cases", -1)) == 24; assert re.fullmatch(r"[0-9a-f]{64}", str(prior.get("sha256")))' \
-  "$parity_summary"; then
+if ! PYTHONPATH="$repo_root/src" "$repo_root/.venv/bin/python" \
+  "$repo_root/scripts/validate_pi0_intervention_inputs.py" \
+  --parity-summary "$parity_summary" \
+  --pytorch-checkpoint "$checkpoint" \
+  --manifest "$manifest" >/dev/null; then
   echo "pi0 conversion parity did not authorize interventions" >&2
   exit 1
 fi
@@ -62,6 +64,11 @@ fi
 printf '%s\n' "$code_commit" >"$output/code_commit.txt"
 nvidia-smi --query-gpu=index,uuid,name,driver_version,memory.total --format=csv >"$output/gpu_preflight.csv"
 sha256sum "$competence_gate" "$parity_summary" "$manifest" >"$output/input_sha256.txt"
+PYTHONPATH="$repo_root/src" "$repo_root/.venv/bin/python" \
+  "$repo_root/scripts/validate_pi0_intervention_inputs.py" \
+  --parity-summary "$parity_summary" \
+  --pytorch-checkpoint "$checkpoint" \
+  --manifest "$manifest" >"$output/intervention_input_binding.json"
 
 run_grid() {
   local mode="$1"

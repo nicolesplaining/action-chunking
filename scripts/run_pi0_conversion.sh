@@ -73,6 +73,7 @@ PYTHONPATH="$repo_root/src:$openpi:$openpi/packages/openpi-client/src" \
   --jax-checkpoint "$jax_checkpoint" \
   --pytorch-checkpoint "$pytorch_output" \
   --upstream-converter "$openpi/examples/convert_jax_model_to_pytorch.py" \
+  --prior-failed-summary "$prior_failed_parity" \
   --manifest "$manifest" \
   --output "$parity_output" \
   --config pi0_libero \
