@@ -1,5 +1,18 @@
 # Reproducibility log
 
+## 2026-09-01: public-catalog obstacle expansion frozen
+
+Protocol version 0.14 was frozen after the wine/bowl obstacle family exhausted
+all 144 geometry checks and before generating another object-family obstacle
+fixture. Every rejection was a pre-policy target--obstacle bounding-sphere
+overlap; no clean or intervention outcome existed. The expansion reuses the
+previously hashed public retarget-screening rows and exclusions, but serializes
+a task-diverse round-robin order `(init_index, first-occurrence target-pair
+rank)` so early screening covers different object geometries. The nine-point
+placement grid, geometry exclusions, clean eligibility thresholds, and
+first-clean-pass stop rule are unchanged. Patched and dynamic outcomes remain
+sealed during selection.
+
 ## 2026-09-01: obstacle scene-order expansion frozen after geometric exhaustion
 
 Protocol version 0.13 was frozen after initialization state 0 produced no
@@ -26,6 +39,8 @@ boundaries are reported; the single selected scene is descriptive and cannot
 support a population timing-prediction claim. This amendment was motivated by
 the construct-validity concern that successful instruction redirection is good
 instruction following, not evidence that a policy was previously undecided.
+The implementation runs only restart and the fully old-conditioned `k=10`
+endpoint first; intermediate boundaries remain sealed unless this gate passes.
 
 ## 2026-09-01: chunk-boundary recovery decomposition frozen
 
