@@ -123,6 +123,11 @@ noninferior to both controls, and require cluster-bootstrap velocity-evaluation
 savings intervals above zero against both. Describe the uniform update-time
 average as a controlled design estimand rather than a deployment distribution.
 
+Require a separate final audit to reconstruct every cluster from its raw sweep
+summary, 12-condition rollout table, and grasp-orientation artifact, recheck all
+frozen input hashes, and rerun every statistic. A utility result is reportable
+only when that independently rebuilt payload exactly matches the saved summary.
+
 Position this as training-free reuse of an interrupted flow trajectory, not as
 a general steering algorithm. DynaGuide and Guided Action Flow add learned
 guidance during iterative generation; DSRL learns a latent-noise policy; STEP

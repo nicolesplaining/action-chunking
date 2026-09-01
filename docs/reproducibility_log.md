@@ -1,5 +1,16 @@
 # Reproducibility log
 
+## 2026-09-01: held-out utility made independently reconstructible
+
+Protocol version 0.36 adds a mandatory final utility audit before any held-out
+continuation outcome exists. A separate process now rebuilds every cluster job
+from the raw rollout CSV, sweep control summary, and grasp-orientation result;
+rechecks all frozen gate, calibration, manifest, and prediction hashes; and
+reruns every registered statistic and decision. The rebuilt payload must equal
+the saved summary exactly. Each job now binds all three raw artifact digests,
+and an existing final audit is accepted only when byte-identical to a fresh
+reconstruction. No intervention, population, threshold, or outcome changed.
+
 ## 2026-09-01: catalog endpoints sharded without changing the frozen prefix
 
 Protocol version 0.35 accelerates the future outcome-independent eligibility

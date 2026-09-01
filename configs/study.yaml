@@ -1,6 +1,6 @@
 study:
   name: pi05_libero_conditional_editability
-  protocol_version: "0.35"
+  protocol_version: "0.36"
   pilot_pairs_per_family: 16
   primary_noise_seed: 0
   robustness_noise_seeds_per_pair: 4
@@ -61,6 +61,10 @@ retarget_utility:
   adaptive_policy_bootstrap_seed: 20
   adaptive_policy_requires_noninferiority_to_both_comparators: true
   adaptive_policy_requires_compute_savings_ci_low_above_zero_vs_both: true
+  utility_final_audit_required: true
+  utility_final_audit_reconstructs_raw_files_per_cluster: 3
+  utility_final_audit_recomputes_all_statistics: true
+  utility_final_audit_resume_requires_exact_match: true
   practical_gate_requires_complete_frozen_population: true
   practical_gate_requires_exact_boundary_zero: true
   practical_gate_requires_boundary_zero_behavior_equivalence: true
