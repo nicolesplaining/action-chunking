@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-if [[ $# -ne 8 ]]; then
-  echo "usage: $0 <gate-summary> <candidate-root> <utility-output> <catalog-plan> <catalog-output> <gpu> <port> <noise-seed>" >&2
+if [[ $# -ne 9 ]]; then
+  echo "usage: $0 <gate-summary> <candidate-root> <utility-output> <catalog-plan> <catalog-output> <orientation-calibration> <gpu> <port> <noise-seed>" >&2
   exit 2
 fi
 
@@ -11,9 +11,10 @@ candidate_root="$(realpath "$2")"
 utility_output="$(realpath -m "$3")"
 catalog_plan="$(realpath "$4")"
 catalog_output="$(realpath -m "$5")"
-gpu="$6"
-port="$7"
-noise_seed="$8"
+orientation_calibration="$(realpath "$6")"
+gpu="$7"
+port="$8"
+noise_seed="$9"
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 if ! [[ "$gpu" =~ ^[0-9]+$ && "$port" =~ ^[1-9][0-9]*$ && "$noise_seed" =~ ^[0-9]+$ ]]; then
@@ -32,6 +33,7 @@ if (( eligible_directions > 0 )); then
     --gate-summary "$gate_summary" \
     --candidate-root "$candidate_root" \
     --output "$utility_output" \
+    --orientation-calibration "$orientation_calibration" \
     --gpu "$gpu" \
     --port "$port" \
     --noise-seed "$noise_seed"
@@ -62,6 +64,7 @@ if (( catalog_eligible_directions > 0 )); then
     --gate-summary "$handoff/gate_summary.json" \
     --candidate-index "$handoff/candidate_index.json" \
     --output "$catalog_output/utility" \
+    --orientation-calibration "$orientation_calibration" \
     --gpu "$gpu" \
     --port "$port" \
     --noise-seed "$noise_seed"

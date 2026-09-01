@@ -41,9 +41,12 @@ contact in 15/15 eligible scene clusters and the target-first-plus-eventual-
 success composite in 14/15, with exact 30% evaluation savings and 30.0% median
 paired integration-latency savings. This passes the frozen pilot rule but not
 confirmatory noninferiority; confirmation on 500 episode pairs (1,000 condition
-rollouts) is pending. A
-matched pi0 control is trained before cross-model claims.
-If its frozen competence and conversion-parity gates pass, the control is run on
+rollouts) is pending. The matched pi0 control passes its frozen behavioral gate
+with 465/500 LIBERO Goal successes and 15/16 exact dual-success target pairs.
+Its first bfloat16 JAX-to-PyTorch conversion fails the frozen parity gate
+(24/32 cases), so no cross-model mechanistic claim is currently allowed; a
+publicly motivated lossless-conversion repair must pass the unchanged gate
+before the control is run on
 the clean-eligible scene intersection with the same ten flow updates and layer
 sites. Direct position contrasts use indices zero through nine, while a
 ten-bin normalized-chunk-time sensitivity retains pi0's full 50-action horizon.
@@ -246,6 +249,20 @@ donor, or neither-target outcomes. Destination identity is evaluated from the
 phase-aligned held-object state using the final live object position relative to
 registered endpoints. LIBERO's source-task success flag is not used to label a
 crossed donor destination.
+
+Grasp orientation uses robosuite's `xyzw` end-effector quaternion convention
+[@zhu2020robosuite]. At first registered contact with either paired target, we
+take the sign-invariant Markley mean over the inclusive three-step contact
+window [@markley2007quaternions] and measure shortest SO(3) angular distance as
+`2 acos(abs(dot(q1, q2)))`. Fully source-conditioned and fully destination-
+conditioned controls define the two reference frames. Clean calibration across
+the 15 eligible wine/bowl states found reference contrasts of 0.334--0.677 rad,
+while maximum within-window dispersion was 0.001--0.016 rad. Before held-out
+continuation outcomes, we therefore froze a conservative 0.20-rad eligibility
+threshold. No-contact cases are censored. Because object identity and grasp
+geometry co-vary in these pairs, we report first-contact identity beside the
+orientation curve and label the correct-target-only subset separately; this
+endpoint does not by itself isolate an object-independent orientation plan.
 
 ### 3.5 Retargeting without restarting generation
 
@@ -450,9 +467,26 @@ A two-update, two-H100 FSDP smoke completed with finite first-reported loss
 0.1812, gradient norm 3.7253, parameter norm 1377.8652, and a finalized Orbax
 checkpoint. The registered 30,000-update training subsequently completed. The
 final state is stored under OpenPI's zero-based Orbax label `29999`; executable
-gates fix its metadata and manifest hashes and accept no other checkpoint. The
-competence and conversion-parity evaluations must complete before any
-pi0-versus-pi0.5 timing contrast is inserted here.
+gates fix its metadata and manifest hashes and accept no other checkpoint.
+
+The behavioral gate passes. The suite succeeds in 465/500 episodes (0.930;
+Wilson 95% interval 0.904--0.949), exceeding the frozen 0.90 rate and 0.87
+lower-bound requirements. Fifteen of 16 held-out target pairs satisfy exact
+initialization, dual success, and instructed-target-first behavior, exceeding
+the frozen minimum of 12. The one failing pair is retained.
+
+The first conversion-parity audit does not pass. Under the same seed-zero
+`50 x 32` noise tensors, 24/32 physical-action cases meet both frozen criteria;
+the maximum absolute error is 2.013 and minimum cosine similarity is 0.806.
+Five large-error donor cases differ primarily at abrupt gripper sign
+transitions, and two additional cases narrowly exceed the 0.02 maximum-error
+threshold. This is consistent with publicly reported OpenPI conversion
+discrepancies and with the silent precision-loss mechanism identified in public
+OpenPI PR #978 [@greymanseu2026openpiprecision]. The original failure remains
+versioned. A lossless
+float32-intermediate conversion will be rerun on the same cases and unchanged
+0.02/0.999 thresholds; until it passes, pi0 is conversion-limited and no
+pi0-versus-pi0.5 activation comparison is reported.
 
 ### 4.8 Registered inference-utility experiments
 
@@ -539,9 +573,10 @@ state-by-noise factorial estimate. The destination replication uses two physical
 state blocks, one task contrast, and one noise seed. Gripper closure has no
 noise-robust eligible state and remains descriptive.
 
-Rotation of the action command is not yet equivalent to a grasp-frame outcome;
-a phase-aligned grasp-orientation evaluator remains required before claiming a
-grasp-orientation editability boundary. The registered obstacle-position and closed-loop
+Rotation of the action command is not equivalent to a grasp-frame outcome. A
+phase-aligned grasp-orientation evaluator is now frozen, but its held-out
+continuation curves remain pending, and the current target pairs co-vary object
+identity with grasp geometry. The registered obstacle-position and closed-loop
 recovery families are also pending. In an initial first-replan recovery pilot,
 all exactness controls passed and all patched rollouts eventually succeeded, but
 zero of two directions had a donor-first contact that was induced relative to

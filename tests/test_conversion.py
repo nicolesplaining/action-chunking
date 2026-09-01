@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import runpy
+from dataclasses import dataclass
 
 import numpy as np
 import pytest
@@ -9,6 +10,44 @@ import pytest
 from action_chunking.conversion import conversion_parity_summary
 
 _manifest_script = runpy.run_path("scripts/validate_conversion_manifest.py")
+_lossless_script = runpy.run_path("scripts/convert_pi0_checkpoint_lossless.py")
+
+
+@dataclass(frozen=True)
+class _FakeModelConfig:
+    dtype: str
+    action_dim: int = 32
+
+
+def test_lossless_conversion_forces_float32_without_mutating_source() -> None:
+    source = _FakeModelConfig(dtype="bfloat16")
+
+    converted = _lossless_script["float32_conversion_config"](source)
+
+    assert source.dtype == "bfloat16"
+    assert converted.dtype == "float32"
+    assert converted.action_dim == source.action_dim
+
+
+def test_lossless_conversion_rejects_non_dataclass_config() -> None:
+    with pytest.raises(TypeError, match="dataclass"):
+        _lossless_script["float32_conversion_config"]({"dtype": "bfloat16"})
+
+
+def test_lossless_conversion_records_immutable_public_provenance(tmp_path) -> None:
+    converter = tmp_path / "convert.py"
+    converter.write_text("# pinned converter\n")
+
+    result = _lossless_script["conversion_provenance"](converter, "openpi-commit")
+
+    assert result["source_precision_repair_commit"] == (
+        "e5fe45e2c6784f315ffa59c207457701fb906c05"
+    )
+    assert result["upstream_openpi_revision"] == "openpi-commit"
+    assert result["upstream_converter_sha256"] == hashlib.sha256(
+        converter.read_bytes()
+    ).hexdigest()
+    assert result["saved_checkpoint_precision"] == "float32"
 
 
 def test_conversion_parity_requires_every_case() -> None:
@@ -35,6 +74,7 @@ def test_converted_checkpoint_hashes_required_artifacts(tmp_path) -> None:
     expected = {}
     for name, content in (
         ("config.json", b"config"),
+        ("conversion_provenance.json", b"provenance"),
         ("model.safetensors", b"weights"),
     ):
         (tmp_path / name).write_bytes(content)
@@ -48,3 +88,26 @@ def test_converted_checkpoint_hashes_reject_missing_weights(tmp_path) -> None:
 
     with pytest.raises(FileNotFoundError, match=r"model\.safetensors"):
         _manifest_script["_checkpoint_hashes"](tmp_path)
+
+
+def test_conversion_provenance_binds_upstream_converter(tmp_path) -> None:
+    checkpoint = tmp_path / "checkpoint"
+    checkpoint.mkdir()
+    converter = tmp_path / "convert.py"
+    converter.write_text("# pinned converter\n")
+    provenance = _lossless_script["conversion_provenance"](
+        converter,
+        "215abfb217dbac7d5f1273282331b9b1866c0479",
+    )
+    (checkpoint / "conversion_provenance.json").write_text(
+        __import__("json").dumps(provenance)
+    )
+
+    assert _manifest_script["_validate_conversion_provenance"](
+        checkpoint,
+        converter,
+    ) == provenance
+
+    converter.write_text("# changed converter\n")
+    with pytest.raises(ValueError, match="wrong upstream converter digest"):
+        _manifest_script["_validate_conversion_provenance"](checkpoint, converter)

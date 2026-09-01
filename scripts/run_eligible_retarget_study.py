@@ -23,6 +23,7 @@ def parse_args() -> argparse.Namespace:
     candidates.add_argument("--candidate-root", type=Path)
     candidates.add_argument("--candidate-index", type=Path)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--orientation-calibration", type=Path, required=True)
     parser.add_argument("--gpu", type=int, default=1)
     parser.add_argument("--port", type=int, default=8003)
     parser.add_argument("--noise-seed", type=int, default=0)
@@ -39,6 +40,12 @@ def main() -> int:
         raise ValueError("endpoint gate contains no eligible retargeting directions")
     for row in endpoint_eligible:
         validate_eligible_retarget_row(row)
+    orientation_calibration = json.loads(args.orientation_calibration.read_text())
+    if orientation_calibration.get("selection_uses_continuation_outcomes") is not False:
+        raise ValueError("orientation calibration must exclude continuation outcomes")
+    if not orientation_calibration.get("all_pairs_pass_contrast"):
+        raise ValueError("orientation calibration did not pass its clean-control gate")
+    orientation_calibration_digest = _digest(args.orientation_calibration)
     eligible, selection = _select_primary_directions(endpoint_eligible)
     gate_digest = _digest(args.gate_summary)
     manifest_by_pair = _candidate_manifests(args.candidate_root, args.candidate_index)
@@ -102,6 +109,8 @@ def main() -> int:
         "noise_seed": args.noise_seed,
         "gate_summary": str(args.gate_summary),
         "gate_summary_sha256": gate_digest,
+        "orientation_calibration": str(args.orientation_calibration),
+        "orientation_calibration_sha256": orientation_calibration_digest,
         "entries": prediction_entries,
     }
     frozen_path = args.output / "frozen_predictions.json"
@@ -114,6 +123,7 @@ def main() -> int:
     frozen_digest = _digest(frozen_path)
 
     sweep_script = Path(__file__).with_name("run_dynamic_retarget_sweep.py")
+    orientation_script = Path(__file__).with_name("analyze_grasp_orientation_sweep.py")
     jobs = []
     for row in eligible:
         _validate_frozen_inputs(
@@ -122,6 +132,8 @@ def main() -> int:
             prediction_entries,
             frozen_path,
             frozen_digest,
+            args.orientation_calibration,
+            orientation_calibration_digest,
         )
         pair_id = row["pair_id"]
         rollout_output = args.output / "rollouts" / pair_id / row["new_side"]
@@ -148,14 +160,34 @@ def main() -> int:
             ],
             check=True,
         )
+        orientation_path = rollout_output / "grasp_orientation.json"
+        subprocess.run(
+            [
+                sys.executable,
+                str(orientation_script),
+                "--sweep",
+                str(rollout_output),
+                "--manifest",
+                str(manifest_by_pair[pair_id]),
+                "--pair-id",
+                pair_id,
+                "--calibration",
+                str(args.orientation_calibration),
+                "--output",
+                str(orientation_path),
+            ],
+            check=True,
+        )
         _validate_frozen_inputs(
             args.gate_summary,
             gate_digest,
             prediction_entries,
             frozen_path,
             frozen_digest,
+            args.orientation_calibration,
+            orientation_calibration_digest,
         )
-        jobs.append(_job_summary(row, rollout_output, prediction_entries))
+        jobs.append(_job_summary(row, rollout_output, prediction_entries, orientation_path))
         _write_summary(args.output, jobs, len(eligible), frozen_path, frozen_digest)
     return 0
 
@@ -201,6 +233,7 @@ def _job_summary(
     gate_row: dict[str, Any],
     rollout_output: Path,
     prediction_entries: list[dict[str, Any]],
+    orientation_path: Path,
 ) -> dict[str, Any]:
     with (rollout_output / "rollouts.csv").open(newline="") as stream:
         rows = list(csv.DictReader(stream))
@@ -238,6 +271,9 @@ def _job_summary(
     )
     boundary7 = by_boundary[7]
     restart = next(row for row in rows if row["strategy"] == "restart")
+    orientation = json.loads(orientation_path.read_text())
+    if orientation.get("pair_id") != gate_row["pair_id"]:
+        raise ValueError("grasp-orientation result has the wrong pair id")
     return {
         "pair_id": gate_row["pair_id"],
         "new_side": gate_row["new_side"],
@@ -272,6 +308,20 @@ def _job_summary(
             restart["post_event_velocity_evaluations"]
         ),
         "restart_post_event_total_ms": float(restart["post_event_total_ms"]),
+        "grasp_orientation": str(orientation_path),
+        "grasp_orientation_sha256": _digest(orientation_path),
+        "orientation_editability_boundary": orientation[
+            "orientation_editability_boundary"
+        ],
+        "predicted_last_orientation_correction_boundary": orientation[
+            "predicted_last_orientation_correction_boundary"
+        ],
+        "orientation_curve_complete": orientation[
+            "all_boundaries_have_registered_target_contact"
+        ],
+        "orientation_correct_target_first_curve": [
+            bool(row["correct_target_first"]) for row in orientation["rows"]
+        ],
     }
 
 
@@ -314,11 +364,15 @@ def _validate_frozen_inputs(
     prediction_entries: list[dict[str, Any]],
     frozen_path: Path,
     frozen_digest: str,
+    orientation_calibration_path: Path,
+    orientation_calibration_digest: str,
 ) -> None:
     if _digest(gate_path) != gate_digest:
         raise ValueError("endpoint gate changed after predictions were frozen")
     if _digest(frozen_path) != frozen_digest:
         raise ValueError("frozen prediction manifest changed after closed-loop rollout began")
+    if _digest(orientation_calibration_path) != orientation_calibration_digest:
+        raise ValueError("orientation calibration changed after closed-loop rollout began")
     for entry in prediction_entries:
         if _digest(Path(entry["manifest"])) != entry["manifest_sha256"]:
             raise ValueError("candidate manifest changed after predictions were frozen")

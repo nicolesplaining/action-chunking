@@ -315,7 +315,18 @@ def _pair_summary(
 
 
 def _warmup(client: Any, model_input: dict[str, Any], noise_seed: int) -> dict[str, Any]:
+    control_noise = _noise_for_replan(noise_seed, -1, -1, 10)
+    clean_response = client.infer(
+        {
+            **model_input,
+            "_action_noise": control_noise,
+        }
+    )
+    clean_actions = np.asarray(clean_response.get("actions"))
+    if clean_response.get("intervention_family") != "clean" or clean_actions.shape != (10, 7):
+        raise ValueError("confirmation clean warm-up returned an invalid action chunk")
     records = []
+    full_control_actions = None
     for condition in ("full_control_10", "early_exit_7"):
         after_steps = CONDITIONS[condition]
         noise = _noise_for_replan(noise_seed, -1, -1, after_steps)
@@ -331,10 +342,25 @@ def _warmup(client: Any, model_input: dict[str, Any], noise_seed: int) -> dict[s
                 },
             }
         )
+        response_actions = np.asarray(response.get("actions"))
+        if response.get("intervention_family") != "early_exit" or response_actions.shape != (10, 7):
+            raise ValueError("confirmation intervention warm-up returned an invalid action chunk")
         diagnostic = response.get("early_exit_diagnostics")
         _validate_diagnostic(diagnostic, after_steps)
         records.append({"condition": condition, "diagnostic": diagnostic})
-    return {"schema_version": 1, "scored": False, "records": records}
+        if condition == "full_control_10":
+            full_control_actions = response_actions
+    if full_control_actions is None or not np.array_equal(clean_actions, full_control_actions):
+        raise ValueError("confirmation full control differs from the clean sampler")
+    action_sha256 = _array_digest(clean_actions)
+    return {
+        "schema_version": 1,
+        "scored": False,
+        "full_control_matches_clean_exact": True,
+        "clean_action_sha256": action_sha256,
+        "full_control_action_sha256": _array_digest(full_control_actions),
+        "records": records,
+    }
 
 
 def _write_progress(args: argparse.Namespace, jobs: list[dict[str, Any]], warmup_sessions: int) -> None:
@@ -427,6 +453,9 @@ def _existing_warmup_sessions(output: Path, code_commit: str) -> list[dict[str, 
             int(session.get("session_index", -1)) != index
             or session.get("scored") is not False
             or session.get("code_commit") != code_commit
+            or session.get("full_control_matches_clean_exact") is not True
+            or re.fullmatch(r"[0-9a-f]{64}", str(session.get("clean_action_sha256"))) is None
+            or session.get("clean_action_sha256") != session.get("full_control_action_sha256")
         ):
             raise ValueError("existing warm-up session log is invalid")
         records = session.get("records", [])
@@ -444,6 +473,15 @@ def _validate_diagnostic(diagnostic: Any, after_steps: int) -> None:
     if not isinstance(diagnostic, dict):
         raise ValueError("early-exit diagnostic is missing")
     expected_savings = 10 - after_steps
+    full_step_exact = after_steps == 10
+    estimate_error = diagnostic.get("full_step_estimate_max_abs_error")
+    estimate_error_valid = (
+        isinstance(estimate_error, (int, float))
+        and math.isfinite(float(estimate_error))
+        and 0.0 <= float(estimate_error) <= 1e-5
+        if full_step_exact
+        else estimate_error is None
+    )
     if (
         int(diagnostic.get("after_steps", -1)) != after_steps
         or int(diagnostic.get("total_flow_steps", -1)) != 10
@@ -451,6 +489,8 @@ def _validate_diagnostic(diagnostic: Any, after_steps: int) -> None:
         or int(diagnostic.get("velocity_field_evaluation_savings", -1)) != expected_savings
         or float(diagnostic.get("velocity_field_evaluation_savings_fraction", -1.0)) != expected_savings / 10
         or float(diagnostic.get("integration_ms", 0.0)) <= 0.0
+        or diagnostic.get("full_step_output_exact") is not full_step_exact
+        or not estimate_error_valid
     ):
         raise ValueError("early-exit diagnostic fails exact compute or latency accounting")
 

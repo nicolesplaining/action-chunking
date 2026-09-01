@@ -1,5 +1,38 @@
 # Reproducibility log
 
+## 2026-09-01: twelve-state matched-control overlap frozen
+
+Protocol version 0.22 was frozen while the pi0 suite evaluation was incomplete
+and before any held-out pi0 pair outcome. The earlier standalone gate required
+12/16 pi0 clean pairs, while pi0.5 has 15/16; those marginals guarantee only 11
+common states. Both pi0 intervention grids now require at least 12 states in the
+actual clean-eligible intersection. A smaller overlap is reported but cannot
+support architecture-timing claims. No model outcome was available when this
+logical correction was made. The selection artifact is written before a failed
+gate stops execution, and distinguishes `overlap_limited` from a
+competence-limited control; no activation intervention can run after failure.
+
+## 2026-09-01: matched-control grid provenance sealed
+
+Before any converted-pi0 activation intervention, the matched-grid launcher was
+made to reject a busy GPU, tracked worktree changes, an OpenPI revision other
+than the pinned commit, or a parity artifact that does not contain all 32
+passing `50 x 7` physical-action cases at the frozen tolerances. Its run root
+records code, hardware, competence, parity, and manifest identity. Each
+clean-only selection now hashes every model and reference validation summary
+that determines the common scene intersection, plus the pair manifest and
+repository commit. No intervention outcome or cross-model statistic existed
+when these checks were added.
+
+## 2026-09-01: confirmation full control checked against clean sampling
+
+Before the first scored confirmation pair, every session warm-up was extended
+with an unscored ordinary clean-sampler request under the same input and noise
+as `k=10`. Scoring can begin only if the returned physical action tensors are
+array-exact, their hashes agree, and the full-step diagnostic has the expected
+roundoff-bounded clean estimate. This validates the control at runtime in every
+resumed process rather than relying only on the earlier pilot archive.
+
 ## 2026-09-01: confirmation task heterogeneity cannot be hidden
 
 Before the first scored confirmation pair, the analyzer was extended with
@@ -409,6 +442,56 @@ conversion check had maximum error 0.00711, but its permissive 0.15 threshold is
 not reused. Any failed pi0 case blocks activation-level architecture claims;
 the JAX behavioral competence result remains separately reportable.
 
+## 2026-09-01: lossless pi0 conversion repair
+
+The first full held-out conversion audit used OpenPI's default bfloat16 output
+and failed unchanged parity thresholds: 24/32 cases passed, maximum absolute
+error was 2.01304, and minimum cosine similarity was 0.805807. Five large-error
+donor cases differed primarily at abrupt gripper sign transitions, while two
+additional cases narrowly exceeded the 0.02 physical-action threshold. The
+failed summary and converted-weight hashes are retained; no intervention was
+launched.
+
+This exposed an implementation issue rather than authorizing a threshold
+change. Public OpenPI PR #978 identifies silent precision loss when a
+non-float32 PI0 config constructs the intermediate converted model; the exact
+adapted source commit is `e5fe45e2c6784f315ffa59c207457701fb906c05`.
+The repair
+calls the pinned public converter's parameter mapping with a float32
+intermediate config and float32 saved checkpoint, after which OpenPI's unchanged
+loader recreates mixed-precision inference. The exact same 32 inputs, seed-zero
+noise, 0.02 maximum-error threshold, and 0.999 cosine threshold must be rerun in
+a new output directory. The original failure is never overwritten; if the
+lossless rerun fails, pi0 remains conversion-limited.
+The rerun additionally binds a SHA-256 digest of the pinned upstream converter,
+the OpenPI submodule revision, the public repair commit, and both conversion
+precision choices in `conversion_provenance.json`; the parity gate hashes this
+file alongside the config and weights.
+
+## 2026-09-01: utility-prediction sample-size gate
+
+Before any public-catalog continuation rollout or action-only prediction
+outcome, U1's comparative decision rule was completed with a minimum of 59
+valid independent scene-cluster predictions. The paired bootstrap upper
+endpoint must still be below zero relative to fixed boundary seven. This uses
+the independent-cluster floor already justified for U2 and prevents a small
+contrast-valid subset from producing a nominally narrow but publication-weak
+predictive-positive claim. All smaller subsets and invalid predictions remain
+reportable, but cannot pass U1.
+
+## 2026-09-01: confirmation independent-audit hardening
+
+After 15/500 pair-atomic confirmation rows existed but before any task stratum
+or confirmatory result was complete, the post-run analyzer was strengthened
+without changing an estimand, threshold, denominator, or outcome. The hardened
+audit independently reconciles every progress job and aggregate counter against
+the 500 pair files, revalidates the exact pilot gate and its SHA-256 binding,
+checks the run's commit binding, and requires the preflight record to contain
+the two distinct H100s. Because the active run remains bound to the earlier
+commit, its original analyzer will run first; after completion, the hardened
+analyzer is rerun on the immutable pair artifacts and both summaries are
+retained.
+
 ## 2026-09-01: population action-token grid frozen
 
 Before any population target-token intervention was generated, the missing
@@ -422,6 +505,27 @@ The full 160 cells per eligible property are retained with within-property BH
 adjustment, while the grouped primary contrast uses a scene bootstrap interval
 and exact sign-flip test. This replaces no existing layer or dimension result
 and prevents choosing token groups from the eventual heatmap.
+
+## 2026-09-01: contact-aligned grasp-orientation endpoint frozen
+
+Before any public-catalog continuation outcome existed, the existing 15 clean-
+eligible wine/bowl controls were used to calibrate a contact-aligned orientation
+endpoint. robosuite's `xyzw` end-effector quaternions are averaged with the
+sign-invariant Markley eigenvector method over the inclusive three-step window
+ending at first instructed-target contact. Shortest SO(3) distance is
+`2 acos(abs(dot(q1, q2)))`.
+
+All 15 clean target pairs were separable: source/destination grasp-frame
+contrast ranged from 0.334485 to 0.677272 rad (median 0.456181), while maximum
+within-window dispersion ranged from 0.001033 to 0.016004 rad. A 0.20-rad
+minimum clean-reference contrast and 0.80 source-retention boundary were frozen
+in `configs/grasp_orientation_protocol.json`. Continuation runs with neither
+registered target contact are censored. First-contact target identity is
+retained beside every orientation observation, and a correct-target-only subset
+is secondary. The primary curve is explicitly labeled target-conditioned grasp
+geometry because this target pair does not independently vary object identity
+and orientation. No catalog continuation result was inspected during this
+calibration.
 
 ## 2026-08-31: public-catalog expansion order frozen
 

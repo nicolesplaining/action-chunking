@@ -1,6 +1,6 @@
 # Research protocol: causal editability and retargeting in action chunks
 
-Protocol version: 0.21 (confirmation session provenance)
+Protocol version: 0.22 (matched-control common-state gate)
 
 ## 1. Research question
 
@@ -230,9 +230,13 @@ donor control in that pilot. Report both predictors' exact rate, within-one
 rate, and mean absolute error. The primary comparative statistic is the paired
 scene-cluster difference `abs(state prediction - observed) - abs(7 - observed)`.
 A predictive positive requires the upper endpoint of its 10,000-resample,
-seed-zero scene-cluster bootstrap 95% interval to be below zero. Correlation or
-accuracy without improvement over this fixed rule is not called useful timing
-prediction.
+seed-zero scene-cluster bootstrap 95% interval to be below zero and at least 59
+valid action-only predictions from independent scene clusters. This reuses the
+conservative independent-cluster floor already fixed for U2 and prevents a
+nominal bootstrap interval over a small validity-selected subset from licensing
+a predictive claim. Smaller valid subsets remain descriptive. Correlation or
+accuracy without both sample-size sufficiency and improvement over this fixed
+rule is not called useful timing prediction.
 
 U2 uses a paired composite endpoint requiring both new-target-first contact and
 eventual new-task success. A paired loss is a cluster where restart passes this
@@ -304,6 +308,21 @@ remains new-target-first plus eventual task success. The decomposition is
 secondary and explains whether failures occur in the intervened chunk, at a
 later chunk boundary, or after correct target selection; it does not replace or
 redefine the frozen primary outcome.
+
+The same held-out target sweep has a frozen phase-aligned grasp-frame endpoint.
+robosuite end-effector quaternions are interpreted in `xyzw` order. At the first
+registered contact with either the old or new target, the endpoint is the
+sign-invariant Markley mean over the inclusive three-step window ending at
+contact. Angular error is the shortest SO(3) distance
+`2 acos(abs(dot(q1, q2)))`. The fully old-conditioned `k=10` continuation and
+the exact `k=0` restart define the source and destination frames. A state is
+orientation-identifiable only when their angular contrast is at least 0.20 rad;
+this threshold was calibrated from clean controls before any catalog
+continuation outcome. Runs with no registered old/new-target contact are
+censored. Target identity is always reported beside orientation, and a
+correct-target-only orientation subset is secondary. The primary grasp-frame
+curve is therefore a target-conditioned geometry endpoint; it does not isolate
+orientation from object choice.
 
 ### 2.6 Registered late visual-safety update pilot
 
@@ -396,8 +415,10 @@ reset and one deterministic Gaussian-noise stream indexed by replan; both
 conditions must reproduce their hashes exactly. Within each task, condition
 order is balanced 25/25 by the rank of a frozen SHA-256 digest of the
 task/trial key, rather than chosen from behavior. A fixed unscored warm-up of
-both conditions precedes timing in every new inference-server process, no other
-client may use the policy GPU, and each episode contributes one paired
+both conditions precedes timing in every new inference-server process. That
+warm-up also requires the full-control physical action tensor to equal an
+ordinary clean-sampler request exactly. No other client may use the policy GPU,
+and each episode contributes one paired
 success/loss outcome regardless of its number of replans. Every warm-up,
 condition, pair, and progress artifact must name the same full Git commit, and
 the launcher rejects tracked worktree changes. The registered 0.02 exact bound
@@ -485,15 +506,26 @@ must pass both levels of the following gate:
 
 The 90% suite threshold is fixed below the public pi0.5-LIBERO-goal reference
 of 98.0% but high enough that causal differences are not dominated by a broadly
-incompetent control. The 12/16 pair threshold ensures a minimum paired overlap
-for descriptive model contrasts. Primary pi0-versus-pi0.5 estimates use only
-the clean-eligible state intersection and retain every exclusion. If either
-level fails, pi0 is reported as a competence-limited negative control and no
-architectural timing comparison is claimed; the gate is not relaxed or rescued
-by selecting a later checkpoint.
+incompetent control. Because pi0.5 has 15/16 clean-eligible states, the
+standalone 12/16 pi0 threshold mathematically guarantees only 11 common states.
+Architecture-timing claims therefore require a separate minimum of 12 states
+in the exact clean-eligible intersection before either pi0 intervention grid
+can run. The clean-only selection artifact is written before this stop, so a
+failed overlap and every contributing pair ID remain reportable. Primary
+pi0-versus-pi0.5 estimates use only the passing intersection and retain every
+exclusion. A competence-level failure is labeled competence-limited; a
+common-state failure is labeled overlap-limited. Neither permits an
+architectural timing comparison, and neither gate is relaxed or rescued by
+selecting a later checkpoint.
 
 Only a checkpoint passing both competence levels is converted to the hookable
-PyTorch implementation with OpenPI's pinned public converter. Before any pi0
+PyTorch implementation with OpenPI's pinned public converter. The public
+parameter mapping is called through the float32-intermediate safeguard proposed
+in OpenPI PR #978: the intermediate model and saved checkpoint remain float32,
+then OpenPI's unchanged policy loader recreates its intended mixed-precision
+inference layout. This prevents an irreversible bfloat16 checkpoint downcast;
+it does not change model weights, inputs, sampling, or the parity criterion.
+Before any pi0
 activation intervention, conversion parity is evaluated on both directions of
 all 16 held-out target fixtures under identical seed-zero `50 x 32` action
 noise. Every physical-action case must have maximum absolute JAX/PyTorch error
@@ -714,8 +746,10 @@ Evaluators are deterministic functions versioned with the experiment.
   clean base-to-donor trajectory contrast; for obstacles, the signed homotopy
   class around the obstacle. This contrast need not point directly at either
   target when collision avoidance or shared approach geometry intervenes.
-- **Grasp orientation:** geodesic wrist-orientation error relative to each
-  candidate grasp frame, evaluated over a preregistered pre-contact window.
+- **Grasp orientation:** shortest SO(3) wrist-orientation error relative to each
+  candidate grasp frame, evaluated over an inclusive three-step window ending
+  at first registered target contact. A sign-invariant Markley quaternion mean
+  defines each window frame; no-contact cases are censored.
 - **Gripper closure:** first future position crossing a calibrated closure
   threshold, with right censoring if closure is absent from the chunk.
 - **Recovery:** first post-perturbation chunk direction, time to resume progress,
