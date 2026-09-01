@@ -116,6 +116,56 @@ def main() -> int:
                     "contrast_cosine": float(row["contrast_cosine"]),
                 }
             )
+        closure = summary.get("gripper_closure_timing")
+        if closure is not None:
+            closure_metric = "gripper_closure_time"
+            closure_eligible = bool(closure["eligible"])
+            units.append(
+                {
+                    "pair_id": pair_id,
+                    "scene_state_sha256": clusters[pair_id],
+                    "noise_seed": noise_seed,
+                    "metric": closure_metric,
+                    "eligible": closure_eligible,
+                    "endpoint_contrast": abs(
+                        float(closure["clean_times"]["donor"])
+                        - float(closure["clean_times"]["base"])
+                    ),
+                    "commitment_step": closure["commitment_step"],
+                    "formation_step": closure["formation_step"],
+                }
+            )
+            if closure_eligible:
+                for row in _read_csv(job_analysis / "gripper_closure_flow_retention.csv"):
+                    flow_rows.append(
+                        {
+                            "pair_id": pair_id,
+                            "scene_state_sha256": clusters[pair_id],
+                            "noise_seed": noise_seed,
+                            "metric": closure_metric,
+                            "switch_after_steps": int(row["switch_after_steps"]),
+                            "eligible": True,
+                            "symmetric_retention": float(row["symmetric_retention"]),
+                        }
+                    )
+                for row in _read_csv(job_analysis / "gripper_closure_formation.csv"):
+                    current = float(row["contrast"])
+                    final = float(row["final_contrast"])
+                    formation_rows.append(
+                        {
+                            "pair_id": pair_id,
+                            "scene_state_sha256": clusters[pair_id],
+                            "noise_seed": noise_seed,
+                            "metric": closure_metric,
+                            "flow_step": int(row["flow_step"]),
+                            "eligible": True,
+                            "contrast_alignment": float(row["contrast_alignment"]),
+                            "contrast_relative_error": float(row["contrast_relative_error"]),
+                            "contrast_cosine": (
+                                float(np.sign(current * final)) if current != 0.0 else float("nan")
+                            ),
+                        }
+                    )
         residual_path = job_analysis / "residual_transfer.csv"
         if residual_path.exists():
             residual_rows.extend(
@@ -141,6 +191,13 @@ def main() -> int:
                 )
             )
 
+    state_metric_eligibility = _apply_all_seed_eligibility(
+        units,
+        flow_rows,
+        formation_rows,
+        residual_rows,
+        dimension_rows,
+    )
     flow_curve, flow_statistics = _aggregate_flow(flow_rows, args)
     formation_curve, formation_statistics = _aggregate_formation(formation_rows, args)
     timing_separation_statistics = _timing_separation(units, args)
@@ -195,8 +252,20 @@ def main() -> int:
                 ("flow_step", "patched_tensor", "patched_dimension_group"),
             ),
         },
+        "seed_eligible_units_by_metric": {
+            metric: sum(row["seed_eligible"] for row in units if row["metric"] == metric)
+            for metric in sorted({row["metric"] for row in units})
+        },
         "eligible_units_by_metric": {
             metric: sum(row["eligible"] for row in units if row["metric"] == metric)
+            for metric in sorted({row["metric"] for row in units})
+        },
+        "all_seed_eligible_state_clusters_by_metric": {
+            metric: sum(
+                eligible
+                for (cluster, selected_metric), eligible in state_metric_eligibility.items()
+                if selected_metric == metric
+            )
             for metric in sorted({row["metric"] for row in units})
         },
         "bootstrap": {
@@ -208,6 +277,23 @@ def main() -> int:
     (args.output / "summary.json").write_text(json.dumps(summary, indent=2, sort_keys=True) + "\n")
     print(json.dumps(summary, indent=2, sort_keys=True))
     return 0
+
+
+def _apply_all_seed_eligibility(
+    units: list[dict[str, Any]],
+    *row_families: list[dict[str, Any]],
+) -> dict[tuple[str, str], bool]:
+    grouped: dict[tuple[str, str], list[bool]] = defaultdict(list)
+    for unit in units:
+        grouped[(unit["scene_state_sha256"], unit["metric"])].append(bool(unit["eligible"]))
+    state_metric_eligibility = {key: all(values) for key, values in grouped.items()}
+    for unit in units:
+        unit["seed_eligible"] = bool(unit["eligible"])
+        unit["eligible"] = state_metric_eligibility[(unit["scene_state_sha256"], unit["metric"])]
+    for rows in row_families:
+        for row in rows:
+            row["eligible"] = state_metric_eligibility[(row["scene_state_sha256"], row["metric"])]
+    return state_metric_eligibility
 
 
 def _intervention_rows(

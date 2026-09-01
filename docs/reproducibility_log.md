@@ -426,3 +426,14 @@ and 8, token 9 was effective at all four depth anchors. Each nonzero site was
 direction-asymmetric (symmetric NCTE 0.5), so the crisp positional localization
 is stronger than the current evidence for a layer-specific mediator. This is a
 pilot result and requires scene-state and noise replication.
+
+The preregistered four-noise sensitivity then found that all eight clean
+rollouts remained exact, first-target-contact-valid, and successful, but closure
+contrast was noise-conditional. Only seed 0 produced token 9 versus censored;
+seeds 1 and 3 closed at token 9 on both sides, and neither side closed within
+the seed-2 chunk. The conservative all-seed gate therefore marks zero eligible
+state clusters for gripper closure, even though one of four seed units is
+eligible. The seed-0 causal and token-localization results remain valid for that
+sampled action mode but are not a noise-robust state-level effect. By contrast,
+translation, rotation, target direction, and the full action remain eligible in
+all four seeds; their four-seed commitment boundaries are 10, 10, 9, and 10.
