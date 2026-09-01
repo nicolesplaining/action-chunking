@@ -40,8 +40,26 @@ def main() -> int:
     if args.bootstrap_replicates <= 0:
         raise ValueError("bootstrap replicates must be positive")
     args.output.mkdir(parents=True, exist_ok=True)
+    _validate_analysis_summary(args.pi05_coarse_analysis)
+    _validate_analysis_summary(args.pi0_coarse_analysis)
+    _validate_analysis_summary(args.pi05_position_analysis)
+    _validate_analysis_summary(args.pi0_position_analysis)
+
     pi05_units = _read_csv(args.pi05_coarse_analysis / "units.csv")
     pi0_units = _read_csv(args.pi0_coarse_analysis / "units.csv")
+    pi05_flow = _read_csv(args.pi05_coarse_analysis / "flow_units.csv")
+    pi0_flow = _read_csv(args.pi0_coarse_analysis / "flow_units.csv")
+    pi05_residual = _read_csv(args.pi05_coarse_analysis / "residual_units.csv")
+    pi0_residual = _read_csv(args.pi0_coarse_analysis / "residual_units.csv")
+    pi05_dimension = _read_csv(args.pi05_coarse_analysis / "dimension_units.csv")
+    pi0_dimension = _read_csv(args.pi0_coarse_analysis / "dimension_units.csv")
+    pi05_positions = _read_csv(args.pi05_position_analysis / "position_units.csv")
+    pi0_positions = _read_csv(args.pi0_position_analysis / "position_units.csv")
+    _validate_coarse_grid(pi05_flow, pi05_residual, pi05_dimension, "pi0.5")
+    _validate_coarse_grid(pi0_flow, pi0_residual, pi0_dimension, "pi0")
+    _validate_position_grid(pi05_positions, args.pi05_action_horizon, "pi0.5")
+    _validate_position_grid(pi0_positions, args.pi0_action_horizon, "pi0")
+
     timing = paired_timing_rows(pi05_units, pi0_units)
     timing_summary = paired_timing_summary(
         timing,
@@ -50,8 +68,8 @@ def main() -> int:
     )
     _write_csv(args.output / "paired_timing.csv", timing)
     flow_shapes = paired_flow_shape_rows(
-        _read_csv(args.pi05_coarse_analysis / "flow_units.csv"),
-        _read_csv(args.pi0_coarse_analysis / "flow_units.csv"),
+        pi05_flow,
+        pi0_flow,
     )
     flow_shape_summary = paired_flow_shape_summary(
         flow_shapes,
@@ -63,22 +81,22 @@ def main() -> int:
     cell_specs = [
         (
             "residual",
-            args.pi05_coarse_analysis / "residual_units.csv",
-            args.pi0_coarse_analysis / "residual_units.csv",
+            pi05_residual,
+            pi0_residual,
             ("flow_step", "layer"),
         ),
         (
             "dimension",
-            args.pi05_coarse_analysis / "dimension_units.csv",
-            args.pi0_coarse_analysis / "dimension_units.csv",
+            pi05_dimension,
+            pi0_dimension,
             ("flow_step", "patched_tensor", "patched_dimension_group"),
         ),
     ]
     cell_summaries = {}
-    for offset, (name, pi05_path, pi0_path, fields) in enumerate(cell_specs, start=1):
+    for offset, (name, pi05_rows, pi0_rows, fields) in enumerate(cell_specs, start=1):
         paired, aggregated = _compare_cells(
-            _read_csv(pi05_path),
-            _read_csv(pi0_path),
+            pi05_rows,
+            pi0_rows,
             fields,
             args.bootstrap_replicates,
             args.bootstrap_seed + offset,
@@ -87,8 +105,6 @@ def main() -> int:
         _write_csv(args.output / f"paired_{name}_cells.csv", aggregated)
         cell_summaries[name] = _cell_summary(aggregated)
 
-    pi05_positions = _read_csv(args.pi05_position_analysis / "position_units.csv")
-    pi0_positions = _read_csv(args.pi0_position_analysis / "position_units.csv")
     pi05_first10 = [row for row in pi05_positions if int(row["action_position"]) < 10]
     pi0_first10 = [row for row in pi0_positions if int(row["action_position"]) < 10]
     first10_paired, first10_cells = _compare_cells(
@@ -101,9 +117,7 @@ def main() -> int:
     _write_csv(args.output / "paired_position_first10_units.csv", first10_paired)
     _write_csv(args.output / "paired_position_first10_cells.csv", first10_cells)
 
-    normalized_pi05 = normalized_position_rows(
-        pi05_positions, args.pi05_action_horizon
-    )
+    normalized_pi05 = normalized_position_rows(pi05_positions, args.pi05_action_horizon)
     normalized_pi0 = normalized_position_rows(pi0_positions, args.pi0_action_horizon)
     normalized_paired, normalized_cells = _compare_cells(
         normalized_pi05,
@@ -116,10 +130,20 @@ def main() -> int:
     _write_csv(args.output / "paired_position_normalized_cells.csv", normalized_cells)
 
     source_paths = {
-        "pi05_coarse": args.pi05_coarse_analysis / "summary.json",
-        "pi0_coarse": args.pi0_coarse_analysis / "summary.json",
-        "pi05_positions": args.pi05_position_analysis / "summary.json",
-        "pi0_positions": args.pi0_position_analysis / "summary.json",
+        "pi05_coarse_summary": args.pi05_coarse_analysis / "summary.json",
+        "pi05_coarse_units": args.pi05_coarse_analysis / "units.csv",
+        "pi05_coarse_flow_units": args.pi05_coarse_analysis / "flow_units.csv",
+        "pi05_coarse_residual_units": args.pi05_coarse_analysis / "residual_units.csv",
+        "pi05_coarse_dimension_units": args.pi05_coarse_analysis / "dimension_units.csv",
+        "pi0_coarse_summary": args.pi0_coarse_analysis / "summary.json",
+        "pi0_coarse_units": args.pi0_coarse_analysis / "units.csv",
+        "pi0_coarse_flow_units": args.pi0_coarse_analysis / "flow_units.csv",
+        "pi0_coarse_residual_units": args.pi0_coarse_analysis / "residual_units.csv",
+        "pi0_coarse_dimension_units": args.pi0_coarse_analysis / "dimension_units.csv",
+        "pi05_positions_summary": args.pi05_position_analysis / "summary.json",
+        "pi05_positions_units": args.pi05_position_analysis / "position_units.csv",
+        "pi0_positions_summary": args.pi0_position_analysis / "summary.json",
+        "pi0_positions_units": args.pi0_position_analysis / "position_units.csv",
     }
     summary = {
         "schema_version": 1,
@@ -138,14 +162,9 @@ def main() -> int:
             "position_first10": _cell_summary(first10_cells),
             "position_normalized": _cell_summary(normalized_cells),
         },
-        "source_files": {
-            name: {"path": str(path), "sha256": file_digest(path)}
-            for name, path in source_paths.items()
-        },
+        "source_files": {name: {"path": str(path), "sha256": file_digest(path)} for name, path in source_paths.items()},
     }
-    (args.output / "summary.json").write_text(
-        json.dumps(summary, indent=2, sort_keys=True) + "\n"
-    )
+    (args.output / "summary.json").write_text(json.dumps(summary, indent=2, sort_keys=True) + "\n")
     print(json.dumps(summary, indent=2, sort_keys=True))
     return 0
 
@@ -158,9 +177,7 @@ def _compare_cells(
     seed: int,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     paired = paired_cell_rows(pi05, pi0, fields)
-    aggregated = aggregate_paired_cells(
-        paired, fields, bootstrap_replicates=replicates, seed=seed
-    )
+    aggregated = aggregate_paired_cells(paired, fields, bootstrap_replicates=replicates, seed=seed)
     return paired, aggregated
 
 
@@ -169,9 +186,7 @@ def _cell_summary(rows: list[dict[str, Any]]) -> dict[str, Any]:
         metric: {
             "common_cells": sum(row["metric"] == metric for row in rows),
             "bh_significant_cells": sum(
-                row["metric"] == metric
-                and float(row["q_bh_within_metric_family"]) < 0.05
-                for row in rows
+                row["metric"] == metric and float(row["q_bh_within_metric_family"]) < 0.05 for row in rows
             ),
         }
         for metric in sorted({str(row["metric"]) for row in rows})
@@ -181,6 +196,68 @@ def _cell_summary(rows: list[dict[str, Any]]) -> dict[str, Any]:
 def _read_csv(path: Path) -> list[dict[str, Any]]:
     with path.open(newline="") as stream:
         return list(csv.DictReader(stream))
+
+
+def _validate_analysis_summary(root: Path) -> None:
+    summary = json.loads((root / "summary.json").read_text())
+    if (
+        summary.get("schema_version") != 1
+        or summary.get("noise_seeds") != [0]
+        or float(summary.get("commitment_threshold", -1.0)) != 0.8
+        or float(summary.get("formation_relative_error_tolerance", -1.0)) != 0.2
+        or int(summary.get("jobs", 0)) <= 0
+        or int(summary.get("pairs", 0)) <= 0
+        or int(summary.get("state_clusters", 0)) <= 0
+    ):
+        raise ValueError(f"incompatible intervention analysis summary: {root}")
+
+
+def _validate_coarse_grid(
+    flow: list[dict[str, Any]],
+    residual: list[dict[str, Any]],
+    dimension: list[dict[str, Any]],
+    model: str,
+) -> None:
+    if {int(row["switch_after_steps"]) for row in flow} != set(range(11)):
+        raise ValueError(f"{model} flow-switch grid is incomplete")
+    residual_cells = {(int(row["flow_step"]), int(row["layer"])) for row in residual}
+    if residual_cells != {(flow_step, layer) for flow_step in range(10) for layer in range(18)}:
+        raise ValueError(f"{model} residual grid is incomplete")
+    dimension_cells = {
+        (
+            int(row["flow_step"]),
+            str(row["patched_tensor"]),
+            str(row["patched_dimension_group"]),
+        )
+        for row in dimension
+    }
+    expected_dimensions = {
+        (flow_step, tensor, group)
+        for flow_step in range(10)
+        for tensor in ("x_t", "v_t")
+        for group in ("translation", "rotation", "gripper")
+    }
+    if dimension_cells != expected_dimensions:
+        raise ValueError(f"{model} action-dimension grid is incomplete")
+
+
+def _validate_position_grid(rows: list[dict[str, Any]], action_horizon: int, model: str) -> None:
+    cells = {
+        (
+            int(row["flow_step"]),
+            int(row["layer"]),
+            int(row["action_position"]),
+        )
+        for row in rows
+    }
+    expected = {
+        (flow_step, layer, position)
+        for flow_step in (0, 7, 8, 9)
+        for layer in (0, 8, 14, 17)
+        for position in range(action_horizon)
+    }
+    if cells != expected:
+        raise ValueError(f"{model} action-position grid is incomplete")
 
 
 def _write_csv(path: Path, rows: list[dict[str, Any]]) -> None:

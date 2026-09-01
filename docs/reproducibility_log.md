@@ -1,5 +1,18 @@
 # Reproducibility log
 
+## 2026-09-01: matched-control comparison inputs fail closed
+
+Before any converted-pi0 activation intervention existed, the cross-model
+analyzer was made to reject an incomplete registered grid. It now requires all
+11 flow-switch boundaries; the full 10-flow-step by 18-layer residual grid; the
+registered action-state tensor/dimension groups; and the complete 4-step by
+4-layer native action-position grids (10 positions for pi0.5 and 50 for pi0).
+It also validates the frozen analysis threshold, formation tolerance, and
+seed-zero design. The comparison manifest now hashes every CSV unit table that
+enters an estimate, rather than only the four upstream summary files. This is a
+pre-outcome provenance and completeness check and changes no model-comparison
+hypothesis or statistic.
+
 ## 2026-09-01: confirmation sessions bound to code provenance
 
 Protocol version 0.21 was frozen before the first scored confirmation pair.
