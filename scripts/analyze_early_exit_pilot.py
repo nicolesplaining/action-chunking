@@ -58,7 +58,7 @@ def analyze_early_exit_pilot(
     entries = manifest.get("pairs", [])
     if len(entries) != 16:
         raise ValueError("early-exit pilot requires the frozen 16-state manifest")
-    scene_hashes = [str(entry["scene_state_sha256"]) for entry in entries]
+    scene_hashes = [_scene_state_hash(entry) for entry in entries]
     if len(set(scene_hashes)) != len(scene_hashes):
         raise ValueError("early-exit pilot scene clusters must have unique state hashes")
     clean_catalog = _catalog(clean_root, 16, None)
@@ -90,7 +90,7 @@ def analyze_early_exit_pilot(
         rows.append(
             {
                 "pair_id": pair_id,
-                "scene_state_sha256": entry["scene_state_sha256"],
+                "scene_state_sha256": _scene_state_hash(entry),
                 "eligible": eligible,
                 "full_actions_exact": full_actions_exact,
                 "full_composite": full_composite,
@@ -173,6 +173,20 @@ def _pair_summary(root: Path, pair_id: str) -> dict[str, Any]:
     if summary.get("pair_id") != pair_id:
         raise ValueError("pair summary id mismatch")
     return summary
+
+
+def _scene_state_hash(entry: dict[str, Any]) -> str:
+    identity_hashes = entry.get("identity_hashes")
+    if not isinstance(identity_hashes, dict):
+        raise ValueError("manifest pair lacks identity hashes")
+    value = identity_hashes.get("sim_state")
+    if not isinstance(value, str) or len(value) != 64:
+        raise ValueError("manifest pair lacks a valid simulator-state hash")
+    try:
+        int(value, 16)
+    except ValueError as error:
+        raise ValueError("manifest simulator-state hash is not hexadecimal") from error
+    return value
 
 
 def _actions_equal(clean_root: Path, full_root: Path, pair_id: str, side: str) -> bool:

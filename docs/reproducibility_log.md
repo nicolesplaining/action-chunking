@@ -20,6 +20,15 @@ Simultaneous first contacts now receive no arbitrary target credit. The frozen
 clean eligibility set contains no such ties, so this changes no denominator or
 observed control outcome.
 
+The first post-rollout analyzer invocation stopped before writing an analysis
+because its new uniqueness check used the test-fixture field
+`scene_state_sha256`, while the frozen real manifest stores that digest at
+`identity_hashes.sim_state`. The behavioral and compute artifacts were already
+complete and were not rerun. Before inspecting any derived pilot statistic, the
+analyzer and its test fixture were corrected to use and validate the real
+64-character hexadecimal simulator-state digest; a duplicate-hash rejection
+test was added. The outcome rule and all 16 rollout artifacts remain unchanged.
+
 ## 2026-09-01: executed-action early-exit pilot frozen
 
 Protocol version 0.18 was frozen after the population action-position result and

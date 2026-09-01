@@ -4,6 +4,8 @@ import json
 import runpy
 from pathlib import Path
 
+import pytest
+
 analyze_early_exit_pilot = runpy.run_path("scripts/analyze_early_exit_pilot.py")[
     "analyze_early_exit_pilot"
 ]
@@ -29,10 +31,26 @@ def test_early_exit_pilot_uses_scene_clusters_and_exact_full_control(tmp_path) -
     assert summary["pilot_positive"] is True
 
 
+def test_early_exit_pilot_rejects_duplicate_simulator_state_clusters(tmp_path) -> None:
+    manifest = {"pairs": [_entry(index) for index in range(16)]}
+    manifest["pairs"][15]["identity_hashes"] = manifest["pairs"][14][
+        "identity_hashes"
+    ]
+    clean = tmp_path / "clean"
+    full = tmp_path / "full"
+    early = tmp_path / "early"
+    _write_catalog(clean, manifest["pairs"], None)
+    _write_catalog(full, manifest["pairs"], 10)
+    _write_catalog(early, manifest["pairs"], 7)
+
+    with pytest.raises(ValueError, match="unique state hashes"):
+        analyze_early_exit_pilot(manifest, clean, full, early)
+
+
 def _entry(index: int) -> dict:
     return {
         "pair_id": f"pair-{index:02d}",
-        "scene_state_sha256": f"state-{index:02d}",
+        "identity_hashes": {"sim_state": f"{index:064x}"},
         "base_target": "mug",
         "donor_target": "bowl",
     }
