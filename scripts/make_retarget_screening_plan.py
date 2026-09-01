@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Freeze an outcome-blind public-catalog retargeting screen order."""
+"""Freeze a closed-loop-outcome-blind public-catalog screen and stop rule."""
 
 from __future__ import annotations
 
@@ -17,6 +17,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--initial-states-per-pair", type=int, default=50)
     parser.add_argument("--minimum-eligible-clusters", type=int, default=59)
+    parser.add_argument("--minimum-valid-prediction-clusters", type=int, default=59)
     return parser.parse_args()
 
 
@@ -27,6 +28,7 @@ def main() -> int:
         args.exclusions,
         initial_states_per_pair=args.initial_states_per_pair,
         minimum_eligible_clusters=args.minimum_eligible_clusters,
+        minimum_valid_prediction_clusters=args.minimum_valid_prediction_clusters,
     )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(plan, indent=2, sort_keys=True) + "\n")

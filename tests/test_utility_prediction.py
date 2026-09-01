@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+import numpy as np
 import pytest
 
+import action_chunking.utility_prediction as utility_prediction
 from action_chunking.utility_prediction import (
     predict_last_successful_boundary,
     validate_eligible_retarget_row,
+    validate_pi05_prediction_arrays,
 )
 
 
@@ -19,11 +22,39 @@ def test_predicts_last_successful_boundary_before_retention_crossing() -> None:
     assert result["isotonic_retention"] == pytest.approx(retention)
 
 
+def test_boundary_zero_uses_restart_only_sentinel(monkeypatch) -> None:
+    records = [_record(boundary, 1.0 - boundary / 10) for boundary in range(11)]
+    monkeypatch.setattr(
+        utility_prediction,
+        "commitment_step",
+        lambda retention, threshold: (0, retention),
+    )
+
+    result = predict_last_successful_boundary(records, "base_to_donor")
+
+    assert result["editability_boundary"] == 0
+    assert result["predicted_last_successful_boundary"] == -1
+
+
 def test_rejects_degenerate_target_direction_contrast() -> None:
     records = [_record(boundary, boundary * 0.0001) for boundary in range(11)]
 
     with pytest.raises(ValueError, match="contrast"):
         predict_last_successful_boundary(records, "base_to_donor")
+
+
+def test_prediction_arrays_reject_nonfinite_values() -> None:
+    actions = {
+        boundary: np.zeros((10, 7), dtype=np.float32)
+        for boundary in range(11)
+    }
+    restart = actions[0].copy()
+    noise = np.zeros((10, 32), dtype=np.float32)
+    validate_pi05_prediction_arrays(actions, restart, noise)
+
+    actions[5][0, 0] = np.nan
+    with pytest.raises(ValueError, match="finite"):
+        validate_pi05_prediction_arrays(actions, restart, noise)
 
 
 def test_eligible_row_requires_every_exact_endpoint_control() -> None:

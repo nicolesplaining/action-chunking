@@ -127,6 +127,9 @@ Require a separate final audit to reconstruct every cluster from its raw sweep
 summary, 12-condition rollout table, and grasp-orientation artifact, recheck all
 frozen input hashes, and rerun every statistic. A utility result is reportable
 only when that independently rebuilt payload exactly matches the saved summary.
+The utility rollout must also use the same completely clean action-chunking
+commit as its endpoint catalog; the frozen prediction manifest and final audit
+both verify that code binding.
 
 Use the preregistered four-panel utility figure regardless of decision sign:
 predicted versus observed recovery boundary, all behavioral curves over update
@@ -158,18 +161,21 @@ replan-index histogram rather than collapsing all failures into eventual
 success alone.
 
 The confirmatory population expands in the frozen public-catalog order until 59
-independent endpoint-eligible scene clusters are available or the catalog is
-exhausted, regardless of whether the 16-state pilot is eligible. Select the first
-endpoint-eligible direction in frozen gate order within each cluster and retain
-all additional directions only in the audit trail. Freeze every selected
-action-only prediction before the first continuation rollout in that population.
+independent endpoint-eligible scene clusters and 59 valid action-only
+predictions are available, or the catalog is exhausted, regardless of whether
+the 16-state pilot is eligible. Predictor validity is computed without any
+closed-loop continuation outcome. Select the first endpoint-eligible direction
+in frozen gate order within each cluster and retain all additional directions
+only in the audit trail. Freeze every selected action-only prediction and its
+complete action arrays before the first continuation rollout, and reconstruct
+the prediction from those arrays during the final audit.
 Report exact and within-one-boundary prediction accuracy, mean absolute error,
 Spearman correlation, success at the predicted boundary, and failure at its
 successor. For boundary seven, report the one-sided exact upper confidence bound
 on paired composite losses, with one scene cluster per trial, alongside median
 paired latency savings and its frozen cluster-bootstrap interval.
 
-For execution only, screen two adjacent outcome-independent catalog rows on
+For execution only, screen two adjacent closed-loop-outcome-independent catalog rows on
 isolated GPU/port workers. Preserve the inferential population as the exact
 contiguous frozen prefix; retain and label at most one concurrently completed
 successor as speculative and exclude it from selection. Do not reuse the prior
@@ -223,7 +229,9 @@ LIBERO Goal episodes and 15/16 exact dual-success target pairs. Its first
 bfloat16 conversion fails parity at 24/32 cases, so the matched mechanistic
 comparison remains conversion-limited. Rerun the same cases with the public
 float32-intermediate repair and unchanged thresholds; only a 32/32 pass may
-release the two-H100 coarse and all-50-position grids.
+release the two-H100 coarse and all-50-position grids. The repair is launched
+only from a completely clean worktree, and its provenance binds the full
+action-chunking commit into the hashed converted-checkpoint artifact set.
 
 The model comparison is a matched experimental protocol, not a pure
 architectural ablation: pi0 and pi0.5 differ in pretraining and checkpoint

@@ -1,5 +1,64 @@
 # Reproducibility log
 
+## 2026-09-01: public efficiency and guidance comparison refreshed
+
+A primary-source search before the held-out catalog added three direct
+comparisons that were absent from the manuscript: OptimusVLA's retrieved-prior
+adaptive-NFE sampler, Reducing Temporal Redundancy's trained two-step VLA
+sampler and incremental visual encoder, and training-free Action Coherence
+Guidance. Public code is linked where available. These methods sharpen the
+distinction between learned priors, trained compression, auxiliary guidance,
+and our causal decision to continue or restart an unmodified in-progress pi0.5
+sample. No experimental population, intervention, endpoint, threshold, or
+decision rule changed.
+
+## 2026-09-01: pi0.5 prediction artifacts made shape-exact
+
+An outcome-blind implementation audit before the fresh endpoint catalog found
+that the prediction verifier incorrectly expected pi0's 50-action arrays even
+though the utility experiment uses pi0.5's ten-action checkpoint. Sampling had
+not started. The sampler and independent verifier now require all eleven
+ten-by-seven physical action arrays and the ten-by-32 Gaussian noise array,
+record both shapes, and reject missing, nonnumeric, or nonfinite data. A
+threshold crossing at boundary zero is represented by the registered
+restart-only sentinel `-1`, not a null value. No candidate, prediction, endpoint,
+continuation outcome, threshold, or decision was observed or changed.
+
+## 2026-09-01: catalog stop rule guarantees the predictive sample size
+
+Protocol version 0.40 corrects the confirmatory catalog before the fresh screen
+or any closed-loop continuation outcome. The exact contiguous prefix now stops
+only after it contains both 59 endpoint-eligible clusters and 59 valid
+action-only scene predictions, or the public catalog is exhausted. Predictor
+validity is computed from frozen action arrays without continuation rollouts;
+invalid predictions remain in every denominator with restart fallback. Each
+prediction is reconstructed from its arrays and target geometry before it can
+affect the stop count or final audit. The versioned plan is
+`catalogs/retarget_screening_plan_protocol040.json`, SHA-256
+`3706d8da03391a5efe6a3261008c4ad4f7b98b0dfb424c1e9797e9d7e9793a3d`.
+The legacy plan remains byte-identical because the completed obstacle study is
+bound to its earlier digest. No endpoint, continuation outcome, statistic, or
+decision threshold changed.
+
+## 2026-09-01: utility outcomes bound to clean orchestration code
+
+Protocol version 0.39 closes the remaining code-lineage gap before any held-out
+continuation outcome exists. The closed-loop utility launcher now requires the
+same clean action-chunking commit as the endpoint catalog and the pinned OpenPI
+revision. The runner freezes that full commit before rollout, rechecks the
+checkout and binding around every cluster, and the independent final audit
+rejects a missing or changed binding. No population, endpoint, predictor,
+boundary, outcome, statistic, or decision rule changed.
+
+## 2026-09-01: pi0 conversion bound to orchestration code
+
+Protocol version 0.38 requires the lossless pi0 conversion launcher to start
+from a completely clean worktree and records the full action-chunking commit in
+conversion provenance. The saved provenance is part of the converted-checkpoint
+artifact hash set, and both the parity validator and intervention gate reject a
+missing or malformed code binding. No checkpoint, parity tolerance, fixture,
+noise, or intervention changed.
+
 ## 2026-09-01: held-out utility figure frozen before outcomes
 
 Protocol version 0.37 fixes the four held-out utility panels before any catalog

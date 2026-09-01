@@ -97,6 +97,20 @@ paper version, not this summary.
   positions have different late causal mediation. We do not adopt its schedule
   in the confirmation; our practical test truncates the unchanged uniform
   sampler selected before its suite outcomes.
+- **OptimusVLA:** retrieves task-level action priors, adapts the initial noise
+  scale, and reduces the flow function-evaluation budget
+  ([paper](https://arxiv.org/abs/2602.20200),
+  [code](https://github.com/JiuTian-VL/OptimusVLA)). It is a direct public
+  adaptive-NFE comparison, but it changes the learned policy and prior. Our
+  experiment asks whether a frozen public pi0.5 sample already in progress can
+  be reused after its condition changes.
+- **Reducing Temporal Redundancy for Efficient VLA Inference:** combines
+  incremental visual-token updates with efficiency-oriented training of a
+  compact two-step action sampler
+  ([paper](https://arxiv.org/abs/2607.12287)). It motivates reporting total
+  system cost, while our controlled estimand isolates already-sunk versus
+  remaining velocity evaluations and separately reports condition-preparation
+  latency.
 - **SafeDiffuser:** inserts control-barrier constraints into iterative diffusion
   planning and evaluates safety jointly with planning quality
   ([paper](https://arxiv.org/abs/2306.00148),
@@ -107,6 +121,13 @@ paper version, not this summary.
 
 ## Inference-time steering and warm starts
 
+- **Action Coherence Guidance:** constructs a training-free guidance vector for
+  flow-based VLAs to reduce within-chunk jitter, pauses, and trajectory drift
+  ([paper](https://arxiv.org/abs/2510.22201),
+  [code](https://github.com/DAVIAN-Robotics/ACG)). It is a public precedent for
+  modifying velocity fields at inference. Our intervention instead changes only
+  the model's natural instruction condition and tests whether the measured
+  editability boundary predicts when continuing remains behaviorally safe.
 - **DynaGuide:** steers a frozen diffusion policy during denoising with gradients
   from a separately trained latent dynamics model
   ([paper](https://arxiv.org/abs/2506.13922),

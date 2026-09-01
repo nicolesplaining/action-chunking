@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -17,7 +18,10 @@ from action_chunking.utility_artifacts import (
     cluster_id,
     select_primary_directions,
 )
-from action_chunking.utility_prediction import validate_eligible_retarget_row
+from action_chunking.utility_prediction import (
+    audit_prediction_artifacts,
+    validate_eligible_retarget_row,
+)
 
 
 def parse_args() -> argparse.Namespace:
@@ -31,6 +35,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--gpu", type=int, default=1)
     parser.add_argument("--port", type=int, default=8003)
     parser.add_argument("--noise-seed", type=int, default=0)
+    parser.add_argument("--action-chunking-commit", required=True)
+    parser.add_argument("--require-precomputed-predictions", action="store_true")
     return parser.parse_args()
 
 
@@ -38,6 +44,7 @@ def main() -> int:
     args = parse_args()
     if args.noise_seed != 0:
         raise ValueError("registered retarget utility requires noise seed zero")
+    _validate_execution_binding(args.output, args.action_chunking_commit)
     gate = json.loads(args.gate_summary.read_text())
     if gate.get("selection_uses_continuation_outcomes") is not False:
         raise ValueError("eligibility selection must explicitly exclude continuation outcomes")
@@ -64,9 +71,26 @@ def main() -> int:
     prediction_script = Path(__file__).with_name("sample_retarget_prediction.py")
     for row in eligible:
         pair_id = row["pair_id"]
-        prediction_output = args.output / "predictions" / pair_id / row["new_side"]
-        prediction_path = prediction_output / "prediction.json"
-        if not prediction_path.is_file():
+        precomputed = row.get("action_only_prediction")
+        if precomputed is not None:
+            prediction_path = Path(str(precomputed["prediction"]))
+            actions_path = Path(str(precomputed["actions"]))
+            if (
+                not prediction_path.is_file()
+                or _digest(prediction_path) != precomputed["prediction_sha256"]
+                or not actions_path.is_file()
+                or _digest(actions_path) != precomputed["actions_sha256"]
+            ):
+                raise ValueError(
+                    "precomputed action-only prediction changed after catalog screening"
+                )
+        else:
+            if args.require_precomputed_predictions:
+                raise ValueError("confirmatory utility requires catalog-frozen predictions")
+            prediction_output = args.output / "predictions" / pair_id / row["new_side"]
+            prediction_path = prediction_output / "prediction.json"
+            actions_path = prediction_output / "actions.npz"
+        if precomputed is None and not prediction_path.is_file():
             subprocess.run(
                 [
                     sys.executable,
@@ -89,6 +113,26 @@ def main() -> int:
         prediction = json.loads(prediction_path.read_text())
         if prediction.get("pair_id") != pair_id or prediction.get("new_side") != row["new_side"]:
             raise ValueError("existing prediction does not match the eligible direction")
+        if precomputed is not None and (
+            prediction.get("valid") is not precomputed.get("valid")
+            or prediction.get("predicted_last_successful_boundary")
+            != precomputed.get("predicted_last_successful_boundary")
+        ):
+            raise ValueError("precomputed prediction metadata differs from its artifact")
+        audited_prediction = audit_prediction_artifacts(
+            prediction_path,
+            actions_path,
+            manifest_by_pair[pair_id],
+            pair_id,
+            str(row["new_side"]),
+        )
+        if audited_prediction != {
+            "valid": bool(prediction["valid"]),
+            "predicted_last_successful_boundary": prediction.get(
+                "predicted_last_successful_boundary"
+            ),
+        }:
+            raise ValueError("action-only prediction audit differs from its metadata")
         prediction_entries.append(
             {
                 "pair_id": pair_id,
@@ -98,6 +142,8 @@ def main() -> int:
                 "manifest_sha256": _digest(manifest_by_pair[pair_id]),
                 "prediction": str(prediction_path),
                 "prediction_sha256": _digest(prediction_path),
+                "prediction_actions": str(actions_path),
+                "prediction_actions_sha256": _digest(actions_path),
                 "valid": bool(prediction["valid"]),
                 "predicted_last_successful_boundary": prediction.get("predicted_last_successful_boundary"),
             }
@@ -111,6 +157,7 @@ def main() -> int:
         "selected_independent_clusters": len(eligible),
         "direction_selection": selection,
         "noise_seed": args.noise_seed,
+        "action_chunking_commit": args.action_chunking_commit,
         "gate_summary": str(args.gate_summary),
         "gate_summary_sha256": gate_digest,
         "orientation_calibration": str(args.orientation_calibration),
@@ -138,6 +185,8 @@ def main() -> int:
             frozen_digest,
             args.orientation_calibration,
             orientation_calibration_digest,
+            args.output,
+            args.action_chunking_commit,
         )
         pair_id = row["pair_id"]
         rollout_output = args.output / "rollouts" / pair_id / row["new_side"]
@@ -190,6 +239,8 @@ def main() -> int:
             frozen_digest,
             args.orientation_calibration,
             orientation_calibration_digest,
+            args.output,
+            args.action_chunking_commit,
         )
         jobs.append(
             build_utility_job(
@@ -269,7 +320,10 @@ def _validate_frozen_inputs(
     frozen_digest: str,
     orientation_calibration_path: Path,
     orientation_calibration_digest: str,
+    output: Path,
+    action_chunking_commit: str,
 ) -> None:
+    _validate_execution_binding(output, action_chunking_commit)
     if _digest(gate_path) != gate_digest:
         raise ValueError("endpoint gate changed after predictions were frozen")
     if _digest(frozen_path) != frozen_digest:
@@ -281,6 +335,40 @@ def _validate_frozen_inputs(
             raise ValueError("candidate manifest changed after predictions were frozen")
         if _digest(Path(entry["prediction"])) != entry["prediction_sha256"]:
             raise ValueError("action-only prediction changed after it was frozen")
+        if (
+            _digest(Path(entry["prediction_actions"]))
+            != entry["prediction_actions_sha256"]
+        ):
+            raise ValueError("action-only prediction actions changed after they were frozen")
+
+
+def _validate_execution_binding(output: Path, action_chunking_commit: str) -> None:
+    if re.fullmatch(r"[0-9a-f]{40}", action_chunking_commit) is None:
+        raise ValueError("retarget utility requires a full lowercase code commit")
+    repo = Path(__file__).resolve().parents[1]
+    actual = subprocess.run(
+        ["git", "-C", str(repo), "rev-parse", "HEAD"],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    if actual != action_chunking_commit:
+        raise ValueError("retarget utility code commit differs from the current checkout")
+    status = subprocess.run(
+        ["git", "-C", str(repo), "status", "--porcelain=v1", "--untracked-files=all"],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout
+    if status:
+        raise ValueError("retarget utility requires a completely clean worktree")
+    binding = output / "code_commit.txt"
+    if output.exists() and not binding.is_file():
+        raise ValueError("existing retarget utility output lacks a code-commit binding")
+    output.mkdir(parents=True, exist_ok=True)
+    if binding.is_file() and binding.read_text().strip() != action_chunking_commit:
+        raise ValueError("existing retarget utility output uses a different code commit")
+    binding.write_text(action_chunking_commit + "\n")
 
 
 if __name__ == "__main__":

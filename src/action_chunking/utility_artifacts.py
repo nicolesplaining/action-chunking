@@ -4,13 +4,17 @@ from __future__ import annotations
 
 import csv
 import json
+import re
 from pathlib import Path
 from typing import Any
 
 from action_chunking.pairs import file_digest
 from action_chunking.retarget_controls import boundary_zero_behavior_exact
 from action_chunking.utility_analysis import summarize_utility_jobs
-from action_chunking.utility_prediction import validate_eligible_retarget_row
+from action_chunking.utility_prediction import (
+    audit_prediction_artifacts,
+    validate_eligible_retarget_row,
+)
 
 
 def build_utility_job(
@@ -256,6 +260,14 @@ def audit_utility_study(root: Path) -> dict[str, Any]:
         or int(frozen.get("noise_seed", -1)) != 0
     ):
         raise ValueError("utility summary has an invalid frozen-prediction binding")
+    action_chunking_commit = str(frozen.get("action_chunking_commit", ""))
+    code_binding = root / "code_commit.txt"
+    if (
+        re.fullmatch(r"[0-9a-f]{40}", action_chunking_commit) is None
+        or not code_binding.is_file()
+        or code_binding.read_text().strip() != action_chunking_commit
+    ):
+        raise ValueError("utility study lacks a valid code-commit binding")
 
     gate_path = Path(str(frozen.get("gate_summary", "")))
     calibration_path = Path(str(frozen.get("orientation_calibration", "")))
@@ -270,6 +282,39 @@ def audit_utility_study(root: Path) -> dict[str, Any]:
     gate = _read_json(gate_path)
     if gate.get("selection_uses_continuation_outcomes") is not False:
         raise ValueError("utility endpoint gate used continuation outcomes")
+    catalog_path = Path(str(gate.get("source_catalog_summary", "")))
+    if (
+        not catalog_path.is_file()
+        or gate.get("source_catalog_summary_sha256") != file_digest(catalog_path)
+    ):
+        raise ValueError("utility endpoint gate lacks its frozen catalog summary")
+    catalog = _read_json(catalog_path)
+    if (
+        catalog.get("code_commit") != action_chunking_commit
+        or catalog.get("selection_uses_continuation_outcomes") is not False
+        or catalog.get("selection_uses_action_only_prediction_validity") is not True
+        or not (
+            catalog.get("stop_threshold_reached") is True
+            or catalog.get("catalog_exhausted") is True
+        )
+        or gate.get("catalog_stop_threshold_reached")
+        is not catalog.get("stop_threshold_reached")
+        or gate.get("catalog_exhausted") is not catalog.get("catalog_exhausted")
+        or gate.get("confirmatory_population_complete")
+        is not catalog.get("stop_threshold_reached")
+        or int(gate.get("eligible_clusters", -1))
+        != int(catalog.get("eligible_clusters", -2))
+        or int(gate.get("valid_prediction_clusters", -1))
+        != int(catalog.get("valid_prediction_clusters", -2))
+    ):
+        raise ValueError("utility endpoint gate differs from its catalog lineage")
+    source_gates = gate.get("source_gates")
+    if not isinstance(source_gates, list):
+        raise ValueError("utility endpoint gate lacks source-gate provenance")
+    for source_gate in source_gates:
+        path = Path(str(source_gate.get("path", "")))
+        if not path.is_file() or source_gate.get("sha256") != file_digest(path):
+            raise ValueError("utility endpoint source gate changed after catalog screening")
     endpoint_rows = [row for row in gate.get("rows", []) if row.get("eligible")]
     for row in endpoint_rows:
         validate_eligible_retarget_row(row)
@@ -297,10 +342,25 @@ def audit_utility_study(root: Path) -> dict[str, Any]:
         for path_field, digest_field in (
             ("manifest", "manifest_sha256"),
             ("prediction", "prediction_sha256"),
+            ("prediction_actions", "prediction_actions_sha256"),
         ):
             path = Path(str(entry.get(path_field, "")))
             if not path.is_file() or entry.get(digest_field) != file_digest(path):
                 raise ValueError(f"utility frozen {path_field} changed after prediction")
+        audited_prediction = audit_prediction_artifacts(
+            Path(entry["prediction"]),
+            Path(entry["prediction_actions"]),
+            Path(entry["manifest"]),
+            str(entry["pair_id"]),
+            str(entry["new_side"]),
+        )
+        if audited_prediction != {
+            "valid": entry["valid"],
+            "predicted_last_successful_boundary": entry[
+                "predicted_last_successful_boundary"
+            ],
+        }:
+            raise ValueError("utility frozen prediction differs from reconstructed actions")
 
     gate_by_key = {
         (str(row["pair_id"]), str(row["new_side"])): row for row in selected
@@ -331,6 +391,7 @@ def audit_utility_study(root: Path) -> dict[str, Any]:
         "utility_summary_sha256": file_digest(summary_path),
         "frozen_predictions_sha256": file_digest(frozen_path),
         "independent_scene_clusters": len(jobs),
+        "action_chunking_commit": action_chunking_commit,
         "raw_sweep_files": len(jobs) * 3,
         "utility_inference_status": summary["utility_inference_status"],
         "prediction_utility_positive": summary["prediction_utility_positive"],

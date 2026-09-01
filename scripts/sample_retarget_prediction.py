@@ -14,7 +14,11 @@ from openpi_client import websocket_client_policy
 
 from action_chunking.metrics import target_direction_affinity
 from action_chunking.pairs import action_noise_shape, advance_action_noise, load_instruction_pair
-from action_chunking.utility_prediction import predict_last_successful_boundary
+from action_chunking.utility_prediction import (
+    PI05_ACTION_NOISE_SHAPE,
+    predict_last_successful_boundary,
+    validate_pi05_prediction_arrays,
+)
 
 
 def parse_args() -> argparse.Namespace:
@@ -45,6 +49,11 @@ def main() -> int:
     if "dynamic_retarget" not in metadata.get("causal_intervention_families", []):
         raise ValueError("server does not advertise dynamic retargeting")
     noise_shape = action_noise_shape(metadata)
+    if noise_shape != PI05_ACTION_NOISE_SHAPE:
+        raise ValueError(
+            "pi0.5 retarget prediction requires action noise shape "
+            f"{PI05_ACTION_NOISE_SHAPE}, got {noise_shape}"
+        )
     noise_rng = np.random.default_rng(args.noise_seed)
     source_replan_index = int(entry.get("source_replan_index") or 0)
     advance_action_noise(noise_rng, source_replan_index, noise_shape)
@@ -73,6 +82,7 @@ def main() -> int:
             }
         )
     restart = np.asarray(_infer(client, pair, args.new_side, 0, "restart", noise)["actions"])
+    validate_pi05_prediction_arrays(actions_by_boundary, restart, noise)
     if not np.array_equal(restart, actions_by_boundary[0]):
         raise ValueError("boundary-zero continuation differs from clean restart")
     try:
@@ -105,6 +115,7 @@ def main() -> int:
             "noise_seed": args.noise_seed,
             "noise_start_index": source_replan_index,
             "action_noise_shape": list(noise_shape),
+            "action_shape": list(restart.shape),
             "old_side": old_side,
             "new_side": args.new_side,
             "executed_action_horizon": 5,
@@ -113,6 +124,8 @@ def main() -> int:
                 str(boundary): hashlib.sha256(actions.tobytes()).hexdigest()
                 for boundary, actions in actions_by_boundary.items()
             },
+            "restart_action_sha256": hashlib.sha256(restart.tobytes()).hexdigest(),
+            "action_noise_sha256": hashlib.sha256(noise.tobytes()).hexdigest(),
         }
     )
     args.output.mkdir(parents=True, exist_ok=True)

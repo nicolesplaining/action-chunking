@@ -25,8 +25,13 @@ def test_two_worker_catalog_keeps_exact_prefix_and_records_speculation(
         for index in range(3)
     ]
     plan = {
-        "selection_uses_intervention_outcomes": False,
-        "stop_rule": {"minimum_eligible_clusters": 1},
+        "selection_uses_intervention_outcomes": True,
+        "selection_uses_continuation_outcomes": False,
+        "selection_uses_action_only_prediction_validity": True,
+        "stop_rule": {
+            "minimum_eligible_clusters": 1,
+            "minimum_valid_prediction_clusters": 1,
+        },
         "rows": rows,
     }
     plan_path = tmp_path / "plan.json"
@@ -52,6 +57,7 @@ def test_two_worker_catalog_keeps_exact_prefix_and_records_speculation(
             "event_gate_directions": eligible,
             "eligible_directions": eligible,
             "eligible_pair_ids": [f"pair-{index}"] if eligible else [],
+            "action_only_predictions": [],
         }
         if eligible:
             gate = row_root / "gate" / "summary.json"
@@ -59,9 +65,45 @@ def test_two_worker_catalog_keeps_exact_prefix_and_records_speculation(
             gate.write_text("{}")
             result["gate_summary"] = str(gate)
             result["gate_summary_sha256"] = _digest(gate)
+            prediction = row_root / "predictions" / "prediction.json"
+            actions = row_root / "predictions" / "actions.npz"
+            prediction.parent.mkdir(parents=True)
+            prediction.write_text(
+                json.dumps(
+                    {
+                        "pair_id": f"pair-{index}",
+                        "new_side": "donor",
+                        "valid": True,
+                        "predicted_last_successful_boundary": 7,
+                    }
+                )
+            )
+            actions.write_bytes(b"actions")
+            result["action_only_predictions"] = [
+                {
+                    "pair_id": f"pair-{index}",
+                    "new_side": "donor",
+                    "prediction": str(prediction),
+                    "prediction_sha256": _digest(prediction),
+                    "actions": str(actions),
+                    "actions_sha256": _digest(actions),
+                    "manifest": str(source),
+                    "manifest_sha256": _digest(source),
+                    "valid": True,
+                    "predicted_last_successful_boundary": 7,
+                }
+            ]
         return result
 
     monkeypatch.setitem(run_catalog.__globals__, "_run_row", fake_run_row)
+    monkeypatch.setitem(
+        run_catalog.__globals__,
+        "audit_prediction_artifacts",
+        lambda *_args: {
+            "valid": True,
+            "predicted_last_successful_boundary": 7,
+        },
+    )
     workers = [WorkerConfig(0, 8003, 0), WorkerConfig(1, 8004, 0)]
 
     summary = run_catalog(plan, plan_path, tmp_path / "output", workers, "a" * 40)
