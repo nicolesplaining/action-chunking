@@ -239,8 +239,11 @@ def _job_summary(
     if boundary_zero_behavior_exact(rows, [str(gate_row["new_side"])]) is not True:
         raise ValueError("boundary-zero behavior differs between continue and restart rows")
     continuation = [row for row in rows if row["strategy"] == "continue"]
+    restart_rows = [row for row in rows if row["strategy"] == "restart"]
+    if len(continuation) != 11 or len(restart_rows) != 1:
+        raise ValueError("completed retarget sweep has duplicate or missing strategy rows")
     by_boundary = {int(row["switch_after_steps"]): row for row in continuation}
-    if set(by_boundary) != set(range(11)):
+    if len(by_boundary) != len(continuation) or set(by_boundary) != set(range(11)):
         raise ValueError("completed retarget sweep does not contain all boundaries 0..10")
     success_curve = [
         _boolean(by_boundary[boundary]["new_target_first"])
@@ -262,7 +265,7 @@ def _job_summary(
         if entry["pair_id"] == gate_row["pair_id"] and entry["new_side"] == gate_row["new_side"]
     )
     boundary7 = by_boundary[7]
-    restart = next(row for row in rows if row["strategy"] == "restart")
+    restart = restart_rows[0]
     orientation = json.loads(orientation_path.read_text())
     if orientation.get("pair_id") != gate_row["pair_id"]:
         raise ValueError("grasp-orientation result has the wrong pair id")
@@ -366,7 +369,7 @@ def _utility_decision(
             "practical_utility_positive": None,
             "utility_inference_status": "pending",
         }
-    prediction_positive = bool(statistics["prediction_beats_fixed_boundary_mae"])
+    prediction_positive = bool(statistics["prediction_utility_gate_passed"])
     practical_positive = bool(statistics["boundary7_practical_gate_passed"])
     return {
         "study_complete": True,

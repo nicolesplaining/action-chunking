@@ -335,6 +335,18 @@ replanning, and eventual failure after correct target selection. Thus a useful
 boundary can be evaluated both as immediate event avoidance and as a predictor
 of downstream recovery across chunk boundaries.
 
+For U1, an action-only editability boundary is useful only if it improves
+scene-level mean absolute error for the observed last successful boundary over
+fixed `k=7` with a bootstrap interval below zero, has positive scene-level rank
+association under a one-sided permutation test, *and* the composite success of
+executing the predictor-selected boundary is noninferior to executing `k=7`.
+The association requirement distinguishes scene-specific prediction from a
+better but constant global boundary. Scenes with no successful boundary are
+retained as ordinal boundary `-1`. Closed-loop success curves are not forced to
+be monotone; all monotonicity violations are reported because a numerically
+accurate boundary is not an actionable policy when the selected cell itself
+fails.
+
 ### 3.6 Layer, action-state, and token interventions
 
 At flow step `s` and action-expert layer `l`, residual interchange replaces all

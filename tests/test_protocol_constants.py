@@ -18,7 +18,7 @@ def test_machine_readable_protocol_matches_executable_frozen_defaults() -> None:
 
     utility_defaults = inspect.signature(summarize_utility_jobs).parameters
     catalog_defaults = inspect.signature(build_retarget_screening_plan).parameters
-    assert protocol["study"]["protocol_version"] == "0.28"
+    assert protocol["study"]["protocol_version"] == "0.29"
     assert protocol["inference"]["flow_steps"] == 10
     assert protocol["inference"]["receding_horizon_steps"] == 5
     assert protocol["study"]["editability_retention_threshold"] == 0.8
@@ -45,6 +45,11 @@ def test_machine_readable_protocol_matches_executable_frozen_defaults() -> None:
     assert utility["prediction_bootstrap_seed"] == utility_defaults[
         "bootstrap_seed"
     ].default
+    assert utility["prediction_rank_test"] == "one_sided_spearman_permutation"
+    assert utility["prediction_rank_alpha"] == utility_defaults["alpha"].default
+    assert utility["prediction_no_success_boundary_sentinel"] == -1
+    assert utility["prediction_positive_requires_selected_boundary_noninferiority"] is True
+    assert utility["report_nonmonotone_behavioral_success_curves"] is True
     assert utility["noninferiority_outcomes"] == [
         "new_target_first",
         "eventual_new_task_success",

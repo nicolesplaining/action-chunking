@@ -178,6 +178,20 @@ All screened rows and clusters remain in the denominator. If the public catalog
 is exhausted first, U2 remains a pilot estimate and no five-point
 noninferiority claim is made.
 
+The predictive U1 claim is stricter than correlation with the last successful
+boundary. A positive requires the scene-specific predictor's mean-absolute-error
+advantage over fixed `k=7` to have a scene-bootstrap 95% interval wholly below
+zero, a positive scene-level Spearman association with the observed boundary
+under a 10,000-permutation one-sided test at alpha 0.05, and the composite
+success of actually choosing the predicted boundary to be noninferior to
+choosing `k=7` under the same five-percentage-point exact paired-loss rule. The
+rank test prevents a globally shifted constant from being called a scene-
+specific predictor merely because it beats the frozen constant comparator. If
+no tested boundary succeeds, the scene remains in the prediction target with
+registered ordinal sentinel `-1`; it is never dropped. Because closed-loop
+success need not be monotone in `k`, nonmonotone curves are counted and reported
+rather than repaired with isotonic regression.
+
 The immutable expansion artifact combines the pinned `libero_goal` and
 `libero_90` strict-pair catalogs. It contains 45 manipulated-object pair
 definitions, 2,218 non-pilot screening rows, and 718 unique candidate clusters.

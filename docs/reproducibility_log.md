@@ -1,5 +1,20 @@
 # Reproducibility log
 
+## 2026-09-01: boundary prediction tied to chosen-action utility
+
+Protocol version 0.29 strengthens the future held-out U1 decision before any
+continuation outcome exists. A scene with no successful boundary now remains in
+the target distribution as registered sentinel `-1` instead of crashing the
+analysis. Better boundary MAE than fixed `k=7` is no longer sufficient: the
+predictor-selected boundary must also preserve the recovery composite under the
+same exact five-point paired-loss noninferiority rule. A one-sided 10,000-draw
+permutation test must additionally establish positive scene-level Spearman
+association, preventing a better constant global boundary from masquerading as
+scene-specific prediction. Nonmonotone closed-loop success curves are counted
+and reported rather than silently isotonicized. This prevents a predictor from
+being called useful when it estimates a curve endpoint but chooses a failed
+intervention cell.
+
 ## 2026-09-01: conversion parity made independently reconstructible
 
 Protocol version 0.28 strengthens the future lossless pi0 result before it
