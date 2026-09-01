@@ -61,6 +61,9 @@ def _write_catalog(
         pair_id = entry["pair_id"]
         pair_root = root / pair_id
         pair_root.mkdir()
+        if after_steps is None:
+            pair_root = pair_root / "noise_0"
+            pair_root.mkdir()
         eligible = index < 15
         jobs.append(
             {
