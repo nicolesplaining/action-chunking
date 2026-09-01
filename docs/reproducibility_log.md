@@ -1,5 +1,21 @@
 # Reproducibility log
 
+## 2026-09-01: executed-action early-exit pilot frozen
+
+Protocol version 0.18 was frozen after the population action-position result and
+before any early-exit action or rollout outcome. The primary sampler comparison
+outputs the current clean-action estimate after seven evaluations versus the
+exact ordinary ten-evaluation output, executes positions 0--4, and applies the
+same rule at every replan. The 15 previously clean-eligible physical scene
+states remain the pilot clusters; no state can be selected using early-exit
+behavior. A pilot positive requires at least 14/15 clusters to preserve both
+directions' target-first contact and task success, exact 30% evaluation savings,
+and lower isolated integration latency. Only a passing pilot opens the frozen
+500-episode paired LIBERO Goal confirmation with a two-percentage-point paired-
+loss margin. The new server path reuses the public fixed ten-step time grid and
+records every replan's evaluation count; `k=10` returns the ordinary integrated
+sampler tensor exactly.
+
 ## 2026-09-01: 15-state population action-position grid completed
 
 The frozen pi0.5 population grid completed all 15 clean-selected scene states,

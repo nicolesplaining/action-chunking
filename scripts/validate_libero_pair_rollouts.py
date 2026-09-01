@@ -75,6 +75,10 @@ def main() -> int:
     intervention = json.loads(args.intervention.read_text()) if args.intervention is not None else None
     if intervention is not None and not server_metadata.get("accepts_causal_intervention"):
         raise ValueError("server does not advertise causal-intervention support")
+    if intervention is not None:
+        family = intervention.get("family")
+        if family not in server_metadata.get("causal_intervention_families", []):
+            raise ValueError(f"server does not advertise {family!r} intervention support")
     if dynamic_retarget is not None:
         if intervention is not None:
             raise ValueError("dynamic retargeting and causal intervention flags are mutually exclusive")
@@ -194,6 +198,7 @@ def _rollout(
     terminated_after_registered_destination = False
     destination_stability_steps = 0
     retarget_diagnostics = None
+    early_exit_diagnostics = []
     controller_replay_required = bool(entry.get("controller_replay_required", False))
     controller_replay_applied = False
     controller_replay_steps = 0
@@ -300,6 +305,11 @@ def _rollout(
                     retarget_diagnostics = response.get("retarget_diagnostics")
                     if retarget_diagnostics is None:
                         raise ValueError("dynamic-retarget response omitted compute diagnostics")
+                if intervention is not None and intervention.get("family") == "early_exit":
+                    diagnostics = response.get("early_exit_diagnostics")
+                    if diagnostics is None:
+                        raise ValueError("early-exit response omitted compute diagnostics")
+                    early_exit_diagnostics.append({"replan_index": replans, **diagnostics})
                 chunk = np.asarray(response["actions"])
                 if replans == 0:
                     first_chunk_closure_position = gripper_closure_position(chunk)
@@ -407,6 +417,7 @@ def _rollout(
             "saved_replan_inputs": len(replan_inputs),
             "intervention_replans_applied": applied_replans,
             "retarget_diagnostics": retarget_diagnostics,
+            "early_exit_diagnostics": early_exit_diagnostics,
             "terminated_after_first_task_contact": terminated_after_first_task_contact,
             "terminated_after_registered_destination": terminated_after_registered_destination,
             "destination_stability_steps": destination_stability_steps,

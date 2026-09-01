@@ -2,7 +2,13 @@ import dataclasses
 
 import torch
 
-from action_chunking.sampling import PreparedCondition, sample_actions
+from action_chunking.sampling import (
+    PreparedCondition,
+    SamplingTrace,
+    early_exit_action_estimate,
+    sample_actions,
+    select_early_exit_actions,
+)
 
 
 @dataclasses.dataclass
@@ -32,6 +38,54 @@ def test_sampler_integrates_constant_velocity_and_records_clean_estimate():
     assert len(trace.x_t) == len(trace.v_t) == len(trace.clean_action_estimates) == 4
     for estimate in trace.clean_action_estimates:
         torch.testing.assert_close(estimate, torch.full_like(noise, -1.0))
+
+
+def test_early_exit_uses_latest_clean_estimate_and_full_step_matches_to_roundoff():
+    model = ConstantVelocityModel()
+    noise = torch.zeros(1, 2, 3)
+    condition = PreparedCondition(
+        state=torch.empty(0), prefix_pad_masks=torch.empty(0), past_key_values=None
+    )
+
+    boundary_state, partial = sample_actions(
+        model, noise, lambda _step: condition, num_steps=4, stop_step=2
+    )
+    full_actions, full = sample_actions(
+        model, noise, lambda _step: condition, num_steps=10
+    )
+
+    assert not torch.equal(early_exit_action_estimate(partial), boundary_state)
+    assert torch.max(torch.abs(early_exit_action_estimate(full) - full_actions)) < 2e-7
+    partial_output, partial_error = select_early_exit_actions(boundary_state, partial, 2, 4)
+    full_output, full_error = select_early_exit_actions(full_actions, full, 10, 10)
+    assert torch.equal(partial_output, early_exit_action_estimate(partial))
+    assert partial_error is None
+    assert torch.equal(full_output, full_actions)
+    assert full_error is not None and 0.0 < full_error < 2e-7
+
+
+def test_early_exit_rejects_empty_or_inconsistent_trace():
+    try:
+        early_exit_action_estimate(SamplingTrace())
+    except ValueError as error:
+        assert "at least one" in str(error)
+    else:
+        raise AssertionError("empty early-exit trace should fail")
+
+    inconsistent = SamplingTrace(times=[1.0])
+    try:
+        early_exit_action_estimate(inconsistent)
+    except ValueError as error:
+        assert "inconsistent" in str(error)
+    else:
+        raise AssertionError("inconsistent early-exit trace should fail")
+
+    try:
+        select_early_exit_actions(torch.empty(1), SamplingTrace(), 0, 10)
+    except ValueError as error:
+        assert "1 <= completed" in str(error)
+    else:
+        raise AssertionError("zero-step early exit should fail")
 
 
 def test_sampler_applies_state_and_velocity_interventions_at_named_steps():
