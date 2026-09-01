@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-if [[ $# -ne 8 ]]; then
-  echo "usage: $0 <repo-root> <checkpoint> <manifest> <clean-validation> <output> <gpu> <port> <server-session>" >&2
+if [[ $# -ne 9 ]]; then
+  echo "usage: $0 <repo-root> <checkpoint> <manifest> <clean-validation> <output> <policy-gpu> <sim-gpu> <port> <server-session>" >&2
   exit 2
 fi
 
@@ -11,13 +11,14 @@ checkpoint="$(realpath "$2")"
 manifest="$(realpath "$3")"
 clean="$(realpath "$4")"
 output="$(realpath -m "$5")"
-gpu="$6"
-port="$7"
-server_session="$8"
+policy_gpu="$6"
+sim_gpu="$7"
+port="$8"
+server_session="$9"
 openpi="$repo_root/third_party/openpi"
 
-if ! [[ "$gpu" =~ ^[0-9]+$ && "$port" =~ ^[1-9][0-9]*$ ]]; then
-  echo "gpu and port must be nonnegative and positive integers" >&2
+if ! [[ "$policy_gpu" =~ ^[0-9]+$ && "$sim_gpu" =~ ^[0-9]+$ && "$port" =~ ^[1-9][0-9]*$ ]]; then
+  echo "policy GPU, simulator GPU, and port must be nonnegative and positive integers" >&2
   exit 2
 fi
 if ss -H -ltn "sport = :$port" | grep -q .; then
@@ -32,7 +33,7 @@ fi
 mkdir -p "$output"
 printf -v server_command '%q ' \
   env \
-  "CUDA_VISIBLE_DEVICES=$gpu" \
+  "CUDA_VISIBLE_DEVICES=$policy_gpu" \
   "PYTHONPATH=$repo_root/src:$openpi:$openpi/packages/openpi-client/src" \
   "$openpi/.venv/bin/python" \
   "$repo_root/scripts/serve_intervention_policy.py" \
@@ -70,7 +71,7 @@ env PYTHONPATH="$repo_root/src" "$repo_root/.venv/bin/python" \
   "$repo_root/scripts/run_manifest_pair_validations.py" \
   --manifest "$manifest" \
   --output "$output/full_control" \
-  --gpu "$gpu" \
+  --gpu "$sim_gpu" \
   --port "$port" \
   --noise-seed 0 \
   --intervention "$repo_root/configs/interventions/early_exit_10.json" \
@@ -80,7 +81,7 @@ env PYTHONPATH="$repo_root/src" "$repo_root/.venv/bin/python" \
   "$repo_root/scripts/run_manifest_pair_validations.py" \
   --manifest "$manifest" \
   --output "$output/early_exit_7" \
-  --gpu "$gpu" \
+  --gpu "$sim_gpu" \
   --port "$port" \
   --noise-seed 0 \
   --intervention "$repo_root/configs/interventions/early_exit_7.json" \

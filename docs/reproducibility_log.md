@@ -1,5 +1,19 @@
 # Reproducibility log
 
+## 2026-09-01: construct-validity decision rule frozen
+
+Protocol version 0.19 adds no outcome, boundary, denominator, or success-rule
+change. It was recorded after four of 16 exact `k=10` control scene pairs had
+completed, but before any `k=7` early-exit rollout or early-exit analysis
+existed. The amendment makes the interpretation hierarchy explicit: causal
+localization is descriptive; predictive usefulness requires sealed-outcome
+advantage over the frozen fixed-boundary comparator; practical usefulness
+requires a better behavior--compute or behavior--latency tradeoff. Successful
+redirection remains evidence of conditional control and instruction following,
+not evidence that the source plan was absent or undecided. Immediate
+correction, induced-failure avoidance, persistence through clean replanning,
+and eventual success remain separately reported outcomes.
+
 ## 2026-09-01: executed-action early-exit pilot frozen
 
 Protocol version 0.18 was frozen after the population action-position result and

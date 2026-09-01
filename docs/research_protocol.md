@@ -1,6 +1,6 @@
 # Research protocol: causal editability and retargeting in action chunks
 
-Protocol version: 0.18 (post-grid executed-action early-exit pilot)
+Protocol version: 0.19 (construct-validity decision rule)
 
 ## 1. Research question
 
@@ -108,6 +108,24 @@ overwritable or that instruction following remains effective. Conversely,
 failed redirection does not prove absolute irreversibility under arbitrary
 perturbations. We therefore reserve *commitment* for shorthand tied explicitly
 to this estimand and use *conditional editability* in claims.
+
+The study uses a three-level decision rule. Level 1 is descriptive: a causal
+map can establish where natural counterfactual conditioning retains control,
+but has no claim to behavioral usefulness. Level 2 is predictive: a
+scene-level editability boundary must predict the last successful no-restart
+correction on sealed outcomes and improve on the frozen fixed-boundary rule.
+Level 3 is interventional: a boundary-derived procedure must improve compute
+or latency at matched behavior, or improve correction or recovery at matched
+cost. Failure at Level 2 or Level 3 leaves Level 1 as a mechanistic result and
+precludes claims that the timing is a useful plan-commitment variable.
+
+Instruction following, immediate correction, recovery, persistence, and
+eventual task success are separate outcomes. Immediate correction means the
+first post-update executed controls follow the new target or constraint.
+Recovery additionally requires a registered failure event under the stale
+control and its avoidance under the intervention. Persistence asks whether the
+effect survives subsequent clean replanning. Eventual success is reported but
+cannot by itself establish any of the preceding outcomes.
 
 ### 2.4 Registered inference-utility test
 

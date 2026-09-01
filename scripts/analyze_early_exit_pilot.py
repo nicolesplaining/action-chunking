@@ -169,15 +169,25 @@ def _pair_summary(root: Path, pair_id: str) -> dict[str, Any]:
 
 
 def _actions_equal(clean_root: Path, full_root: Path, pair_id: str, side: str) -> bool:
+    clean_pair = _artifact_pair_root(clean_root, pair_id)
+    full_pair = _artifact_pair_root(full_root, pair_id)
     clean = np.asarray(
-        json.loads((clean_root / pair_id / f"{side}_actions.json").read_text()),
+        json.loads((clean_pair / f"{side}_actions.json").read_text()),
         dtype=np.float64,
     )
     full = np.asarray(
-        json.loads((full_root / pair_id / f"{side}_actions.json").read_text()),
+        json.loads((full_pair / f"{side}_actions.json").read_text()),
         dtype=np.float64,
     )
     return bool(clean.shape == full.shape and np.array_equal(clean, full))
+
+
+def _artifact_pair_root(root: Path, pair_id: str) -> Path:
+    candidates = [root / pair_id, root / pair_id / "noise_0"]
+    selected = [path for path in candidates if (path / "summary.json").is_file()]
+    if len(selected) != 1:
+        raise ValueError(f"expected one pair artifact directory for {pair_id}, found {selected}")
+    return selected[0]
 
 
 def _pair_composite(entry: dict[str, Any], summary: dict[str, Any]) -> bool:

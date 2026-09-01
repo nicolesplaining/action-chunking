@@ -89,6 +89,14 @@ therefore evaluated separately: whether this boundary predicts the last point
 at which a newly instructed task can be reached by continuing the current
 sample with fewer post-update flow evaluations than a full restart.
 
+We impose a three-level standard on that claim. Causal localization alone is a
+descriptive result. Predictive validity requires a state-level boundary to
+forecast the last successful no-restart correction on sealed rollouts better
+than a fixed global timing rule. Practical validity additionally requires a
+boundary-derived intervention to improve compute or latency at matched
+behavior, or correction and recovery at matched cost. Thus a late editability
+boundary is not treated as useful merely because it can be measured.
+
 ## 2. Related work
 
 Pi0 introduced a flow-matching VLA with a vision-language prefix and action
@@ -459,6 +467,13 @@ estimate, yet replacing the remaining conditioning can redirect the output for
 most of integration. This establishes retained counterfactual control, not
 indecision: an existing plan may remain overwritable, and late redirection may
 be a desirable instruction-following capability.
+
+Control is also distinct from consequence. First-chunk redirection measures
+response to changed conditioning; it does not establish recovery unless the
+stale action would have caused a registered target or safety failure. Eventual
+success after later clean replanning can either rescue or erase the initial
+intervention. We therefore report immediate correction, failure avoidance,
+persistence across clean replanning, and eventual task success separately.
 
 The largest causal effects occur in late action-state coordinates, consistent
 with iterative geometric instantiation. Residual-stream patches identify a
