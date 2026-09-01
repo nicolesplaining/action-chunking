@@ -2,7 +2,10 @@ from __future__ import annotations
 
 import pytest
 
-from action_chunking.utility_prediction import predict_last_successful_boundary
+from action_chunking.utility_prediction import (
+    predict_last_successful_boundary,
+    validate_eligible_retarget_row,
+)
 
 
 def test_predicts_last_successful_boundary_before_retention_crossing() -> None:
@@ -21,6 +24,25 @@ def test_rejects_degenerate_target_direction_contrast() -> None:
 
     with pytest.raises(ValueError, match="contrast"):
         predict_last_successful_boundary(records, "base_to_donor")
+
+
+def test_eligible_row_requires_every_exact_endpoint_control() -> None:
+    row = {
+        "eligible": True,
+        "event_exact_initial_state": True,
+        "source_chunk_exact": True,
+        "source_input_exact": True,
+        "old_event_induced": True,
+        "restart_avoids_old_event": True,
+        "event_gate_pass": True,
+        "competence_exact_initial_state": True,
+        "restart_new_target_first": True,
+        "clean_tasks_competent": True,
+    }
+    validate_eligible_retarget_row(row)
+    row["source_chunk_exact"] = False
+    with pytest.raises(ValueError, match="source_chunk_exact"):
+        validate_eligible_retarget_row(row)
 
 
 def _record(boundary: int, affinity: float) -> dict:

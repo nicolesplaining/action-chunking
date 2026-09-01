@@ -9,6 +9,26 @@ import numpy as np
 from action_chunking.analysis import commitment_step
 
 
+def validate_eligible_retarget_row(row: dict[str, Any]) -> None:
+    """Reject an eligible row unless every frozen endpoint control passed."""
+    if not row.get("eligible"):
+        raise ValueError("retarget utility requires an eligible endpoint row")
+    required = (
+        "event_exact_initial_state",
+        "source_chunk_exact",
+        "source_input_exact",
+        "old_event_induced",
+        "restart_avoids_old_event",
+        "event_gate_pass",
+        "competence_exact_initial_state",
+        "restart_new_target_first",
+        "clean_tasks_competent",
+    )
+    failed = [field for field in required if row.get(field) is not True]
+    if failed:
+        raise ValueError(f"eligible retarget row failed frozen controls: {failed}")
+
+
 def predict_last_successful_boundary(
     records: list[dict[str, Any]],
     direction: str,

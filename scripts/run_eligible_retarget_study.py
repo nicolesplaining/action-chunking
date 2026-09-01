@@ -12,6 +12,8 @@ import sys
 from pathlib import Path
 from typing import Any
 
+from action_chunking.utility_prediction import validate_eligible_retarget_row
+
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
@@ -32,6 +34,9 @@ def main() -> int:
     eligible = [row for row in gate["rows"] if row["eligible"]]
     if not eligible:
         raise ValueError("endpoint gate contains no eligible retargeting directions")
+    for row in eligible:
+        validate_eligible_retarget_row(row)
+    gate_digest = _digest(args.gate_summary)
     manifest_by_pair = _candidate_manifests(args.candidate_root)
     missing = sorted({row["pair_id"] for row in eligible} - set(manifest_by_pair))
     if missing:
@@ -72,6 +77,7 @@ def main() -> int:
                 "pair_id": pair_id,
                 "new_side": row["new_side"],
                 "manifest": str(manifest_by_pair[pair_id]),
+                "manifest_sha256": _digest(manifest_by_pair[pair_id]),
                 "prediction": str(prediction_path),
                 "prediction_sha256": _digest(prediction_path),
                 "valid": bool(prediction["valid"]),
@@ -85,15 +91,29 @@ def main() -> int:
         "all_predictions_frozen_before_closed_loop": True,
         "selection_uses_continuation_outcomes": False,
         "noise_seed": args.noise_seed,
+        "gate_summary": str(args.gate_summary),
+        "gate_summary_sha256": gate_digest,
         "entries": prediction_entries,
     }
     frozen_path = args.output / "frozen_predictions.json"
-    frozen_path.write_text(json.dumps(frozen_manifest, indent=2, sort_keys=True) + "\n")
+    serialized = json.dumps(frozen_manifest, indent=2, sort_keys=True) + "\n"
+    if frozen_path.is_file():
+        if frozen_path.read_text() != serialized:
+            raise ValueError("existing frozen prediction manifest differs from current inputs")
+    else:
+        frozen_path.write_text(serialized)
     frozen_digest = _digest(frozen_path)
 
     sweep_script = Path(__file__).with_name("run_dynamic_retarget_sweep.py")
     jobs = []
     for row in eligible:
+        _validate_frozen_inputs(
+            args.gate_summary,
+            gate_digest,
+            prediction_entries,
+            frozen_path,
+            frozen_digest,
+        )
         pair_id = row["pair_id"]
         rollout_output = args.output / "rollouts" / pair_id
         subprocess.run(
@@ -119,8 +139,13 @@ def main() -> int:
             ],
             check=True,
         )
-        if _digest(frozen_path) != frozen_digest:
-            raise ValueError("frozen prediction manifest changed after closed-loop rollout began")
+        _validate_frozen_inputs(
+            args.gate_summary,
+            gate_digest,
+            prediction_entries,
+            frozen_path,
+            frozen_digest,
+        )
         jobs.append(_job_summary(row, rollout_output, prediction_entries))
         _write_summary(args.output, jobs, len(eligible), frozen_path, frozen_digest)
     return 0
@@ -219,6 +244,24 @@ def _write_summary(
 
 def _digest(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _validate_frozen_inputs(
+    gate_path: Path,
+    gate_digest: str,
+    prediction_entries: list[dict[str, Any]],
+    frozen_path: Path,
+    frozen_digest: str,
+) -> None:
+    if _digest(gate_path) != gate_digest:
+        raise ValueError("endpoint gate changed after predictions were frozen")
+    if _digest(frozen_path) != frozen_digest:
+        raise ValueError("frozen prediction manifest changed after closed-loop rollout began")
+    for entry in prediction_entries:
+        if _digest(Path(entry["manifest"])) != entry["manifest_sha256"]:
+            raise ValueError("candidate manifest changed after predictions were frozen")
+        if _digest(Path(entry["prediction"])) != entry["prediction_sha256"]:
+            raise ValueError("action-only prediction changed after it was frozen")
 
 
 def _boolean(value: str) -> bool:
