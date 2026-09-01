@@ -1,5 +1,19 @@
 # Reproducibility log
 
+## 2026-09-01: population action-token grid frozen
+
+Before any population target-token intervention was generated, the missing
+action-position axis was frozen on the same 15 clean-eligible wine/bowl scene
+states used for the target population analysis. The grid crosses flow steps
+`0,7,8,9`, action-expert layers `0,8,14,17`, and all ten pi0.5 future action
+positions. The primary site is flow step 9, layer 17; its preregistered grouped
+contrast is mean symmetric NCTE over positions 0--4, which are executed before
+replanning, minus positions 5--9. Inference remains clustered by scene state.
+The full 160 cells per eligible property are retained with within-property BH
+adjustment, while the grouped primary contrast uses a scene bootstrap interval
+and exact sign-flip test. This replaces no existing layer or dimension result
+and prevents choosing token groups from the eventual heatmap.
+
 ## 2026-08-31: public-catalog expansion order frozen
 
 Before the corrected 16-state endpoint screen completed, strict task-pair

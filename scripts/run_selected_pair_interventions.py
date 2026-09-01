@@ -35,6 +35,14 @@ MODES = {
         "dimension_mode": "none",
         "identity_sites": "anchors",
     },
+    "population_positions": {
+        "steps": "0,7,8,9",
+        "layers": "0,8,14,17",
+        "skip_residual_patches": False,
+        "position_mode": "single",
+        "dimension_mode": "none",
+        "identity_sites": "anchors",
+    },
     "full": {
         "steps": "all",
         "layers": "all",
