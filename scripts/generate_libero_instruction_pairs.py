@@ -17,6 +17,7 @@ from openpi_client import image_tools
 
 from action_chunking.pairs import (
     InstructionPair,
+    advance_reset_sequence,
     array_digest,
     canonicalize_bddl_scene,
     file_digest,
@@ -121,6 +122,7 @@ def _collect_base_samples(task: Any, initial_states: np.ndarray, args: argparse.
     env = _make_env(task, args.resolution, args.seed)
     samples = []
     try:
+        advance_reset_sequence(env, args.start_index)
         for init_index in range(args.start_index, args.start_index + args.count):
             env.reset()
             obs = env.set_init_state(initial_states[init_index])
@@ -152,6 +154,7 @@ def _validate_with_donor_and_save(
     env = _make_env(task, args.resolution, args.seed)
     entries = []
     try:
+        advance_reset_sequence(env, args.start_index)
         for sample in samples:
             # Reset task-local simulator and renderer state before every
             # serialized-state interchange, as on the base side.

@@ -75,6 +75,28 @@ screening outcomes and excluded states will be retained. The five-action
 execution horizon remains frozen for the primary receding-horizon comparison,
 with longer execution horizons reported only as sensitivity analyses.
 
+The first failure-induction calibration used the saved state-zero clean
+trajectories and offsets one through five steps before each original contact.
+The bounded event screen evaluated ten origin directions using only the fully
+old-conditioned endpoint and a clean new-instruction restart. Zero of ten
+passed. At offset one, both directions induced the old event, but restart also
+contacted the old target within five actions. Across offsets two through five,
+the donor-origin old controls contacted the bowl within the horizon, but restart
+did so as well; several base-origin old controls did not induce wine-bottle
+contact under the shared event noise. No intermediate continuation outcome was
+generated for these candidates. The entire state-zero calibration block is
+excluded, and fresh initial-state indices 16--31 were generated as the sealed
+held-out screening pool.
+
+The first nonzero-index fixture batch was rejected before inference because
+strict restoration found unequal external and wrist images at index 16. The
+generator had selected simulator initial states 16--31 but had not advanced the
+environment's renderer reset sequence past indices 0--15. Both task-local
+environments now explicitly replay `start_index` resets before collecting a
+nonzero range. A regression test covers this reset count. The rejected batch is
+retained, and the corrected batch uses a new versioned output directory; no
+rollout or continuation outcome from the invalid fixtures was generated.
+
 ## 2026-08-31: official pi0.5-LIBERO baseline replication
 
 The unchanged official OpenPI evaluator completed 500 episodes per suite for

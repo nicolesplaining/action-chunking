@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-if [[ $# -ne 6 ]]; then
-  echo "usage: $0 <suite> <base-task> <donor-task> <count> <render-gpu> <output-dir>" >&2
+if [[ $# -lt 6 || $# -gt 7 ]]; then
+  echo "usage: $0 <suite> <base-task> <donor-task> <count> <render-gpu> <output-dir> [start-index]" >&2
   exit 2
 fi
 
@@ -12,6 +12,7 @@ donor_task="$3"
 count="$4"
 render_gpu="$5"
 output_dir="$(realpath -m "$6")"
+start_index="${7:-0}"
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 mkdir -p "$output_dir"
@@ -36,4 +37,5 @@ fi
     --base-task '$base_task' \
     --donor-task '$donor_task' \
     --count '$count' \
+    --start-index '$start_index' \
     --output /data"
