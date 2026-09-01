@@ -250,6 +250,20 @@ phase-aligned held-object state using the final live object position relative to
 registered endpoints. LIBERO's source-task success flag is not used to label a
 crossed donor destination.
 
+Grasp orientation uses robosuite's `xyzw` end-effector quaternion convention
+[@zhu2020robosuite]. At first registered contact with either paired target, we
+take the sign-invariant Markley mean over the inclusive three-step contact
+window [@markley2007quaternions] and measure shortest SO(3) angular distance as
+`2 acos(abs(dot(q1, q2)))`. Fully source-conditioned and fully destination-
+conditioned controls define the two reference frames. Clean calibration across
+the 15 eligible wine/bowl states found reference contrasts of 0.334--0.677 rad,
+while maximum within-window dispersion was 0.001--0.016 rad. Before held-out
+continuation outcomes, we therefore froze a conservative 0.20-rad eligibility
+threshold. No-contact cases are censored. Because object identity and grasp
+geometry co-vary in these pairs, we report first-contact identity beside the
+orientation curve and label the correct-target-only subset separately; this
+endpoint does not by itself isolate an object-independent orientation plan.
+
 ### 3.5 Retargeting without restarting generation
 
 The practical experiment simulates a new instruction arriving after `k` flow
@@ -559,9 +573,10 @@ state-by-noise factorial estimate. The destination replication uses two physical
 state blocks, one task contrast, and one noise seed. Gripper closure has no
 noise-robust eligible state and remains descriptive.
 
-Rotation of the action command is not yet equivalent to a grasp-frame outcome;
-a phase-aligned grasp-orientation evaluator remains required before claiming a
-grasp-orientation editability boundary. The registered obstacle-position and closed-loop
+Rotation of the action command is not equivalent to a grasp-frame outcome. A
+phase-aligned grasp-orientation evaluator is now frozen, but its held-out
+continuation curves remain pending, and the current target pairs co-vary object
+identity with grasp geometry. The registered obstacle-position and closed-loop
 recovery families are also pending. In an initial first-replan recovery pilot,
 all exactness controls passed and all patched rollouts eventually succeeded, but
 zero of two directions had a donor-first contact that was induced relative to

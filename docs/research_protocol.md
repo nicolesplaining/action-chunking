@@ -309,6 +309,21 @@ secondary and explains whether failures occur in the intervened chunk, at a
 later chunk boundary, or after correct target selection; it does not replace or
 redefine the frozen primary outcome.
 
+The same held-out target sweep has a frozen phase-aligned grasp-frame endpoint.
+robosuite end-effector quaternions are interpreted in `xyzw` order. At the first
+registered contact with either the old or new target, the endpoint is the
+sign-invariant Markley mean over the inclusive three-step window ending at
+contact. Angular error is the shortest SO(3) distance
+`2 acos(abs(dot(q1, q2)))`. The fully old-conditioned `k=10` continuation and
+the exact `k=0` restart define the source and destination frames. A state is
+orientation-identifiable only when their angular contrast is at least 0.20 rad;
+this threshold was calibrated from clean controls before any catalog
+continuation outcome. Runs with no registered old/new-target contact are
+censored. Target identity is always reported beside orientation, and a
+correct-target-only orientation subset is secondary. The primary grasp-frame
+curve is therefore a target-conditioned geometry endpoint; it does not isolate
+orientation from object choice.
+
 ### 2.6 Registered late visual-safety update pilot
 
 The obstacle-pose pilot is extended to a consequential condition-update test
@@ -731,8 +746,10 @@ Evaluators are deterministic functions versioned with the experiment.
   clean base-to-donor trajectory contrast; for obstacles, the signed homotopy
   class around the obstacle. This contrast need not point directly at either
   target when collision avoidance or shared approach geometry intervenes.
-- **Grasp orientation:** geodesic wrist-orientation error relative to each
-  candidate grasp frame, evaluated over a preregistered pre-contact window.
+- **Grasp orientation:** shortest SO(3) wrist-orientation error relative to each
+  candidate grasp frame, evaluated over an inclusive three-step window ending
+  at first registered target contact. A sign-invariant Markley quaternion mean
+  defines each window frame; no-contact cases are censored.
 - **Gripper closure:** first future position crossing a calibrated closure
   threshold, with right censoring if closure is absent from the chunk.
 - **Recovery:** first post-perturbation chunk direction, time to resume progress,

@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "frozen_before_catalog_continuation_outcomes": true,
+  "quaternion_convention": "xyzw",
+  "contact_window_steps": 3,
+  "minimum_reference_contrast_rad": 0.2,
+  "source_retention_threshold": 0.8,
+  "primary_endpoint": "contact_aligned_first_registered_target_grasp_frame",
+  "conditional_endpoint": "same metric restricted to correct-target-first rollouts",
+  "censoring": "no registered old-target or new-target contact",
+  "warning": "the primary geometry curve co-varies with target identity and does not isolate orientation from object choice"
+}

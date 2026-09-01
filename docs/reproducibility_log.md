@@ -506,6 +506,27 @@ adjustment, while the grouped primary contrast uses a scene bootstrap interval
 and exact sign-flip test. This replaces no existing layer or dimension result
 and prevents choosing token groups from the eventual heatmap.
 
+## 2026-09-01: contact-aligned grasp-orientation endpoint frozen
+
+Before any public-catalog continuation outcome existed, the existing 15 clean-
+eligible wine/bowl controls were used to calibrate a contact-aligned orientation
+endpoint. robosuite's `xyzw` end-effector quaternions are averaged with the
+sign-invariant Markley eigenvector method over the inclusive three-step window
+ending at first instructed-target contact. Shortest SO(3) distance is
+`2 acos(abs(dot(q1, q2)))`.
+
+All 15 clean target pairs were separable: source/destination grasp-frame
+contrast ranged from 0.334485 to 0.677272 rad (median 0.456181), while maximum
+within-window dispersion ranged from 0.001033 to 0.016004 rad. A 0.20-rad
+minimum clean-reference contrast and 0.80 source-retention boundary were frozen
+in `configs/grasp_orientation_protocol.json`. Continuation runs with neither
+registered target contact are censored. First-contact target identity is
+retained beside every orientation observation, and a correct-target-only subset
+is secondary. The primary curve is explicitly labeled target-conditioned grasp
+geometry because this target pair does not independently vary object identity
+and orientation. No catalog continuation result was inspected during this
+calibration.
+
 ## 2026-08-31: public-catalog expansion order frozen
 
 Before the corrected 16-state endpoint screen completed, strict task-pair
