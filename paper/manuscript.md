@@ -34,9 +34,14 @@ noise modes is eligible and therefore supports no population claim. These
 results show that early appearance does not imply loss of counterfactual
 control: properties can be legible throughout integration while remaining
 causally editable until late updates. They do not show that the model was
-undecided or lacked an internal plan. A registered inference experiment tests
-whether the measured boundary enables successful retargeting without restarting
-generation, while a matched pi0 control is trained before cross-model claims.
+undecided or lacked an internal plan. In a post-grid exploratory inference
+pilot, emitting the five controls actually executed before replanning after
+seven instead of ten velocity evaluations preserves correct target-first
+contact in 15/15 eligible scene clusters and the target-first-plus-eventual-
+success composite in 14/15, with exact 30% evaluation savings and 30.0% median
+paired integration-latency savings. This passes the frozen pilot rule but not
+confirmatory noninferiority; a paired 500-episode confirmation is pending. A
+matched pi0 control is trained before cross-model claims.
 If its frozen competence and conversion-parity gates pass, the control is run on
 the clean-eligible scene intersection with the same ten flow updates and layer
 sites. Direct position contrasts use indices zero through nine, while a
@@ -453,11 +458,25 @@ report negative as well as positive outcomes, including the possibility that
 the editability boundary predicts immediate target correction but not eventual
 success after subsequent clean replanning.
 
-The post-position-grid early-exit pilot is also registered but has no behavioral
-outcome yet. It asks whether the five controls actually executed before a clean
-replan can be emitted after seven rather than ten velocity evaluations. The
-15-state pilot and its exact compute/latency gates precede any 500-episode
-noninferiority claim.
+The post-position-grid early-exit pilot passes its frozen exploratory rule
+(Figure 6). Among the 15 clean-eligible physical scene clusters, `k=7`
+preserves correct target-first contact in all 15 and eventual dual-task success
+in 14. The registered composite therefore passes in 14/15 clusters (0.933;
+exact 95% interval 0.681--0.998). Every replan uses exactly seven instead of ten
+velocity-field evaluations, a 30% reduction, and all 15 scene-paired
+first-replan latency differences favor early exit. Median latency savings are
+30.0% (10,000-resample scene-bootstrap 95% interval 27.4--32.9%; two-sided sign
+test `p=6.10e-5`). The ten-step control action sequences are byte-exact to the
+frozen clean archive in all eligible clusters.
+
+The single composite loss separates immediate instruction-conditioned behavior
+from downstream task utility. Both methods first contact the instructed bowl at
+physical step 35, but the seven-evaluation rollout does not finish the task
+within 400 steps, whereas the exact ten-evaluation control succeeds in 78
+steps. Thus target following is preserved in that scene while eventual success
+is not. The pilot reuses the scene population that motivated the fixed `k=7`
+rule and is neither held out nor powered for a two-percentage-point margin. It
+opens, but cannot replace, the frozen 500-episode paired confirmation.
 
 ## 5. Discussion
 
@@ -474,6 +493,16 @@ stale action would have caused a registered target or safety failure. Eventual
 success after later clean replanning can either rescue or erase the initial
 intervention. We therefore report immediate correction, failure avoidance,
 persistence across clean replanning, and eventual task success separately.
+
+The early-exit pilot provides an initial practical consequence of the
+mechanistic map: late residual effects concentrate in controls that will be
+discarded at the next replan, and omitting the final three evaluations preserves
+the executed prefix in most tested scenes. Its one failure is equally useful:
+correct first contact did not guarantee task completion. Because `k=7` was
+chosen after the mechanistic population result and tested on the same scene
+population, causal motivation is established but out-of-sample predictive
+validity is not. The frozen suite-scale confirmation is the relevant test of
+generalization.
 
 The largest causal effects occur in late action-state coordinates, consistent
 with iterative geometric instantiation. Residual-stream patches identify a
@@ -514,6 +543,13 @@ its identity control. Recovery rates are therefore undefined for that pair.
 This negative result shows why recovery must distinguish an
 intervention-induced failure event, the first post-perturbation chunk, and
 eventual task success; it cannot be inferred from success after a patch alone.
+
+The early-exit preservation interval is wide at 15 clusters, and the pilot ran
+the ten-evaluation stage before the seven-evaluation stage. CUDA synchronization
+and an otherwise isolated policy GPU make the paired integration measurements
+auditable, but do not eliminate order drift. The 500-episode confirmation uses
+paired reset/noise schedules and balanced condition order and remains necessary
+before claiming noninferiority or deployment-level latency gains.
 
 The pi0 comparison is a matched protocol and dataset control, not a pure
 architectural intervention: pi0 and pi0.5 differ in pretraining, checkpoint

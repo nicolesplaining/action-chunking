@@ -36,6 +36,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--destination-online", type=Path, required=True)
     parser.add_argument("--population-position", type=Path, required=True)
     parser.add_argument("--closure-position", type=Path, required=True)
+    parser.add_argument("--early-exit-pilot", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     return parser.parse_args()
 
@@ -51,6 +52,7 @@ def main() -> int:
         "destination_curve": args.destination_online / "curve.csv",
         "population_position_cells": args.population_position / "position_cells.csv",
         "closure_position_cells": args.closure_position / "position_cells.csv",
+        "early_exit_pilot": args.early_exit_pilot / "summary.json",
     }
     for path in inputs.values():
         if not path.is_file():
@@ -93,6 +95,10 @@ def main() -> int:
         _read_csv(inputs["closure_position_cells"]),
         args.output / "fig5_closure_token_case",
     )
+    _plot_early_exit_pilot(
+        json.loads(inputs["early_exit_pilot"].read_text()),
+        args.output / "fig6_early_exit_pilot",
+    )
     output_names = [
         f"fig{index}_{name}.{suffix}"
         for index, name in (
@@ -101,11 +107,12 @@ def main() -> int:
             (3, "behavioral_editability"),
             (4, "population_token_localization"),
             (5, "closure_token_case"),
+            (6, "early_exit_pilot"),
         )
         for suffix in ("pdf", "png")
     ]
     manifest = {
-        "schema_version": 2,
+        "schema_version": 3,
         "inputs": {name: {"path": str(path), "sha256": _sha256(path)} for name, path in inputs.items()},
         "outputs": output_names,
         "output_sha256": {
@@ -113,6 +120,7 @@ def main() -> int:
         },
         "marker_definition": "open circles require BH q < 0.05 and a scene-cluster 95% CI strictly above zero",
         "closure_caveat": "descriptive one-state, one-noise-mode case; no population significance markers",
+        "early_exit_caveat": "15-cluster exploratory pilot; frozen 500-episode paired confirmation pending",
     }
     (args.output / "figure_manifest.json").write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
     return 0
@@ -429,6 +437,91 @@ def _plot_closure_token_case(rows: list[dict[str, str]], stem: Path) -> None:
         "descriptive n=1 eligible state/noise mode; no population significance claim",
         fontsize=9.5,
     )
+    _save(figure, stem)
+
+
+def _plot_early_exit_pilot(summary: dict[str, Any], stem: Path) -> None:
+    if summary.get("pilot_positive") is not True:
+        raise ValueError("early-exit figure requires a positive completed pilot")
+    eligible = int(summary["eligible_scene_clusters"])
+    if eligible != 15 or len(summary.get("rows", [])) != 16:
+        raise ValueError("early-exit figure requires the frozen 15-of-16 pilot")
+    counts = np.asarray(
+        [
+            int(summary["target_first_preserved_clusters"]),
+            int(summary["eventual_success_preserved_clusters"]),
+            int(summary["composite_preserved_clusters"]),
+        ]
+    )
+    figure, axes = plt.subplots(1, 2, figsize=(7.9, 3.15), constrained_layout=True)
+    labels = ["target first", "eventual\nsuccess", "composite"]
+    colors = ["#4c78a8", "#59a14f", "#7b6ba8"]
+    x = np.arange(len(labels))
+    axes[0].bar(x, counts / eligible, color=colors, width=0.68)
+    axes[0].axhline(14 / 15, color="0.25", linestyle="--", linewidth=0.9)
+    for index, count in enumerate(counts):
+        axes[0].text(index, count / eligible + 0.018, f"{count}/{eligible}", ha="center", va="bottom")
+    axes[0].set(
+        title="a  Behavior preserved at 7 vs 10 evaluations",
+        ylabel="eligible scene-cluster fraction",
+        xticks=x,
+        xticklabels=labels,
+        ylim=(0.0, 1.09),
+    )
+    axes[0].text(
+        2.42,
+        14 / 15 - 0.02,
+        "frozen pilot threshold",
+        ha="right",
+        va="top",
+        fontsize=7.3,
+        color="0.25",
+    )
+
+    eligible_rows = [row for row in summary["rows"] if row["eligible"]]
+    savings = np.asarray(
+        [float(row["first_replan_latency_savings_fraction"]) for row in eligible_rows]
+    )
+    preserved = np.asarray([bool(row["composite_preserved"]) for row in eligible_rows])
+    if savings.size != eligible or np.any(~np.isfinite(savings)):
+        raise ValueError("early-exit figure has invalid cluster latencies")
+    cluster_index = np.arange(eligible)
+    axes[1].scatter(
+        cluster_index[preserved],
+        100 * savings[preserved],
+        s=25,
+        color="#1b9e77",
+        label="composite preserved",
+        zorder=3,
+    )
+    axes[1].scatter(
+        cluster_index[~preserved],
+        100 * savings[~preserved],
+        s=34,
+        marker="x",
+        linewidth=1.4,
+        color="#b2182b",
+        label="eventual-success loss",
+        zorder=4,
+    )
+    median = 100 * float(summary["median_first_replan_latency_savings_fraction"])
+    interval = 100 * np.asarray(
+        summary["median_first_replan_latency_savings_fraction_bootstrap_ci95"],
+        dtype=np.float64,
+    )
+    axes[1].axhspan(interval[0], interval[1], color="#4c78a8", alpha=0.12, linewidth=0)
+    axes[1].axhline(median, color="#4c78a8", linewidth=1.1, label=f"median {median:.1f}%")
+    axes[1].axhline(0.0, color="0.4", linewidth=0.7)
+    axes[1].set(
+        title="b  Isolated first-replan latency",
+        xlabel="eligible physical scene cluster",
+        ylabel="paired latency saving (%)",
+        xticks=[0, 4, 9, 14],
+        xticklabels=[1, 5, 10, 15],
+    )
+    axes[1].legend(frameon=False, fontsize=7.1, loc="upper right")
+    for axis in axes:
+        axis.spines[["top", "right"]].set_visible(False)
     _save(figure, stem)
 
 

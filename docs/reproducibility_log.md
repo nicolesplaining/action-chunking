@@ -1,5 +1,18 @@
 # Reproducibility log
 
+## 2026-09-01: paired early-exit confirmation execution frozen
+
+Protocol version 0.20 was frozen after the 15-cluster pilot passed and before
+any 500-episode suite-confirmation rollout. It preserves the original LIBERO
+Goal task order, 50 trials per task, two-percentage-point paired-loss margin,
+and exact compute/latency gates. Each task/trial key now requires a serialized
+reset and shared replan-indexed Gaussian-noise stream; condition order is
+balanced 25/25 within task by frozen key-digest rank; a fixed warm-up is unscored; and the policy GPU
+must have no competing client. Resume is pair-atomic. The exact bound can pass
+with at most four paired losses in 500 trials and fails with five. These are
+execution details for the already-opened confirmation, not changes to the
+observed pilot or its interpretation.
+
 ## 2026-09-01: construct-validity decision rule frozen
 
 Protocol version 0.19 adds no outcome, boundary, denominator, or success-rule

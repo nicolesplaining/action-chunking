@@ -1,5 +1,6 @@
 {
   "closure_caveat": "descriptive one-state, one-noise-mode case; no population significance markers",
+  "early_exit_caveat": "15-cluster exploratory pilot; frozen 500-episode paired confirmation pending",
   "inputs": {
     "closure_position_cells": {
       "path": "outputs/analysis/pi05_target_pose_020mm_positions_aggregate/position_cells.csv",
@@ -12,6 +13,10 @@
     "dimension_cells": {
       "path": "outputs/analysis/pi05_primary_coarse_seed0/dimension_cells.csv",
       "sha256": "e981d84f0a00bfbaa98e1b9ff5d7a31af36f4604b1ab60337673eb8ca8e794dd"
+    },
+    "early_exit_pilot": {
+      "path": "outputs/analysis/pi05_early_exit_7_pilot_seed0/analysis/summary.json",
+      "sha256": "81dd36886a218104ca89e75bbe97c7721a3cb0c8ffc0d0a19c92385fd3cb273a"
     },
     "flow_curve": {
       "path": "outputs/analysis/pi05_primary_coarse_seed0/flow_curve.csv",
@@ -45,7 +50,9 @@
     "fig4_population_token_localization.pdf": "d03fc06027194eaa0ee8fae45ab5794ab6e4918c9c9998465a74dd57bb466acc",
     "fig4_population_token_localization.png": "bd4a65369251d3e8a6cf2b42c1da00c11a1c92be6820c071d6b75475b634f3bf",
     "fig5_closure_token_case.pdf": "e2966ead88bb4782bd48ce6a6956207fcf7bf19b8bf6bcedd15103819dd9ffb1",
-    "fig5_closure_token_case.png": "78149f29a11c5c2731e2a63b25d61d5dae6ddfd0fe7465db166a977d5e5044d5"
+    "fig5_closure_token_case.png": "78149f29a11c5c2731e2a63b25d61d5dae6ddfd0fe7465db166a977d5e5044d5",
+    "fig6_early_exit_pilot.pdf": "f663f08efd60b612501dddc38ba7c594eb5747cc5145845ad201ce8f1b2ffb58",
+    "fig6_early_exit_pilot.png": "c664156b1524cdf66864a98b45634659169d58eb296d1055113dc6bae65bff30"
   },
   "outputs": [
     "fig1_formation_and_editability.pdf",
@@ -57,7 +64,9 @@
     "fig4_population_token_localization.pdf",
     "fig4_population_token_localization.png",
     "fig5_closure_token_case.pdf",
-    "fig5_closure_token_case.png"
+    "fig5_closure_token_case.png",
+    "fig6_early_exit_pilot.pdf",
+    "fig6_early_exit_pilot.png"
   ],
-  "schema_version": 2
+  "schema_version": 3
 }

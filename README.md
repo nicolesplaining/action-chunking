@@ -20,3 +20,10 @@ overwritable, and late redirection can reflect strong instruction following.
 The registered utility study therefore asks whether the measured boundary
 predicts successful mid-sampling retargeting, subsequent clean replanning, and
 post-update latency.
+
+The first practical pilot is positive but not confirmatory. Emitting the five
+controls executed before the next replan after seven rather than ten velocity
+evaluations preserved correct target-first contact in 15/15 eligible scene
+clusters and the target-first-plus-eventual-success composite in 14/15, with
+exactly 30% fewer evaluations and 30.0% median paired integration-latency
+savings. A frozen 500-episode paired confirmation is pending.

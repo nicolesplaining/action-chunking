@@ -59,3 +59,17 @@ appears at all four tested depth anchors. The paired closure contrast is absent
 in the other three registered noise modes, so the all-seed eligible state count
 is zero. This panel is descriptive and carries no population significance
 markers.
+
+## Figure 6: Seven evaluations preserve behavior in an exploratory pilot
+
+**a,** Scene-cluster preservation under seven rather than ten velocity-field
+evaluations at every replan. Correct target-first contact is preserved in all
+15 eligible clusters; eventual dual-task success and their registered composite
+are preserved in 14/15. The dashed line is the frozen descriptive pilot
+threshold, not a noninferiority margin. **b,** Paired first-replan integration-
+latency savings for the same 15 physical scene clusters. The line is the 30.0%
+median and the band is its seed-zero 10,000-resample scene-bootstrap 95%
+interval (27.4--32.9%). All differences favor early exit. The red cross marks
+the one cluster that retained correct target-first contact but lost eventual
+task success. The pilot reuses the mechanistic scene population; frozen paired
+500-episode confirmation is pending.
