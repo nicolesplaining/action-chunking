@@ -153,6 +153,15 @@ editability boundary is `k*`, the frozen prediction is that `k* - 1` is the last
 successful no-restart correction boundary. The prediction file must predate the
 corresponding closed-loop boundary outputs.
 
+A pre-outcome power audit then showed that the 16-state held-out block cannot
+establish the registered five-point noninferiority margin. With zero paired
+continuation losses, the exact one-sided 95% upper loss bound is below 0.05 only
+at 59 or more independent eligible scene clusters. Directions, seeds, and
+tokens remain repeated measures and are not used to inflate this count. The
+16-state block is retained as an out-of-sample utility pilot; confirmatory U2
+requires at least 59 eligible clusters screened in public-catalog order, or is
+reported as underpowered if the catalog is exhausted.
+
 The first smoke attempt exposed two reproducibility hazards and produced no
 update. It used LeRobot's incomplete default cache and received an anonymous
 Hugging Face HTTP 429 while fetching missing shards. Both training launchers now
