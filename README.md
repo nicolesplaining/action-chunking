@@ -21,7 +21,7 @@ copying or silently modifying it.
 
 - [x] Pin the official OpenPI implementation.
 - [x] Specify the causal estimands, hypotheses, controls, and analysis rules.
-- [ ] Reproduce the published pi0.5-LIBERO evaluation.
+- [x] Reproduce the published pi0.5-LIBERO evaluation.
 - [x] Validate deterministic paired episodes and activation capture.
 - [ ] Run pilot interventions and lock confirmatory pair families.
 - [ ] Run the confirmatory pi0.5 study.

@@ -28,6 +28,10 @@ if [[ ! -x "$python" ]]; then
   echo "OpenPI Python environment is missing: $python" >&2
   exit 1
 fi
+if ! command -v ss >/dev/null 2>&1; then
+  echo "ss is required to verify that the policy port is free" >&2
+  exit 1
+fi
 if tmux has-session -t "=$training_session" 2>/dev/null; then
   echo "training session already exists: $training_session" >&2
   exit 1
@@ -64,13 +68,17 @@ fi
 echo "stopping completed pi0.5 policy server $policy_server_session"
 tmux kill-session -t "=$policy_server_session"
 
+policy_port_listening() {
+  [[ -n "$(ss -H -ltn "sport = :$policy_port")" ]]
+}
+
 for _attempt in {1..12}; do
-  if ! pgrep -f -- "serve_policy.py --port $policy_port" >/dev/null; then
+  if ! policy_port_listening; then
     break
   fi
   sleep 5
 done
-if pgrep -f -- "serve_policy.py --port $policy_port" >/dev/null; then
+if policy_port_listening; then
   echo "policy server on port $policy_port did not exit; pi0 training was not launched" >&2
   exit 1
 fi

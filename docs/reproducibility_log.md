@@ -3,13 +3,16 @@
 ## 2026-08-31: official pi0.5-LIBERO baseline replication
 
 The unchanged official OpenPI evaluator completed 500 episodes per suite for
-three suites. Spatial achieved 493/500 = 98.6% (Wilson 95% interval
+all four suites. Spatial achieved 493/500 = 98.6% (Wilson 95% interval
 0.971--0.993), object 491/500 = 98.2% (0.966--0.991), and goal 490/500 = 98.0%
 (0.964--0.989). The public pinned OpenPI table reports 98.8%, 98.2%, and 98.0%
 respectively, so object and goal match exactly and spatial differs by 0.2
-percentage points. LIBERO-10 remains in progress. Task-level tables and raw
-logs are retained; the four-suite average will not be reported until all 2,000
-episodes complete.
+percentage points. LIBERO-10 achieved 465/500 = 93.0% (0.904--0.949), 0.6
+percentage points above the published 92.4%. Across exactly 2,000 episodes the
+four-suite total is 1,939 successes, for both a micro-average and an equally
+weighted suite macro-average of 96.95% (micro Wilson interval 0.961--0.976),
+matching the published four-suite average of 96.85% within 0.1 percentage
+points. Task-level tables, strict summaries, and raw logs are retained.
 
 The matched public pi0 base checkpoint was converted with the pinned OpenPI
 converter. Because the public pi0 checkpoint does not provide LIBERO
@@ -137,6 +140,15 @@ The corresponding `libero_spatial` run succeeded in 493/500 episodes (98.6%),
 one episode below the pinned OpenPI README's 98.8%. Per-task rates again ranged
 from 96% to 100%. Aggregate and per-task tables report Wilson 95% binomial
 intervals; the published value lies well within run-to-run sampling uncertainty.
+
+The final `libero_goal` and `libero_10` runs completed under the same frozen
+protocol. Goal succeeded in 490/500 episodes (98.0%), exactly matching the
+pinned public result. LIBERO-10 succeeded in 465/500 episodes (93.0%; Wilson 95%
+interval 90.4--94.9%), compared with the pinned 92.4%. A strict combiner
+accepted the four suites only after verifying 500 episodes in each and produced
+1,939/2,000 = 96.95% overall (micro Wilson 95% interval 96.1--97.6%). The EGL
+destructor warning appeared only after the evaluator had written all 500 final
+records and does not change the accepted outcome table.
 
 ## 2026-08-31: exact instruction-target fixture
 
