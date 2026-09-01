@@ -314,6 +314,13 @@ sided exact upper bound on the conservative paired-loss probability. No utility
 decision is emitted until every cluster selected by the frozen endpoint gate is
 complete.
 
+The obstacle pilot applies the same identity principle at `k=0`: continue and
+restart must match not only in action bytes but also in obstacle-contact timing,
+first-chunk collision, eventual and collision-free success, minimum first-chunk
+clearance, and episode length. Its collision endpoint remains explicitly limited
+to registered gripper--obstacle contact plus an end-effector clearance proxy; it
+is not a whole-robot safety certificate.
+
 Held-out candidates use the latest five-action replan boundary strictly before
 the source clean target contact. Because robosuite controller and interpolator
 state is not fully represented in MuJoCo's flat state, each fork reproduces the
@@ -334,6 +341,18 @@ replan, first-contact replan index, success rescued only by later clean
 replanning, and eventual failure after correct target selection. Thus a useful
 boundary can be evaluated both as immediate event avoidance and as a predictor
 of downstream recovery across chunk boundaries.
+
+For U1, an action-only editability boundary is useful only if it improves
+scene-level mean absolute error for the observed last successful boundary over
+fixed `k=7` with a bootstrap interval below zero, has positive scene-level rank
+association under a one-sided permutation test, *and* the composite success of
+executing the predictor-selected boundary is noninferior to executing `k=7`.
+The association requirement distinguishes scene-specific prediction from a
+better but constant global boundary. Scenes with no successful boundary are
+retained as ordinal boundary `-1`. Closed-loop success curves are not forced to
+be monotone; all monotonicity violations are reported because a numerically
+accurate boundary is not an actionable policy when the selected cell itself
+fails.
 
 ### 3.6 Layer, action-state, and token interventions
 

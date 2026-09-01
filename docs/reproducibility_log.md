@@ -1,5 +1,88 @@
 # Reproducibility log
 
+## 2026-09-01: matched pi0 grids assigned to isolated H100s
+
+Protocol version 0.32 changes only execution of the future matched-control
+grid. After 32/32 conversion parity, the coarse and all-50-position grids run
+concurrently in separate processes with one registered H100 visible to each;
+there is no timing outcome in either grid. Both must finish before comparison.
+The launcher now rejects untracked as well as tracked changes, checks both GPUs
+for competing compute, and permits a partial resume only when its output already
+carries the same full code commit. The final audit requires two distinct H100
+UUIDs in the saved preflight. Intervention cells, models, noise, and statistics
+are unchanged.
+
+## 2026-09-01: confirmation rendering restricted to hardened lineage
+
+Protocol version 0.31 strengthens the sealed confirmation publication handoff
+while the run remains incomplete. The independent audit now rejects untracked
+as well as tracked worktree changes. The figure CLI requires the hardened
+summary's 1,505-file source digest, propagates that digest into its own manifest,
+and refuses an existing output path; promotion already refuses overwrite and
+now verifies the repeated raw-source binding. This applies identically to a
+positive or negative final result.
+
+## 2026-09-01: obstacle restart identity extended to behavior
+
+Protocol version 0.30 strengthens the future obstacle-update pilot before its
+dynamic intervention outcome exists. Byte-exact boundary-zero actions remain
+necessary but are no longer sufficient for a practical flag: continue and
+restart must also agree exactly in obstacle-contact timing, first-chunk
+collision, eventual and collision-free success, minimum first-chunk planar
+clearance, and episode length. The endpoint is still explicitly restricted to
+gripper--obstacle contact and an end-effector clearance proxy, not whole-robot
+safety.
+
+## 2026-09-01: boundary prediction tied to chosen-action utility
+
+Protocol version 0.29 strengthens the future held-out U1 decision before any
+continuation outcome exists. A scene with no successful boundary now remains in
+the target distribution as registered sentinel `-1` instead of crashing the
+analysis. Better boundary MAE than fixed `k=7` is no longer sufficient: the
+predictor-selected boundary must also preserve the recovery composite under the
+same exact five-point paired-loss noninferiority rule. A one-sided 10,000-draw
+permutation test must additionally establish positive scene-level Spearman
+association, preventing a better constant global boundary from masquerading as
+scene-specific prediction. Nonmonotone closed-loop success curves are counted
+and reported rather than silently isotonicized. This prevents a predictor from
+being called useful when it estimates a curve endpoint but chooses a failed
+intervention cell.
+
+## 2026-09-01: conversion parity made independently reconstructible
+
+Protocol version 0.28 strengthens the future lossless pi0 result before it
+exists. The parity summary now hashes the ordered identifiers and physical-action
+arrays emitted independently by the JAX and PyTorch workers. The intervention
+gate verifies those hashes and reconstructs all 32 per-case errors, cosines,
+pass flags, and aggregate extrema from the arrays rather than trusting the JSON
+decision. It also requires equality between the prior-failure digest in
+conversion provenance and the independently validated digest in the parity
+result. No case, action transform, threshold, or model changed.
+
+## 2026-09-01: lossless pi0 conversion made executable and lineage-bound
+
+Protocol version 0.27 repairs the future lossless pi0 conversion before its
+outcome exists. The launcher supplied a preserved-failure argument that its
+adapter had not declared, which would have stopped conversion during argument
+parsing. The adapter now accepts that argument and records its SHA-256 digest;
+the parity stage independently checks it. The launcher explicitly resolves the
+actual frozen run's in-checkpoint normalization assets, supports OpenPI's
+sibling-assets layout as a fallback, and requires converter-copied assets to
+match the selected source bytewise. Both conversion and parity require wholly
+new output paths so partial failures remain immutable. These repairs change no
+parameter mapping, model input, action, parity case, or registered tolerance.
+
+## 2026-09-01: matched grids made complete per intervention unit
+
+Protocol version 0.26 strengthens the future pi0-versus-pi0.5 comparison before
+any repaired pi0 conversion or intervention outcome exists. The comparison now
+requires every eligible pair, serialized scene, noise seed, and metric to have
+the exact registered cell set in each intervention family. Checking only the
+union of cells could have hidden a missing cell in one scene when another scene
+still supplied it, causing cell-specific denominator drift. The analysis-input
+gate also enforces the registered minimum of 12 independent source scene
+clusters. No intervention, estimator, threshold, or model configuration changed.
+
 ## 2026-09-01: closest adaptive-vla precedents added
 
 The related-work audit now includes A1 and FASTER with their public papers and

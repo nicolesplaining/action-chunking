@@ -1,6 +1,6 @@
 # Research protocol: causal editability and retargeting in action chunks
 
-Protocol version: 0.25 (boundary-zero behavioral identity control)
+Protocol version: 0.32 (isolated two-GPU matched-control execution)
 
 ## 1. Research question
 
@@ -178,6 +178,20 @@ All screened rows and clusters remain in the denominator. If the public catalog
 is exhausted first, U2 remains a pilot estimate and no five-point
 noninferiority claim is made.
 
+The predictive U1 claim is stricter than correlation with the last successful
+boundary. A positive requires the scene-specific predictor's mean-absolute-error
+advantage over fixed `k=7` to have a scene-bootstrap 95% interval wholly below
+zero, a positive scene-level Spearman association with the observed boundary
+under a 10,000-permutation one-sided test at alpha 0.05, and the composite
+success of actually choosing the predicted boundary to be noninferior to
+choosing `k=7` under the same five-percentage-point exact paired-loss rule. The
+rank test prevents a globally shifted constant from being called a scene-
+specific predictor merely because it beats the frozen constant comparator. If
+no tested boundary succeeds, the scene remains in the prediction target with
+registered ordinal sentinel `-1`; it is never dropped. Because closed-loop
+success need not be monotone in `k`, nonmonotone curves are counted and reported
+rather than repaired with isotonic regression.
+
 The immutable expansion artifact combines the pinned `libero_goal` and
 `libero_90` strict-pair catalogs. It contains 45 manipulated-object pair
 definitions, 2,218 non-pilot screening rows, and 718 unique candidate clusters.
@@ -345,11 +359,14 @@ The pilot is behaviorally eligible only if the fully source-conditioned first
 chunk (`k=10`) contacts the registered obstacle within the first five executed
 controls, while full restart under the moved-obstacle condition avoids that
 contact and eventually completes the unchanged task. Boundary-zero continue
-and restart actions must be exactly equal. Every rollout must exactly restore
-the registered simulator state and robot proprioception; the counterfactual
-source image and live donor image must each exactly equal their frozen fixture.
-Only restart and `k=10` are run for endpoint screening. Boundaries `0..9`
-remain sealed and are evaluated only after that endpoint gate passes.
+and restart actions must be exactly equal. Their obstacle-contact step,
+first-chunk collision flag, eventual task success, collision-free success,
+minimum first-chunk planar clearance, and episode length must also agree
+exactly. Every rollout must exactly restore the registered simulator state and
+robot proprioception; the counterfactual source image and live donor image must
+each exactly equal their frozen fixture. Only restart and `k=10` are run for
+endpoint screening. Boundaries `0..9` remain sealed and are evaluated only
+after that endpoint gate passes.
 
 A no-restart safety correction is counted only when it avoids obstacle contact
 through the first five controls and eventually completes the task. Report the
@@ -426,7 +443,7 @@ ordinary clean-sampler request exactly. No other client may use the policy GPU,
 and each episode contributes one paired
 success/loss outcome regardless of its number of replans. Every warm-up,
 condition, pair, and progress artifact must name the same full Git commit, and
-the launcher rejects tracked worktree changes. The registered 0.02 exact bound
+the launcher rejects every tracked or untracked worktree change. The registered 0.02 exact bound
 permits at most four paired losses among 500 trials; five or more cannot pass. A
 resume may skip only a pair whose two condition artifacts and hashes are
 complete and whose code commit matches the current process.
@@ -451,6 +468,13 @@ The figure generator independently reconstructs aggregate successes, paired
 losses/gains, the exact loss bound, latency median, and the final decision from
 the row-level artifact. A negative result is therefore not replaced by the
 earlier positive pilot figure.
+
+Publication rendering accepts only the independently hardened summary carrying
+the exact 1,505-file raw-source digest. Both the audit and figure directories
+must be new, and promotion refuses an existing paper output. The figure manifest
+repeats the raw-source count and digest, so the promoted image, hardened summary,
+and immutable episode artifacts form one checked lineage rather than merely
+sharing aggregate values.
 
 Promotion into `paper/results` is a separate fail-closed step. It requires the
 original and hardened summaries to have passed exact comparison, the 1,505-file
@@ -545,13 +569,25 @@ in OpenPI PR #978: the intermediate model and saved checkpoint remain float32,
 then OpenPI's unchanged policy loader recreates its intended mixed-precision
 inference layout. This prevents an irreversible bfloat16 checkpoint downcast;
 it does not change model weights, inputs, sampling, or the parity criterion.
+The adapter records the exact digest of the preserved 24/32 failed-parity
+summary, and the parity validator independently matches that digest before
+loading either backend. The launcher resolves normalization assets from the
+numbered checkpoint used by the frozen run, with OpenPI's public sibling-assets
+layout as a fallback, and requires any converter-copied assets to be bytewise
+identical to that frozen source. Conversion and parity each require a new output
+path; partial failed artifacts are retained rather than overwritten.
 Before any pi0
 activation intervention, conversion parity is evaluated on both directions of
 all 16 held-out target fixtures under identical seed-zero `50 x 32` action
 noise. Every physical-action case must have maximum absolute JAX/PyTorch error
 at most 0.02 and cosine similarity at least 0.999. A failed case blocks the
 mechanistic comparison and is reported as conversion-limited; these tolerances
-are not relaxed after conversion.
+are not relaxed after conversion. The parity summary hashes both backend action
+arrays and both ordered identifier files. Before an intervention is authorized,
+the gate verifies those hashes, reconstructs every per-case error and cosine
+from the saved arrays, requires exact agreement with the summary, and requires
+the conversion-provenance prior-failure digest to equal the digest independently
+carried by the parity result.
 
 If and only if competence and conversion parity pass, both models are analyzed
 on the intersection of their clean dual-success, instructed-target-first scene
@@ -562,6 +598,15 @@ execution. The matched coarse grid crosses all ten flow steps and all 18 layers
 with all action positions patched jointly, plus the same preregistered physical
 action-dimension groups. The position grid crosses flow steps `{0, 7, 8, 9}`,
 layers `{0, 8, 14, 17}`, and all 50 native pi0 positions.
+
+After parity passes, these two independent offline grids run concurrently on
+the two registered H100s. Each process sees only its assigned GPU; neither grid
+contains a latency estimand, and comparison begins only after both exit
+successfully. The launcher rejects competing GPU processes and every tracked or
+untracked worktree change. A partial output is resumable only when it already
+contains the same full code-commit binding; an unrelated or unbound directory
+is never adopted. The final audit independently requires the preflight to name
+two distinct H100 UUIDs.
 
 Primary position comparisons use common positions zero through nine. A separate
 normalized-chunk-time analysis partitions pi0.5's ten positions and pi0's 50
@@ -581,9 +626,13 @@ passed conversion/checkpoint binding, both clean-validation summary maps, the
 ordered common-state intersection, all job identities and metadata, both
 analysis populations, and all 14 comparison-source digests. Coarse and
 position grids must use the same ordered set of at least 12 independent scene
-states. The launcher writes a passing `final_audit.json` only after every check
-succeeds; a missing or failed audit makes the matched-control result
-unreportable.
+states. Before aggregation, every eligible raw intervention unit, identified by
+pair ID, serialized scene state, noise seed, and metric, must contain the exact
+registered cell set for its flow, residual, action-dimension, or position grid.
+This prevents a complete union across scenes from hiding cell-specific missing
+data and changing the denominator across the heatmap. The launcher writes a
+passing `final_audit.json` only after every check succeeds; a missing or failed
+audit makes the matched-control result unreportable.
 
 1. **Instruction target:** identical scene with two valid objects; change only
    the target phrase in the instruction.

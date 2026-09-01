@@ -2,12 +2,16 @@
 
 from __future__ import annotations
 
+import csv
 import json
 import re
 from pathlib import Path
 from typing import Any
 
-from action_chunking.conversion import converted_checkpoint_artifact_hashes
+from action_chunking.conversion import (
+    converted_checkpoint_artifact_hashes,
+    validate_saved_conversion_parity,
+)
 from action_chunking.pairs import file_digest
 
 PINNED_OPENPI_REVISION = "215abfb217dbac7d5f1273282331b9b1866c0479"
@@ -20,7 +24,7 @@ def validate_pi0_intervention_inputs(
     manifest_path: Path,
 ) -> dict[str, Any]:
     """Bind an intervention run to the exact checkpoint that passed parity."""
-    parity = json.loads(parity_summary_path.read_text())
+    parity = validate_saved_conversion_parity(parity_summary_path)
     manifest = json.loads(manifest_path.read_text())
     entries = manifest.get("pairs", [])
     pair_ids = [str(entry.get("pair_id")) for entry in entries]
@@ -82,6 +86,7 @@ def validate_pi0_intervention_inputs(
         int(prior.get("cases", -1)) != 32
         or int(prior.get("passed_cases", -1)) != 24
         or re.fullmatch(r"[0-9a-f]{64}", str(prior.get("sha256"))) is None
+        or provenance.get("prior_failed_summary_sha256") != prior.get("sha256")
     ):
         raise ValueError("pi0 parity summary is not bound to the preserved conversion failure")
     identity = parity.get("jax_checkpoint_identity", {})
@@ -121,6 +126,15 @@ def audit_pi0_intervention_output(
     if re.fullmatch(r"[0-9a-f]{40}", code_commit) is None:
         raise ValueError("pi0 intervention output has no valid full code commit")
 
+    with (output_root / "gpu_preflight.csv").open(newline="") as stream:
+        gpu_rows = list(csv.DictReader(stream, skipinitialspace=True))
+    if (
+        len(gpu_rows) != 2
+        or len({str(row.get("uuid")) for row in gpu_rows}) != 2
+        or any("H100" not in str(row.get("name")) for row in gpu_rows)
+    ):
+        raise ValueError("pi0 intervention preflight does not bind two distinct H100s")
+
     selections = {
         mode: _audit_grid(output_root, mode, code_commit, expected_binding)
         for mode in ("coarse", "population_positions")
@@ -157,6 +171,7 @@ def audit_pi0_intervention_output(
         "input_binding_sha256": file_digest(output_root / "intervention_input_binding.json"),
         "comparison_summary_sha256": file_digest(output_root / "comparison" / "summary.json"),
         "comparison_source_files": len(sources),
+        "intervention_gpus": 2,
     }
 
 
@@ -173,6 +188,7 @@ def _audit_grid(
         "selection_uses_interventions": False,
         "repo_commit": code_commit,
         "repo_tracked_clean": True,
+        "repo_worktree_clean": True,
         "manifest_sha256": binding["manifest_sha256"],
         "selection_is_clean_eligible_intersection": True,
         "eligibility": "dual_success",

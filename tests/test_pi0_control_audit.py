@@ -37,6 +37,11 @@ def test_completed_pi0_control_is_reconstructed_and_tamper_evident(
     commit = "b" * 40
     (output / "code_commit.txt").parent.mkdir(parents=True, exist_ok=True)
     (output / "code_commit.txt").write_text(commit + "\n")
+    (output / "gpu_preflight.csv").write_text(
+        "index, uuid, name, driver_version, memory.total [MiB]\n"
+        "0, GPU-a, NVIDIA H100 80GB HBM3, 570.0, 81559 MiB\n"
+        "1, GPU-b, NVIDIA H100 80GB HBM3, 570.0, 81559 MiB\n"
+    )
 
     clean = tmp_path / "pi0_clean"
     reference = tmp_path / "pi05_clean"
@@ -68,11 +73,20 @@ def test_completed_pi0_control_is_reconstructed_and_tamper_evident(
     audit = module.audit_pi0_intervention_output(output, parity, checkpoint, manifest)
     assert audit["passed"] is True
     assert audit["common_scene_pair_count"] == 12
+    assert audit["intervention_gpus"] == 2
     assert audit["common_scene_pairs"] == pairs
 
     first_source = Path(sources["source_0"]["path"])
     _write_json(first_source, {"tampered": True})
     with pytest.raises(ValueError, match="source changed after analysis"):
+        module.audit_pi0_intervention_output(output, parity, checkpoint, manifest)
+
+    _write_json(first_source, {"index": 0})
+    (output / "gpu_preflight.csv").write_text(
+        "index, uuid, name, driver_version, memory.total [MiB]\n"
+        "0, GPU-a, NVIDIA H100 80GB HBM3, 570.0, 81559 MiB\n"
+    )
+    with pytest.raises(ValueError, match="two distinct H100s"):
         module.audit_pi0_intervention_output(output, parity, checkpoint, manifest)
 
 
@@ -91,6 +105,7 @@ def _write_grid(
         "selection_uses_interventions": False,
         "repo_commit": commit,
         "repo_tracked_clean": True,
+        "repo_worktree_clean": True,
         "manifest_sha256": binding["manifest_sha256"],
         "selection_is_clean_eligible_intersection": True,
         "eligibility": "dual_success",

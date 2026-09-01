@@ -62,6 +62,10 @@ def promote_confirmation_artifacts(
     required_figure = {
         "schema_version": 1,
         "source_summary_sha256": file_digest(hardened_path),
+        "source_artifact_files": 1505,
+        "source_artifact_manifest_sha256": hardened.get(
+            "source_artifact_manifest_sha256"
+        ),
         "confirmation_positive": hardened.get("confirmation_positive"),
         "episode_pairs": 500,
         "early_exit_successes": hardened.get("early_exit_successes"),

@@ -1,6 +1,6 @@
 study:
   name: pi05_libero_conditional_editability
-  protocol_version: "0.25"
+  protocol_version: "0.32"
   pilot_pairs_per_family: 16
   primary_noise_seed: 0
   robustness_noise_seeds_per_pair: 4
@@ -37,6 +37,11 @@ retarget_utility:
   prediction_fixed_boundary_comparator: 7
   prediction_bootstrap_replicates: 10000
   prediction_bootstrap_seed: 0
+  prediction_rank_test: one_sided_spearman_permutation
+  prediction_rank_alpha: 0.05
+  prediction_no_success_boundary_sentinel: -1
+  prediction_positive_requires_selected_boundary_noninferiority: true
+  report_nonmonotone_behavioral_success_curves: true
   practical_gate_requires_complete_frozen_population: true
   practical_gate_requires_exact_boundary_zero: true
   practical_gate_requires_boundary_zero_behavior_equivalence: true
@@ -57,6 +62,9 @@ early_exit_confirmation:
   bootstrap_seed: 0
   evaluation_savings_fraction: 0.30
   require_balanced_order_per_task: true
+  publication_audit_requires_completely_clean_worktree: true
+  publication_figure_requires_hardened_source_digest: true
+  publication_outputs_require_new_paths: true
 
 pair_families:
   - instruction_target
@@ -109,6 +117,16 @@ matched_pi0:
   maximum_absolute_error: 0.02
   minimum_cosine_similarity: 0.999
   minimum_common_scene_pairs: 12
+  parallel_intervention_gpus: 2
+  require_distinct_h100_preflight: true
+  require_complete_worktree_cleanliness: true
+  resume_requires_code_commit_binding: true
+  require_complete_grid_per_intervention_unit: true
+  require_prior_failure_digest_in_conversion_provenance: true
+  require_parity_reconstruction_from_worker_artifacts: true
+  require_prior_failure_digest_equality: true
+  require_frozen_normalization_assets: true
+  require_new_conversion_output_directories: true
   require_normalization_asset_hashes: true
   require_final_output_lineage_audit: true
 
@@ -117,3 +135,5 @@ obstacle_pilot:
   clearance_definition: eef_center_planar_distance_minus_obstacle_bounding_radius
   whole_robot_collision_measured: false
   population_claim_allowed: false
+  practical_gate_requires_boundary_zero_actions_exact: true
+  practical_gate_requires_boundary_zero_behavior_equivalence: true

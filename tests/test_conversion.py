@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import runpy
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -22,6 +23,39 @@ def test_conversion_launcher_passes_preserved_failure_to_final_parity() -> None:
     launcher = Path("scripts/run_pi0_conversion.sh").read_text()
 
     assert '--prior-failed-summary "$prior_failed_parity"' in launcher
+    assert '[[ -e "$pytorch_output" || -e "$parity_output" ]]' in launcher
+    assert 'checkpoint_assets="$jax_checkpoint/assets"' in launcher
+    assert 'sibling_assets="$jax_checkpoint/../assets"' in launcher
+    assert 'diff -qr "$jax_assets" "$pytorch_output/assets"' in launcher
+    assert 'cp -a "$jax_assets" "$pytorch_output/assets"' in launcher
+
+
+def test_lossless_adapter_accepts_preserved_failure_argument(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    prior = tmp_path / "failed.json"
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "convert_pi0_checkpoint_lossless.py",
+            "--checkpoint-dir",
+            str(tmp_path / "29999"),
+            "--output-path",
+            str(tmp_path / "converted"),
+            "--upstream-converter",
+            str(tmp_path / "convert.py"),
+            "--prior-failed-summary",
+            str(prior),
+            "--upstream-revision",
+            "openpi-commit",
+        ],
+    )
+
+    args = _lossless_script["parse_args"]()
+
+    assert args.prior_failed_summary == prior
 
 
 @dataclass(frozen=True)
@@ -48,8 +82,14 @@ def test_lossless_conversion_rejects_non_dataclass_config() -> None:
 def test_lossless_conversion_records_immutable_public_provenance(tmp_path) -> None:
     converter = tmp_path / "convert.py"
     converter.write_text("# pinned converter\n")
+    prior = tmp_path / "failed.json"
+    prior.write_text('{"passed": false}\n')
 
-    result = _lossless_script["conversion_provenance"](converter, "openpi-commit")
+    result = _lossless_script["conversion_provenance"](
+        converter,
+        "openpi-commit",
+        prior,
+    )
 
     assert result["source_precision_repair_commit"] == (
         "e5fe45e2c6784f315ffa59c207457701fb906c05"
@@ -57,6 +97,9 @@ def test_lossless_conversion_records_immutable_public_provenance(tmp_path) -> No
     assert result["upstream_openpi_revision"] == "openpi-commit"
     assert result["upstream_converter_sha256"] == hashlib.sha256(
         converter.read_bytes()
+    ).hexdigest()
+    assert result["prior_failed_summary_sha256"] == hashlib.sha256(
+        prior.read_bytes()
     ).hexdigest()
     assert result["saved_checkpoint_precision"] == "float32"
 
@@ -118,9 +161,12 @@ def test_conversion_provenance_binds_upstream_converter(tmp_path) -> None:
     checkpoint.mkdir()
     converter = tmp_path / "convert.py"
     converter.write_text("# pinned converter\n")
+    prior = tmp_path / "failed.json"
+    prior.write_text('{"passed": false}\n')
     provenance = _lossless_script["conversion_provenance"](
         converter,
         "215abfb217dbac7d5f1273282331b9b1866c0479",
+        prior,
     )
     (checkpoint / "conversion_provenance.json").write_text(
         __import__("json").dumps(provenance)
@@ -129,11 +175,25 @@ def test_conversion_provenance_binds_upstream_converter(tmp_path) -> None:
     assert _manifest_script["_validate_conversion_provenance"](
         checkpoint,
         converter,
+        prior,
     ) == provenance
 
     converter.write_text("# changed converter\n")
     with pytest.raises(ValueError, match="wrong upstream converter digest"):
-        _manifest_script["_validate_conversion_provenance"](checkpoint, converter)
+        _manifest_script["_validate_conversion_provenance"](
+            checkpoint,
+            converter,
+            prior,
+        )
+
+    converter.write_text("# pinned converter\n")
+    prior.write_text('{"changed": true}\n')
+    with pytest.raises(ValueError, match="conversion provenance mismatch"):
+        _manifest_script["_validate_conversion_provenance"](
+            checkpoint,
+            converter,
+            prior,
+        )
 
 
 def test_lossless_rerun_binds_the_preserved_failed_cases(

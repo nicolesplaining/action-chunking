@@ -58,7 +58,7 @@ def test_reads_frozen_candidate_index(tmp_path: Path) -> None:
 
 def test_utility_decision_is_withheld_until_every_cluster_finishes() -> None:
     statistics = {
-        "prediction_beats_fixed_boundary_mae": True,
+        "prediction_utility_gate_passed": True,
         "boundary7_practical_gate_passed": True,
     }
 

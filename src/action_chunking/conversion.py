@@ -14,6 +14,12 @@ from action_chunking.pi0_checkpoint import validate_pi0_final_checkpoint
 
 PRIOR_FAILURE_MAXIMUM_ABS_ERROR = 2.0130362831905284
 PRIOR_FAILURE_MINIMUM_COSINE = 0.805807150674655
+PARITY_ARTIFACT_NAMES = (
+    "actions_jax.npy",
+    "actions_pytorch.npy",
+    "identifiers_jax.json",
+    "identifiers_pytorch.json",
+)
 
 
 def converted_checkpoint_artifact_hashes(checkpoint: Path) -> dict[str, str]:
@@ -77,6 +83,46 @@ def conversion_parity_summary(
         "passed": all(row["passed"] for row in rows),
         "rows": rows,
     }
+
+
+def validate_saved_conversion_parity(summary_path: Path) -> dict[str, Any]:
+    """Reconstruct a saved parity decision from its immutable worker artifacts."""
+    if not summary_path.is_file():
+        raise FileNotFoundError("conversion parity summary is missing")
+    summary = json.loads(summary_path.read_text())
+    root = summary_path.parent
+    missing = [name for name in PARITY_ARTIFACT_NAMES if not (root / name).is_file()]
+    if missing:
+        raise FileNotFoundError(f"conversion parity worker artifacts are missing: {missing}")
+    actual_hashes = {
+        name: file_digest(root / name) for name in PARITY_ARTIFACT_NAMES
+    }
+    if summary.get("parity_artifact_sha256") != actual_hashes:
+        raise ValueError("conversion parity worker artifact hashes differ from the summary")
+
+    jax_identifiers = json.loads((root / "identifiers_jax.json").read_text())
+    pytorch_identifiers = json.loads((root / "identifiers_pytorch.json").read_text())
+    if jax_identifiers != pytorch_identifiers:
+        raise ValueError("saved conversion workers have different case identifiers")
+    reconstructed = conversion_parity_summary(
+        jax_identifiers,
+        np.load(root / "actions_jax.npy", allow_pickle=False),
+        np.load(root / "actions_pytorch.npy", allow_pickle=False),
+        max_abs_tolerance=float(summary.get("max_abs_tolerance", -1.0)),
+        minimum_cosine_similarity=float(
+            summary.get("minimum_cosine_similarity", -1.0)
+        ),
+    )
+    mismatched = {
+        key: {"expected": value, "actual": summary.get(key)}
+        for key, value in reconstructed.items()
+        if summary.get(key) != value
+    }
+    if mismatched:
+        raise ValueError(
+            f"conversion parity summary differs from reconstructed worker outputs: {mismatched}"
+        )
+    return summary
 
 
 def validate_prior_conversion_failure(

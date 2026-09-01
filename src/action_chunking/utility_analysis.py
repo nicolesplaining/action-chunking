@@ -35,7 +35,15 @@ def summarize_utility_jobs(
 
     valid = [job for job in jobs if job["prediction_valid"]]
     predicted = np.asarray([int(job["predicted_last_successful_boundary"]) for job in valid], dtype=np.float64)
-    observed = np.asarray([int(job["observed_last_successful_boundary"]) for job in valid], dtype=np.float64)
+    observed = np.asarray(
+        [
+            -1
+            if job["observed_last_successful_boundary"] is None
+            else int(job["observed_last_successful_boundary"])
+            for job in valid
+        ],
+        dtype=np.float64,
+    )
     errors = predicted - observed
     baseline_errors = fixed_boundary_baseline - observed
     absolute_error_advantage = np.abs(errors) - np.abs(baseline_errors)
@@ -43,6 +51,37 @@ def summarize_utility_jobs(
         absolute_error_advantage, bootstrap_samples, bootstrap_seed
     )
     prediction_sample_size_gate_passed = len(valid) >= minimum_valid_predictions
+    prediction_spearman_rho = _spearman(predicted, observed)
+    prediction_spearman_p = (
+        _spearman_permutation_p(
+            predicted,
+            observed,
+            samples=bootstrap_samples,
+            seed=bootstrap_seed + 1,
+        )
+        if prediction_sample_size_gate_passed
+        else None
+    )
+    prediction_rank_association_positive = bool(
+        prediction_sample_size_gate_passed
+        and prediction_spearman_rho is not None
+        and prediction_spearman_rho > 0.0
+        and prediction_spearman_p is not None
+        and prediction_spearman_p < alpha
+    )
+    predicted_boundary_success = [
+        bool(job["success_curve"][int(job["predicted_last_successful_boundary"])])
+        for job in valid
+    ]
+    fixed_boundary_success = [
+        bool(job["success_curve"][fixed_boundary_baseline]) for job in valid
+    ]
+    prediction_selection_noninferiority = _paired_loss_noninferiority(
+        fixed_boundary_success,
+        predicted_boundary_success,
+        margin=noninferiority_margin,
+        alpha=alpha,
+    )
 
     outcome_pairs = {
         "target_first": (
@@ -95,7 +134,6 @@ def summarize_utility_jobs(
         and latency_positive
     )
 
-    predicted_boundary_success = []
     next_boundary_failure = []
     predicted_boundary_first_chunk_old_event = []
     next_boundary_first_chunk_old_event = []
@@ -103,7 +141,6 @@ def summarize_utility_jobs(
         boundary = int(job["predicted_last_successful_boundary"])
         curve = [bool(value) for value in job["success_curve"]]
         first_chunk_old_events = [bool(value) for value in job["first_chunk_old_event_curve"]]
-        predicted_boundary_success.append(curve[boundary])
         predicted_boundary_first_chunk_old_event.append(first_chunk_old_events[boundary])
         if boundary < 10:
             next_boundary_failure.append(not curve[boundary + 1])
@@ -124,12 +161,34 @@ def summarize_utility_jobs(
             elif not success:
                 eventual_failures_after_new_target_first += 1
 
+    prediction_beats_fixed_boundary_mae = bool(
+        prediction_sample_size_gate_passed
+        and absolute_error_advantage_interval is not None
+        and absolute_error_advantage_interval[1] < 0.0
+    )
+    prediction_utility_gate_passed = bool(
+        prediction_beats_fixed_boundary_mae
+        and prediction_rank_association_positive
+        and prediction_selection_noninferiority["noninferior"]
+    )
+    nonmonotone_success_curves = sum(
+        any(not left and right for left, right in zip(job["success_curve"][:-1], job["success_curve"][1:], strict=True))
+        for job in jobs
+    )
     return {
         "analysis_unit": "independent_scene_cluster",
         "independent_clusters": len(jobs),
         "valid_predictions": len(valid),
         "prediction_minimum_valid_clusters": minimum_valid_predictions,
         "prediction_sample_size_gate_passed": prediction_sample_size_gate_passed,
+        "behavioral_boundary_no_success_sentinel": -1,
+        "behavioral_success_curve_nonmonotone_clusters": nonmonotone_success_curves,
+        "behavioral_success_curve_nonmonotone_fraction": (
+            nonmonotone_success_curves / len(jobs) if jobs else None
+        ),
+        "valid_predictions_with_no_successful_boundary": sum(
+            job["observed_last_successful_boundary"] is None for job in valid
+        ),
         "prediction_exact_rate": _mean_boolean([job["prediction_exact"] for job in valid]),
         "prediction_within_one_rate": (float(np.mean(np.abs(errors) <= 1)) if len(errors) else None),
         "prediction_mean_absolute_error": (float(np.mean(np.abs(errors))) if len(errors) else None),
@@ -147,13 +206,26 @@ def summarize_utility_jobs(
             float(np.mean(absolute_error_advantage)) if len(absolute_error_advantage) else None
         ),
         "prediction_mae_difference_vs_fixed_boundary_ci95": (absolute_error_advantage_interval),
-        "prediction_beats_fixed_boundary_mae": (
-            bool(prediction_sample_size_gate_passed and absolute_error_advantage_interval[1] < 0.0)
-            if absolute_error_advantage_interval is not None
-            else None
-        ),
-        "prediction_spearman_rho": _spearman(predicted, observed),
+        "prediction_beats_fixed_boundary_mae": prediction_beats_fixed_boundary_mae,
+        "prediction_spearman_rho": prediction_spearman_rho,
+        "prediction_spearman_p_one_sided_permutation": prediction_spearman_p,
+        "prediction_rank_permutation_samples": bootstrap_samples,
+        "prediction_rank_association_positive": prediction_rank_association_positive,
         "predicted_boundary_composite_success_rate": _mean_boolean(predicted_boundary_success),
+        "fixed_boundary_composite_success_rate_on_valid_predictions": _mean_boolean(
+            fixed_boundary_success
+        ),
+        **{
+            f"prediction_selected_boundary_{key}": value
+            for key, value in prediction_selection_noninferiority.items()
+        },
+        "prediction_utility_gate_requires": [
+            "minimum_valid_independent_clusters",
+            "mae_bootstrap_ci_upper_below_fixed_boundary",
+            "positive_scene_rank_association_permutation_p_below_alpha",
+            "selected_boundary_composite_noninferior_to_fixed_boundary",
+        ],
+        "prediction_utility_gate_passed": prediction_utility_gate_passed,
         "next_boundary_composite_failure_rate": _mean_boolean(next_boundary_failure),
         "predicted_boundary_first_chunk_old_event_rate": _mean_boolean(predicted_boundary_first_chunk_old_event),
         "next_boundary_first_chunk_old_event_rate": _mean_boolean(next_boundary_first_chunk_old_event),
@@ -246,7 +318,7 @@ def _validate_derived_job_fields(jobs: list[dict[str, Any]]) -> None:
 
         success_curve = job["success_curve"]
         observed = max((boundary for boundary, success in enumerate(success_curve) if success), default=None)
-        if observed is None or job.get("observed_last_successful_boundary") != observed:
+        if job.get("observed_last_successful_boundary") != observed:
             raise ValueError("observed last successful boundary differs from the success curve")
         prediction_valid = job.get("prediction_valid")
         if type(prediction_valid) is not bool:
@@ -307,6 +379,33 @@ def _spearman(left: np.ndarray, right: np.ndarray) -> float | None:
     left_rank = _average_ranks(left)
     right_rank = _average_ranks(right)
     return float(np.corrcoef(left_rank, right_rank)[0, 1])
+
+
+def _spearman_permutation_p(
+    left: np.ndarray,
+    right: np.ndarray,
+    *,
+    samples: int,
+    seed: int,
+) -> float | None:
+    observed = _spearman(left, right)
+    if observed is None:
+        return None
+    left_rank = _average_ranks(left)
+    right_rank = _average_ranks(right)
+    left_centered = left_rank - left_rank.mean()
+    right_centered = right_rank - right_rank.mean()
+    denominator = float(
+        np.linalg.norm(left_centered) * np.linalg.norm(right_centered)
+    )
+    rng = np.random.default_rng(seed)
+    exceedances = 0
+    for _ in range(samples):
+        null_rho = float(
+            np.dot(rng.permutation(left_centered), right_centered) / denominator
+        )
+        exceedances += null_rho >= observed
+    return (exceedances + 1) / (samples + 1)
 
 
 def _average_ranks(values: np.ndarray) -> np.ndarray:

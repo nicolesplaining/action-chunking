@@ -14,6 +14,7 @@ from pathlib import Path
 import numpy as np
 
 from action_chunking.conversion import (
+    PARITY_ARTIFACT_NAMES,
     conversion_parity_summary,
     converted_checkpoint_artifact_hashes,
     validate_prior_conversion_failure,
@@ -83,6 +84,7 @@ def run_parent(args: argparse.Namespace) -> int:
     conversion_provenance = _validate_conversion_provenance(
         args.pytorch_checkpoint,
         args.upstream_converter,
+        args.prior_failed_summary,
     )
     common = [
         sys.executable,
@@ -138,6 +140,10 @@ def run_parent(args: argparse.Namespace) -> int:
             "pytorch_checkpoint_artifact_sha256": _checkpoint_hashes(args.pytorch_checkpoint),
             "conversion_provenance": conversion_provenance,
             "prior_failed_conversion": prior_failure,
+            "parity_artifact_sha256": {
+                name: file_digest(args.output / name)
+                for name in PARITY_ARTIFACT_NAMES
+            },
         }
     )
     (args.output / "summary.json").write_text(json.dumps(result, indent=2, sort_keys=True) + "\n")
@@ -152,6 +158,7 @@ def _checkpoint_hashes(checkpoint: Path) -> dict[str, str]:
 def _validate_conversion_provenance(
     checkpoint: Path,
     upstream_converter: Path,
+    prior_failed_summary: Path,
 ) -> dict:
     path = checkpoint / "conversion_provenance.json"
     if not path.is_file():
@@ -162,6 +169,7 @@ def _validate_conversion_provenance(
         "adapter": "openpi_pr978_float32_intermediate",
         "source_precision_repair_commit": "e5fe45e2c6784f315ffa59c207457701fb906c05",
         "upstream_openpi_revision": "215abfb217dbac7d5f1273282331b9b1866c0479",
+        "prior_failed_summary_sha256": file_digest(prior_failed_summary),
         "intermediate_model_config_dtype": "float32",
         "saved_checkpoint_precision": "float32",
         "policy_loader_precision_behavior": "unchanged_openpi_mixed_precision",

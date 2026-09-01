@@ -69,7 +69,7 @@ def test_cluster_summary_rejects_curve_and_registered_boundary_mismatch() -> Non
 def test_cluster_summary_detects_prediction_advantage_over_fixed_boundary() -> None:
     jobs = [
         _job(f"cluster-{index}", predicted=observed, observed=observed)
-        for index, observed in enumerate([2, 3, 4, 5, 9, 10] * 3)
+        for index, observed in enumerate([2, 3, 4, 5, 9, 10] * 10)
     ]
 
     result = summarize_utility_jobs(
@@ -82,6 +82,10 @@ def test_cluster_summary_detects_prediction_advantage_over_fixed_boundary() -> N
     assert result["prediction_fixed_boundary_baseline_mean_absolute_error"] > 0.0
     assert result["prediction_mae_difference_vs_fixed_boundary_ci95"][1] < 0.0
     assert result["prediction_beats_fixed_boundary_mae"] is True
+    assert result["prediction_spearman_rho"] == 1.0
+    assert result["prediction_rank_association_positive"] is True
+    assert result["prediction_selected_boundary_noninferior"] is True
+    assert result["prediction_utility_gate_passed"] is True
 
 
 def test_prediction_advantage_requires_frozen_sample_size() -> None:
@@ -92,6 +96,43 @@ def test_prediction_advantage_requires_frozen_sample_size() -> None:
     assert result["prediction_mae_difference_vs_fixed_boundary_ci95"][1] < 0.0
     assert result["prediction_sample_size_gate_passed"] is False
     assert result["prediction_beats_fixed_boundary_mae"] is False
+
+
+def test_prediction_utility_requires_chosen_boundary_behavior() -> None:
+    jobs = [
+        _job(f"cluster-{index}", predicted=9, observed=10)
+        for index in range(59)
+    ]
+    for job in jobs:
+        job["success_curve"][9] = False
+        job["old_target_first_curve"][9] = True
+        job["first_chunk_old_event_curve"][9] = True
+
+    result = summarize_utility_jobs(
+        jobs,
+        bootstrap_samples=1_000,
+        minimum_valid_predictions=len(jobs),
+    )
+
+    assert result["prediction_beats_fixed_boundary_mae"] is True
+    assert result["prediction_rank_association_positive"] is False
+    assert result["prediction_selected_boundary_paired_losses"] == len(jobs)
+    assert result["prediction_selected_boundary_noninferior"] is False
+    assert result["prediction_utility_gate_passed"] is False
+
+
+def test_total_behavioral_failure_remains_in_prediction_denominator() -> None:
+    result = summarize_utility_jobs(
+        [_job("failed", predicted=0, observed=None)],
+        bootstrap_samples=100,
+        minimum_valid_predictions=1,
+    )
+
+    assert result["behavioral_boundary_no_success_sentinel"] == -1
+    assert result["valid_predictions_with_no_successful_boundary"] == 1
+    assert result["prediction_mean_absolute_error"] == 1.0
+    assert result["prediction_fixed_boundary_baseline_mean_absolute_error"] == 8.0
+    assert result["predicted_boundary_composite_success_rate"] == 0.0
 
 
 def test_practical_gate_requires_each_behavioral_outcome_and_latency() -> None:
@@ -125,11 +166,15 @@ def _job(
     cluster: str,
     *,
     predicted: int = 7,
-    observed: int = 7,
+    observed: int | None = 7,
     boundary7: bool | None = None,
     latency: float = 180.0,
 ) -> dict:
-    curve = [boundary <= observed for boundary in range(11)]
+    curve = (
+        [False] * 11
+        if observed is None
+        else [boundary <= observed for boundary in range(11)]
+    )
     old_target_first = [not value for value in curve]
     boundary7 = curve[7] if boundary7 is None else boundary7
     return {
@@ -137,7 +182,7 @@ def _job(
         "prediction_valid": True,
         "predicted_last_successful_boundary": predicted,
         "observed_last_successful_boundary": observed,
-        "prediction_exact": predicted == observed,
+        "prediction_exact": observed is not None and predicted == observed,
         "success_curve": curve,
         "first_chunk_old_event_curve": old_target_first,
         "old_target_first_curve": old_target_first,
@@ -149,9 +194,9 @@ def _job(
         "boundary7_clean_replanning_rescue": False,
         "boundary7_post_event_velocity_evaluations": 3,
         "boundary7_post_event_total_ms": latency,
-        "restart_new_target_first": True,
-        "restart_new_task_success": True,
-        "restart_first_chunk_old_event": False,
+        "restart_new_target_first": curve[0],
+        "restart_new_task_success": curve[0],
+        "restart_first_chunk_old_event": old_target_first[0],
         "restart_clean_replanning_rescue": False,
         "restart_post_event_velocity_evaluations": 10,
         "restart_post_event_total_ms": 400.0,

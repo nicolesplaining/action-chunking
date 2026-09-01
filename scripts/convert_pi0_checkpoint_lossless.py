@@ -31,6 +31,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--config-name", default="pi0_libero")
     parser.add_argument("--output-path", type=Path, required=True)
     parser.add_argument("--upstream-converter", type=Path, required=True)
+    parser.add_argument("--prior-failed-summary", type=Path, required=True)
     parser.add_argument("--upstream-revision", required=True)
     return parser.parse_args()
 
@@ -57,9 +58,17 @@ def load_upstream_converter(path: Path) -> ModuleType:
     return module
 
 
-def conversion_provenance(converter: Path, upstream_revision: str) -> dict:
+def conversion_provenance(
+    converter: Path,
+    upstream_revision: str,
+    prior_failed_summary: Path,
+) -> dict:
     if not converter.is_file():
         raise FileNotFoundError(f"upstream converter is missing: {converter}")
+    if not prior_failed_summary.is_file():
+        raise FileNotFoundError(
+            f"preserved failed-parity summary is missing: {prior_failed_summary}"
+        )
     return {
         "schema_version": 1,
         "adapter": "openpi_pr978_float32_intermediate",
@@ -67,6 +76,9 @@ def conversion_provenance(converter: Path, upstream_revision: str) -> dict:
         "source_precision_repair_url": OPENPI_PRECISION_REPAIR_URL,
         "upstream_openpi_revision": upstream_revision,
         "upstream_converter_sha256": hashlib.sha256(converter.read_bytes()).hexdigest(),
+        "prior_failed_summary_sha256": hashlib.sha256(
+            prior_failed_summary.read_bytes()
+        ).hexdigest(),
         "intermediate_model_config_dtype": "float32",
         "saved_checkpoint_precision": "float32",
         "policy_loader_precision_behavior": "unchanged_openpi_mixed_precision",
@@ -94,6 +106,7 @@ def main() -> None:
     provenance = conversion_provenance(
         args.upstream_converter,
         args.upstream_revision,
+        args.prior_failed_summary,
     )
     (args.output_path / "conversion_provenance.json").write_text(
         json.dumps(provenance, indent=2, sort_keys=True) + "\n"

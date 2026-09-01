@@ -50,6 +50,7 @@ def test_dynamic_obstacle_requires_induced_collision_and_isolated_speedup(tmp_pa
     assert summary["successful_continued_boundaries"] == list(range(8))
     assert summary["last_successful_continued_boundary"] == 7
     assert summary["efficient_continued_boundaries"] == list(range(1, 8))
+    assert summary["boundary_zero_continue_restart_behavior_exact"] is True
     assert summary["practical_positive"] is True
     assert summary["whole_robot_collision_measured"] is False
     assert summary["population_timing_claim_allowed"] is False
@@ -60,6 +61,19 @@ def test_dynamic_obstacle_requires_induced_collision_and_isolated_speedup(tmp_pa
     _write_tables(tmp_path, entry, 0, True)
     summary = json.loads((tmp_path / "summary.json").read_text())
     assert summary["boundary_zero_continue_restart_actions_exact"] is False
+    assert summary["practical_positive"] is False
+
+    (tmp_path / "continue_after_0" / "donor_actions.json").write_text(
+        json.dumps([[[1.0, 2.0]]])
+    )
+    continue_summary = tmp_path / "continue_after_0" / "summary.json"
+    changed = json.loads(continue_summary.read_text())
+    changed["results"][0]["steps"] += 1
+    continue_summary.write_text(json.dumps(changed))
+    _write_tables(tmp_path, entry, 0, True)
+    summary = json.loads((tmp_path / "summary.json").read_text())
+    assert summary["boundary_zero_continue_restart_actions_exact"] is True
+    assert summary["boundary_zero_continue_restart_behavior_exact"] is False
     assert summary["practical_positive"] is False
 
     _write_tables(tmp_path, entry, 0, False)
@@ -108,6 +122,7 @@ def _result(collision: bool, post: int, latency: float) -> dict:
     return {
         "side": "donor",
         "success": True,
+        "steps": 100,
         "first_contact_step_by_object": {"bowl": 3} if collision else {},
         "retarget_diagnostics": {
             "post_event_velocity_evaluations": post,
