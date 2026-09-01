@@ -14,6 +14,37 @@ not evidence that the source plan was absent or undecided. Immediate
 correction, induced-failure avoidance, persistence through clean replanning,
 and eventual success remain separately reported outcomes.
 
+The same pre-`k=7` audit made the pilot analyzer fail closed on duplicated
+physical-state hashes, a nonzero noise seed, or inexact initial-state catalogs.
+Simultaneous first contacts now receive no arbitrary target credit. The frozen
+clean eligibility set contains no such ties, so this changes no denominator or
+observed control outcome.
+
+The first post-rollout analyzer invocation stopped before writing an analysis
+because its new uniqueness check used the test-fixture field
+`scene_state_sha256`, while the frozen real manifest stores that digest at
+`identity_hashes.sim_state`. The behavioral and compute artifacts were already
+complete and were not rerun. Before inspecting any derived pilot statistic, the
+analyzer and its test fixture were corrected to use and validate the real
+64-character hexadecimal simulator-state digest; a duplicate-hash rejection
+test was added. The outcome rule and all 16 rollout artifacts remain unchanged.
+The next invocation also stopped before analysis because the original clean
+archive uses a legacy catalog schema with seed and exactness fields per job,
+not the newer catalog-level fields used by the intervention runs. The analyzer
+was then made to validate that real legacy schema explicitly: 16 completed
+jobs, seed zero, strict inputs, exact simulator state and first chunk, matching
+manifest simulator-state hashes, and success/contact recomputed from each
+immutable `noise_0` pair artifact. The test fixture now reproduces this schema.
+
+The corrected frozen analysis then passed its original decision rule: 14 of 15
+eligible clusters preserved the target-first-plus-eventual-success composite,
+all compute counts were exact, and median first-replan latency savings were
+positive. After that decision, reporting-only fields were added to separate
+target-first contact from eventual success and to provide an exact binomial
+interval, a seed-zero 10,000-resample scene bootstrap interval for median
+latency savings, and a two-sided sign test. These additions do not change
+eligibility, the 14/15 threshold, the latency sign gate, or `pilot_positive`.
+
 ## 2026-09-01: executed-action early-exit pilot frozen
 
 Protocol version 0.18 was frozen after the population action-position result and

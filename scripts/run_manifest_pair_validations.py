@@ -191,7 +191,11 @@ def _write_summary(
 
 def _first_contact(result: dict[str, Any]) -> str | None:
     contacts = result.get("first_contact_step_by_object", {})
-    return min(contacts, key=contacts.get) if contacts else None
+    if not contacts:
+        return None
+    first_step = min(contacts.values())
+    first_objects = [name for name, step in contacts.items() if step == first_step]
+    return first_objects[0] if len(first_objects) == 1 else None
 
 
 if __name__ == "__main__":
