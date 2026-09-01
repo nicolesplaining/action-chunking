@@ -296,6 +296,15 @@ level fails, pi0 is reported as a competence-limited negative control and no
 architectural timing comparison is claimed; the gate is not relaxed or rescued
 by selecting a later checkpoint.
 
+Only a checkpoint passing both competence levels is converted to the hookable
+PyTorch implementation with OpenPI's pinned public converter. Before any pi0
+activation intervention, conversion parity is evaluated on both directions of
+all 16 held-out target fixtures under identical seed-zero `50 x 32` action
+noise. Every physical-action case must have maximum absolute JAX/PyTorch error
+at most 0.02 and cosine similarity at least 0.999. A failed case blocks the
+mechanistic comparison and is reported as conversion-limited; these tolerances
+are not relaxed after conversion.
+
 1. **Instruction target:** identical scene with two valid objects; change only
    the target phrase in the instruction.
 2. **Target pose:** identical instruction and distractors; change only the
