@@ -43,7 +43,7 @@ def evaluate_pi0_competence(
     return {
         "schema_version": 1,
         "model": "pi0_libero",
-        "checkpoint_selection": "finalized_step_30000_only",
+        "checkpoint_selection": "finalized_30000_updates_label_29999_only",
         "suite": {
             "episodes": episodes,
             "successes": successes,

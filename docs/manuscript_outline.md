@@ -153,7 +153,7 @@ causal cells with within-metric BH correction.
 The two-device pipeline has passed a two-update execution smoke from the public
 base checkpoint (first reported loss 0.1812; finite gradient and parameter
 norms; finalized Orbax checkpoint). This validates the pipeline only. The pi0
-comparison remains pending until the 30,000-update checkpoint passes the frozen
+comparison remains pending until the completed 30,000-update checkpoint passes the frozen
 LIBERO competence gate.
 
 The model comparison is a matched experimental protocol, not a pure

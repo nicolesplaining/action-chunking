@@ -2,7 +2,7 @@
 set -euo pipefail
 
 if [[ $# -ne 9 ]]; then
-  echo "usage: $0 <repo-root> <checkpoint-30000> <manifest> <suite-summary> <output-dir> <gpu> <port> <server-session> <noise-seed>" >&2
+  echo "usage: $0 <repo-root> <checkpoint-label-29999> <manifest> <suite-summary> <output-dir> <gpu> <port> <server-session> <noise-seed>" >&2
   exit 2
 fi
 
@@ -17,8 +17,9 @@ server_session="$8"
 noise_seed="$9"
 openpi="$repo_root/third_party/openpi"
 
-if [[ "$(basename "$checkpoint")" != "30000" || ! -f "$checkpoint/_CHECKPOINT_METADATA" ]]; then
-  echo "pi0 pair gate accepts only the finalized step-30000 checkpoint" >&2
+if ! PYTHONPATH="$repo_root/src" "$repo_root/.venv/bin/python" \
+  "$repo_root/scripts/validate_pi0_final_checkpoint.py" --checkpoint "$checkpoint" >/dev/null; then
+  echo "pi0 pair gate requires the frozen finalized 30,000-update checkpoint" >&2
   exit 1
 fi
 if ! [[ "$gpu" =~ ^[0-9]+$ && "$port" =~ ^[1-9][0-9]*$ && "$noise_seed" =~ ^[0-9]+$ ]]; then

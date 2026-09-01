@@ -378,8 +378,11 @@ are the registered model-level control. Dataset normalization traversed all
 `f68a5fafe15e1577b7bb2c6fc4837a7d1669e2e9be3752f2589c3d327c6f8ccf`.
 A two-update, two-H100 FSDP smoke completed with finite first-reported loss
 0.1812, gradient norm 3.7253, parameter norm 1377.8652, and a finalized Orbax
-checkpoint. The 30,000-update training and competence evaluation must complete
-before any pi0-versus-pi0.5 timing contrast is inserted here.
+checkpoint. The registered 30,000-update training subsequently completed. The
+final state is stored under OpenPI's zero-based Orbax label `29999`; executable
+gates fix its metadata and manifest hashes and accept no other checkpoint. The
+competence and conversion-parity evaluations must complete before any
+pi0-versus-pi0.5 timing contrast is inserted here.
 
 ### 4.7 Registered inference-utility experiment
 

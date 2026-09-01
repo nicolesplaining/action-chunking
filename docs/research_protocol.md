@@ -311,7 +311,12 @@ by pair-level clean closed-loop validation.
 ### 4.1 Frozen pi0 competence gate
 
 The matched pi0 checkpoint is evaluated only after the 30,000-update Orbax
-checkpoint has finalized. Before any pi0 intervention outcome is inspected, it
+checkpoint has finalized. OpenPI executes loop indices `0..29999`, increments
+the serialized training state on every update, and keys the final save by the
+zero-based loop index; the sole eligible directory is therefore `29999`, which
+contains the state after 30,000 optimizer updates. Its three Orbax metadata and
+manifest hashes are frozen in the executable checkpoint validator. Before any
+pi0 intervention outcome is inspected, it
 must pass both levels of the following gate:
 
 1. The unchanged public OpenPI evaluator runs 50 episodes for each of the ten

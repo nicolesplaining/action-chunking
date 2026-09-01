@@ -1,5 +1,28 @@
 # Reproducibility log
 
+## 2026-09-01: matched pi0 training completed; final identity frozen
+
+The matched public `pi0_libero` run completed all 30,000 optimizer updates with
+the registered global batch size 32, two-H100 FSDP, 0.99 EMA, seed 42 experiment
+name, pinned OpenPI revision, and frozen normalization statistics. The last
+reported 100-update block at loop index 29,900 had finite loss 0.0108, gradient
+norm 0.1366, and parameter norm 1383.1084. These training diagnostics are not a
+competence result.
+
+Source audit before competence evaluation found that OpenPI saves the final
+30,000-update state under zero-based loop label `29999`, not `30000`: the train
+loop ranges over `0..29999`, increments `train_state.step` inside every update,
+and passes the loop index to Orbax. The checkpoint rule remains “final update
+only”; this is a correction of its filesystem label, not checkpoint selection.
+The finalized required artifact hashes are `_CHECKPOINT_METADATA`
+`cf454e8412c1e734cec099baf1a0638b56ad07b9e70219e17ea0a8b780d5fae8`,
+parameter manifest `1a338f26792c1614a315c0e9bac7bb532c21f9bc2ac6b196be0fcad862fe0894`,
+and training-state manifest
+`f77c5744e270d94646d1fde33e2f4ff29fabf801b4ff5b6eefce9a77a02acfe1`.
+All suite, pair, and conversion launchers now call one tested validator that
+requires the experiment name, label, committed Orbax metadata, and these hashes.
+No pi0 competence or intervention outcome existed when this correction was made.
+
 ## 2026-09-01: partial recovery screen rejected; controller replay frozen
 
 Protocol version 0.10 was frozen before any corrected recovery endpoint or
