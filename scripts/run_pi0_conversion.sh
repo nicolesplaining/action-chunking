@@ -2,7 +2,7 @@
 set -euo pipefail
 
 if [[ $# -ne 7 ]]; then
-  echo "usage: $0 <repo-root> <jax-checkpoint-30000> <competence-gate> <manifest> <pytorch-output> <parity-output> <gpu>" >&2
+  echo "usage: $0 <repo-root> <jax-checkpoint-label-29999> <competence-gate> <manifest> <pytorch-output> <parity-output> <gpu>" >&2
   exit 2
 fi
 
@@ -15,8 +15,9 @@ parity_output="$(realpath -m "$6")"
 gpu="$7"
 openpi="$repo_root/third_party/openpi"
 
-if [[ "$(basename "$jax_checkpoint")" != "30000" || ! -f "$jax_checkpoint/_CHECKPOINT_METADATA" ]]; then
-  echo "conversion accepts only the finalized step-30000 checkpoint" >&2
+if ! PYTHONPATH="$repo_root/src" "$repo_root/.venv/bin/python" \
+  "$repo_root/scripts/validate_pi0_final_checkpoint.py" --checkpoint "$jax_checkpoint" >/dev/null; then
+  echo "conversion requires the frozen finalized 30,000-update checkpoint" >&2
   exit 1
 fi
 if ! [[ "$gpu" =~ ^[0-9]+$ ]]; then

@@ -29,6 +29,12 @@ paper version, not this summary.
   [code](https://github.com/Lifelong-Robot-Learning/LIBERO)).
   Exact task-pair discovery reads the pinned public benchmark registry and BDDL
   files; it does not reconstruct task semantics from filenames.
+- **robosuite 1.4.1:** LIBERO's public robot-control dependency
+  ([paper](https://arxiv.org/abs/2009.12293),
+  [code](https://github.com/ARISE-Initiative/robosuite/tree/v1.4.1)). The
+  transition-exact recovery fork follows its public operational-space controller
+  semantics and reconstructs controller/interpolator state by action replay;
+  MuJoCo flat-state equality alone is not treated as transition equality.
 
 ## Action chunking and flow policies
 

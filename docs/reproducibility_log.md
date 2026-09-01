@@ -1,5 +1,61 @@
 # Reproducibility log
 
+## 2026-09-01: matched pi0 training completed; final identity frozen
+
+The matched public `pi0_libero` run completed all 30,000 optimizer updates with
+the registered global batch size 32, two-H100 FSDP, 0.99 EMA, seed 42 experiment
+name, pinned OpenPI revision, and frozen normalization statistics. The last
+reported 100-update block at loop index 29,900 had finite loss 0.0108, gradient
+norm 0.1366, and parameter norm 1383.1084. These training diagnostics are not a
+competence result.
+
+Source audit before competence evaluation found that OpenPI saves the final
+30,000-update state under zero-based loop label `29999`, not `30000`: the train
+loop ranges over `0..29999`, increments `train_state.step` inside every update,
+and passes the loop index to Orbax. The checkpoint rule remains “final update
+only”; this is a correction of its filesystem label, not checkpoint selection.
+The finalized required artifact hashes are `_CHECKPOINT_METADATA`
+`cf454e8412c1e734cec099baf1a0638b56ad07b9e70219e17ea0a8b780d5fae8`,
+parameter manifest `1a338f26792c1614a315c0e9bac7bb532c21f9bc2ac6b196be0fcad862fe0894`,
+and training-state manifest
+`f77c5744e270d94646d1fde33e2f4ff29fabf801b4ff5b6eefce9a77a02acfe1`.
+All suite, pair, and conversion launchers now call one tested validator that
+requires the experiment name, label, committed Orbax metadata, and these hashes.
+No pi0 competence or intervention outcome existed when this correction was made.
+
+## 2026-09-01: partial recovery screen rejected; controller replay frozen
+
+Protocol version 0.10 was frozen before any corrected recovery endpoint or
+continuation outcome. The partial version-3 endpoint screen is rejected in full
+and retained only as an audit artifact. It had registered byte-exact policy
+inputs, Gaussian draw, source chunk, and MuJoCo flat state, yet a failed fork's
+end-effector path diverged from its source clean path by centimeters within the
+five-action horizon. For example, after the first action from state 16's base
+snapshot, source and fork end-effector positions were approximately
+`[-0.1901, -0.0606, 1.0356]` and `[-0.1816, -0.0558, 1.0436]`. The associated
+old-target event was therefore not a valid replay test.
+
+The pinned public stack uses robosuite 1.4.1. Source inspection confirmed that
+the operational-space controller and its interpolators maintain state outside
+MuJoCo's flattened simulator state. The corrected fork reproduces the clean
+seeded reset and registered-initial-state restoration, then deterministically
+replays every clean action to the registered replan boundary. It registers
+hashes for the replay actions and full
+simulator-state prefix and requires array equality at every physical step in
+both task environments. Downstream utility validation now fails closed unless
+this controller-replay gate is true. The invalid screen and its automatic
+handoff were stopped without deleting their outputs; no partial row informed
+candidate selection, U1--U3 outcomes, or thresholds.
+
+The first corrected validation reran the previously divergent state-16 base
+snapshot. Both task forks reproduced all 41 registered simulator states with
+zero maximum absolute error; all three live model-input arrays were also exact,
+and the old-condition action chunk matched the registered clean chunk digest.
+The old wine-bottle contact reappeared at step 4, exactly matching the source
+clean event. The new-instruction endpoint contacted the old target at step 3,
+so this state fails the preregistered restart-avoidance gate and is not a utility
+success. This is a positive construct-validation result only.
+
 ## 2026-09-01: obstacle-pose pilot frozen before clean or patched outcomes
 
 Protocol version 0.9 adds a same-task obstacle family before generating any

@@ -16,7 +16,12 @@ from libero.libero.envs import OffScreenRenderEnv
 from openpi_client import image_tools, websocket_client_policy
 
 from action_chunking.metrics import gripper_closure_position
-from action_chunking.pairs import action_noise_shape, advance_action_noise, load_instruction_pair
+from action_chunking.pairs import (
+    action_noise_shape,
+    advance_action_noise,
+    array_digest,
+    load_instruction_pair,
+)
 
 
 def parse_args() -> argparse.Namespace:
@@ -59,7 +64,9 @@ def main() -> int:
     sides = _sides(args.sides)
     manifest = json.loads(args.manifest.read_text())
     entry = _manifest_entry(manifest, args.pair_id)
-    pair = load_instruction_pair(args.manifest.parent / entry["fixture"])
+    fixture_path = args.manifest.parent / entry["fixture"]
+    pair = load_instruction_pair(fixture_path)
+    controller_replay = _load_controller_replay(fixture_path, entry)
     client = websocket_client_policy.WebsocketClientPolicy(args.host, args.port)
     server_metadata = client.get_server_metadata()
     if not server_metadata.get("accepts_action_noise"):
@@ -103,6 +110,7 @@ def main() -> int:
             intervention,
             intervention_replans,
             dynamic_retarget,
+            controller_replay,
             noise_shape,
             args,
         )
@@ -148,6 +156,7 @@ def _rollout(
     intervention: dict[str, Any] | None,
     intervention_replans: set[int] | None,
     dynamic_retarget: dict[str, Any] | None,
+    controller_replay: dict[str, np.ndarray] | None,
     noise_shape: tuple[int, int],
     args: argparse.Namespace,
 ) -> dict[str, Any]:
@@ -176,13 +185,47 @@ def _rollout(
     terminated_after_registered_destination = False
     destination_stability_steps = 0
     retarget_diagnostics = None
+    controller_replay_required = bool(entry.get("controller_replay_required", False))
+    controller_replay_applied = False
+    controller_replay_steps = 0
+    controller_replay_trajectory_max_abs_error = None
     try:
         # Fixture generation advances the seeded environment reset sequence once
         # per initialization index. Replay that sequence because observation-
         # relevant task state is not fully represented by MuJoCo's flat state.
+        obs = None
         for _ in range(entry["init_index"] + 1):
-            env.reset()
-        obs = env.regenerate_obs_from_state(getattr(pair, f"{side}_sim_state"))
+            obs = env.reset()
+        if controller_replay is not None:
+            errors = []
+            expected_states = controller_replay["sim_states"]
+            obs = env.regenerate_obs_from_state(expected_states[0])
+            initial_state = np.asarray(env.get_sim_state())
+            errors.append(float(np.max(np.abs(initial_state - expected_states[0]))))
+            if not np.array_equal(initial_state, expected_states[0]):
+                raise ValueError(
+                    f"restored {side} rollout differs from controller replay's initial simulator state"
+                )
+            for index, action in enumerate(controller_replay["actions"]):
+                obs, _, done, _ = env.step(action.tolist())
+                live_state = np.asarray(env.get_sim_state())
+                expected_state = expected_states[index + 1]
+                errors.append(float(np.max(np.abs(live_state - expected_state))))
+                if not np.array_equal(live_state, expected_state):
+                    raise ValueError(
+                        f"{side} controller replay diverged at physical step {index + 1}"
+                    )
+                if done:
+                    raise ValueError("controller replay reached task success before the snapshot")
+            controller_replay_applied = True
+            controller_replay_steps = len(controller_replay["actions"])
+            controller_replay_trajectory_max_abs_error = max(errors)
+        else:
+            if controller_replay_required:
+                raise ValueError("manifest requires a controller replay trace, but fixture has none")
+            obs = env.regenerate_obs_from_state(getattr(pair, f"{side}_sim_state"))
+        if obs is None:
+            raise RuntimeError("environment reset produced no observation")
         restored_sim_state = np.asarray(env.get_sim_state())
         expected_sim_state = np.asarray(getattr(pair, f"{side}_sim_state"))
         if not np.array_equal(restored_sim_state, expected_sim_state):
@@ -319,6 +362,12 @@ def _rollout(
             "first_chunk_max_abs_error": first_chunk_error,
             "first_chunk_gripper_closure_position": first_chunk_closure_position,
             "restored_sim_state_max_abs_error": 0.0,
+            "controller_replay_required": controller_replay_required,
+            "controller_replay_applied": controller_replay_applied,
+            "controller_replay_steps": controller_replay_steps,
+            "controller_replay_trajectory_max_abs_error": (
+                controller_replay_trajectory_max_abs_error
+            ),
             "initial_input_mode": args.initial_input_mode,
             "first_policy_input_is_fixture": args.initial_input_mode == "fixture",
             "live_initial_input_diagnostics": initial_input_diagnostics,
@@ -335,6 +384,38 @@ def _rollout(
         }
     finally:
         env.close()
+
+
+def _load_controller_replay(
+    fixture_path: Path, entry: dict[str, Any]
+) -> dict[str, np.ndarray] | None:
+    """Load and hash-check an exact physical prefix for controller reconstruction."""
+    required = bool(entry.get("controller_replay_required", False))
+    with np.load(fixture_path, allow_pickle=False) as fixture:
+        keys = set(fixture.files)
+        present = {
+            "controller_replay_actions",
+            "controller_replay_sim_states",
+        } <= keys
+        if not present:
+            if required:
+                raise ValueError("controller replay arrays are missing from the required fixture")
+            return None
+        actions = np.asarray(fixture["controller_replay_actions"], dtype=np.float64)
+        sim_states = np.asarray(fixture["controller_replay_sim_states"])
+    if actions.ndim != 2 or sim_states.ndim != 2:
+        raise ValueError("controller replay actions and states must both be rank-2")
+    if len(sim_states) != len(actions) + 1:
+        raise ValueError("controller replay must contain one more state than action")
+    if int(entry.get("controller_replay_steps", -1)) != len(actions):
+        raise ValueError("controller replay step count differs from manifest")
+    expected_actions = entry.get("controller_replay_actions_sha256")
+    expected_states = entry.get("controller_replay_sim_states_sha256")
+    if not expected_actions or array_digest(actions) != expected_actions:
+        raise ValueError("controller replay action digest differs from manifest")
+    if not expected_states or array_digest(sim_states) != expected_states:
+        raise ValueError("controller replay simulator-state digest differs from manifest")
+    return {"actions": actions, "sim_states": sim_states}
 
 
 def _model_input(obs: dict[str, np.ndarray], prompt: str, resize: int) -> dict[str, Any]:

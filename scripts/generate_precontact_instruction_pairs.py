@@ -89,6 +89,17 @@ def main() -> int:
             if source_replan_index is not None
             else None
         )
+        controller_replay = (
+            _controller_replay_trace(
+                args.rollout,
+                origin,
+                snapshot_step,
+                source_replan_index,
+                args.replan_steps,
+            )
+            if source_replan_index is not None
+            else None
+        )
         source_replan_input = (
             load_replan_input(
                 args.rollout / f"{origin}_replan_inputs.npz", source_replan_index
@@ -162,6 +173,14 @@ def main() -> int:
             donor_state=pair.donor_state,
             donor_sim_state=pair.donor_sim_state,
             donor_prompt=np.asarray(pair.donor_prompt),
+            **(
+                {
+                    "controller_replay_actions": controller_replay["actions"],
+                    "controller_replay_sim_states": controller_replay["sim_states"],
+                }
+                if controller_replay is not None
+                else {}
+            ),
         )
         output_entries.append(
             {
@@ -174,6 +193,22 @@ def main() -> int:
                 "precontact_offset_steps": precontact_offset,
                 "source_replan_index": source_replan_index,
                 "source_action_chunk_sha256": source_action_chunk_sha256,
+                "controller_replay_required": controller_replay is not None,
+                "controller_replay_steps": (
+                    len(controller_replay["actions"])
+                    if controller_replay is not None
+                    else 0
+                ),
+                "controller_replay_actions_sha256": (
+                    array_digest(controller_replay["actions"])
+                    if controller_replay is not None
+                    else None
+                ),
+                "controller_replay_sim_states_sha256": (
+                    array_digest(controller_replay["sim_states"])
+                    if controller_replay is not None
+                    else None
+                ),
                 "source_replan_input_sha256": (
                     {
                         key: array_digest(value)
@@ -242,6 +277,44 @@ def _trace_state(path: Path, snapshot_step: int) -> np.ndarray:
     if snapshot_step >= len(states):
         raise IndexError(f"snapshot step {snapshot_step} is absent from {path}")
     return states[snapshot_step].copy()
+
+
+def _controller_replay_trace(
+    rollout: Path,
+    side: str,
+    snapshot_step: int,
+    source_replan_index: int,
+    replan_steps: int | None,
+) -> dict[str, np.ndarray]:
+    """Load the exact prefix needed to reconstruct non-MuJoCo controller state."""
+    if replan_steps is None or replan_steps <= 0:
+        raise ValueError("controller replay requires positive replan steps")
+    chunks = json.loads((rollout / f"{side}_actions.json").read_text())
+    if source_replan_index >= len(chunks):
+        raise IndexError("source replan index is absent from the clean action trace")
+    source_chunk = np.asarray(chunks[source_replan_index], dtype=np.float64)
+    if source_chunk.ndim != 2 or source_chunk.shape[0] < replan_steps:
+        raise ValueError("clean action chunks must be rank-2 and cover the execution horizon")
+    prefixes = [
+        np.asarray(chunk, dtype=np.float64)[:replan_steps]
+        for chunk in chunks[:source_replan_index]
+    ]
+    actions = (
+        np.concatenate(prefixes, axis=0)
+        if prefixes
+        else np.empty((0, source_chunk.shape[1]), dtype=np.float64)
+    )
+    if len(actions) != snapshot_step:
+        raise ValueError("controller replay action count must equal the snapshot step")
+    with np.load(rollout / f"{side}_sim_states.npz", allow_pickle=False) as trace:
+        steps = np.asarray(trace["step_indices"], dtype=np.int64)
+        states = np.asarray(trace["sim_states"])
+    if not np.array_equal(steps, np.arange(len(states))):
+        raise ValueError("simulator-state trace must contain contiguous zero-based steps")
+    if snapshot_step >= len(states):
+        raise IndexError("controller replay endpoint is absent from simulator-state trace")
+    sim_states = states[: snapshot_step + 1].copy()
+    return {"actions": actions, "sim_states": sim_states}
 
 
 def _restore_side(

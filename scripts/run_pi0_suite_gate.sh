@@ -2,7 +2,7 @@
 set -euo pipefail
 
 if [[ $# -ne 6 ]]; then
-  echo "usage: $0 <repo-root> <checkpoint-30000> <output-dir> <gpu> <port> <server-session>" >&2
+  echo "usage: $0 <repo-root> <checkpoint-label-29999> <output-dir> <gpu> <port> <server-session>" >&2
   exit 2
 fi
 
@@ -14,18 +14,13 @@ port="$5"
 server_session="$6"
 openpi="$repo_root/third_party/openpi"
 
-if [[ "$(basename "$checkpoint")" != "30000" ]]; then
-  echo "pi0 suite gate accepts only the finalized step-30000 checkpoint" >&2
-  exit 1
-fi
-for required in _CHECKPOINT_METADATA params/manifest.ocdbt train_state/manifest.ocdbt; do
-  if [[ ! -f "$checkpoint/$required" ]]; then
-    echo "finalized checkpoint artifact is missing: $checkpoint/$required" >&2
-    exit 1
-  fi
-done
 if [[ ! -x "$openpi/.venv/bin/python" || ! -x "$repo_root/.venv/bin/python" ]]; then
   echo "required OpenPI and analysis environments are missing" >&2
+  exit 1
+fi
+if ! PYTHONPATH="$repo_root/src" "$repo_root/.venv/bin/python" \
+  "$repo_root/scripts/validate_pi0_final_checkpoint.py" --checkpoint "$checkpoint" >/dev/null; then
+  echo "pi0 suite gate requires the frozen finalized 30,000-update checkpoint" >&2
   exit 1
 fi
 if ! [[ "$gpu" =~ ^[0-9]+$ && "$port" =~ ^[1-9][0-9]*$ ]]; then

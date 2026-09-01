@@ -247,6 +247,19 @@ states, byte-exact `k=0` equivalence, a five-percentage-point paired
 noninferiority margin for both target-first contact and task success, and lower
 measured post-event latency.
 
+Held-out candidates use the latest five-action replan boundary strictly before
+the source clean target contact. Because robosuite controller and interpolator
+state is not fully represented in MuJoCo's flat state, each fork reproduces the
+clean seeded reset and registered initial configuration, then replays the full
+executed action prefix. The initial and every replayed simulator state must be
+array-exact to a hashed clean trace before inference is permitted. The first old-
+condition chunk must also be byte-exact to the saved clean chunk. Eligibility is
+then selected without intermediate-continuation outcomes: the old endpoint must
+induce old-target contact within five actions, a full new-instruction restart
+must avoid that event, and both clean tasks must remain competent. Intermediate
+boundaries stay sealed until this gate and the action-only prediction are frozen
+[@zhu2020robosuite].
+
 ### 3.6 Layer, action-state, and token interventions
 
 At flow step `s` and action-expert layer `l`, residual interchange replaces all
@@ -365,8 +378,11 @@ are the registered model-level control. Dataset normalization traversed all
 `f68a5fafe15e1577b7bb2c6fc4837a7d1669e2e9be3752f2589c3d327c6f8ccf`.
 A two-update, two-H100 FSDP smoke completed with finite first-reported loss
 0.1812, gradient norm 3.7253, parameter norm 1377.8652, and a finalized Orbax
-checkpoint. The 30,000-update training and competence evaluation must complete
-before any pi0-versus-pi0.5 timing contrast is inserted here.
+checkpoint. The registered 30,000-update training subsequently completed. The
+final state is stored under OpenPI's zero-based Orbax label `29999`; executable
+gates fix its metadata and manifest hashes and accept no other checkpoint. The
+competence and conversion-parity evaluations must complete before any
+pi0-versus-pi0.5 timing contrast is inserted here.
 
 ### 4.7 Registered inference-utility experiment
 

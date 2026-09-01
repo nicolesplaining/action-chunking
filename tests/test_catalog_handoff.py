@@ -74,6 +74,7 @@ def _gate() -> dict:
                 "origin_side": "base",
                 "new_side": "donor",
                 "event_exact_initial_state": True,
+                "controller_replay_exact": True,
                 "source_chunk_exact": True,
                 "source_input_exact": True,
                 "old_event_induced": True,

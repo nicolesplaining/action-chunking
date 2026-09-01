@@ -64,6 +64,27 @@ def test_fixture_policy_input_is_exact_even_if_live_regeneration_differs() -> No
     assert row["event_gate_pass"] is True
 
 
+def test_event_gate_requires_exact_controller_replay_when_registered() -> None:
+    entry = {**_entry(), "controller_replay_required": True}
+    event = _summary(old_step=4, restart_old_step=None, success=False)
+
+    rejected = eligibility_row(entry, event, 5)
+    assert rejected["controller_replay_exact"] is False
+    assert rejected["event_gate_pass"] is False
+
+    for result in event["results"]:
+        result.update(
+            {
+                "controller_replay_required": True,
+                "controller_replay_applied": True,
+                "controller_replay_trajectory_max_abs_error": 0.0,
+            }
+        )
+    accepted = eligibility_row(entry, event, 5)
+    assert accepted["controller_replay_exact"] is True
+    assert accepted["event_gate_pass"] is True
+
+
 def _entry() -> dict:
     return {
         "pair_id": "pair_precontact_base_010",
