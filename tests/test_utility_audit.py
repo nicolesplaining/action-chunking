@@ -142,7 +142,7 @@ def _study(root: Path) -> tuple[Path, Path]:
     actions_by_boundary = {}
     records = []
     for boundary in range(11):
-        actions = np.zeros((50, 7), dtype=np.float32)
+        actions = np.zeros((10, 7), dtype=np.float32)
         actions[:5, 0] = boundary / 10
         actions[:5, 1] = 1 - boundary / 10
         actions_by_boundary[boundary] = actions
@@ -161,7 +161,7 @@ def _study(root: Path) -> tuple[Path, Path]:
             }
         )
     restart = actions_by_boundary[0].copy()
-    noise = np.zeros((50, 32), dtype=np.float32)
+    noise = np.zeros((10, 32), dtype=np.float32)
     np.savez_compressed(
         prediction_actions,
         **{
@@ -183,6 +183,7 @@ def _study(root: Path) -> tuple[Path, Path]:
             "noise_seed": 0,
             "noise_start_index": 0,
             "action_noise_shape": list(noise.shape),
+            "action_shape": list(restart.shape),
             "old_side": "base",
             "new_side": side,
             "executed_action_horizon": 5,

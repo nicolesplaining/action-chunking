@@ -45,6 +45,10 @@ def main() -> int:
     if "dynamic_retarget" not in metadata.get("causal_intervention_families", []):
         raise ValueError("server does not advertise dynamic retargeting")
     noise_shape = action_noise_shape(metadata)
+    if noise_shape != (10, 32):
+        raise ValueError(
+            f"pi0.5 retarget prediction requires action noise shape (10, 32), got {noise_shape}"
+        )
     noise_rng = np.random.default_rng(args.noise_seed)
     source_replan_index = int(entry.get("source_replan_index") or 0)
     advance_action_noise(noise_rng, source_replan_index, noise_shape)
@@ -73,6 +77,11 @@ def main() -> int:
             }
         )
     restart = np.asarray(_infer(client, pair, args.new_side, 0, "restart", noise)["actions"])
+    action_shapes = {actions.shape for actions in actions_by_boundary.values()}
+    if action_shapes != {(10, 7)} or restart.shape != (10, 7):
+        raise ValueError(
+            "pi0.5 retarget prediction requires every physical action chunk to have shape (10, 7)"
+        )
     if not np.array_equal(restart, actions_by_boundary[0]):
         raise ValueError("boundary-zero continuation differs from clean restart")
     try:
@@ -105,6 +114,7 @@ def main() -> int:
             "noise_seed": args.noise_seed,
             "noise_start_index": source_replan_index,
             "action_noise_shape": list(noise_shape),
+            "action_shape": list(restart.shape),
             "old_side": old_side,
             "new_side": args.new_side,
             "executed_action_horizon": 5,

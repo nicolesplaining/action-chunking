@@ -118,8 +118,9 @@ def audit_prediction_artifacts(
     if (
         len(action_shapes) != 1
         or restart.shape not in action_shapes
-        or restart.shape != (50, 7)
-        or noise.shape != (50, 32)
+        or restart.shape != (10, 7)
+        or noise.shape != (10, 32)
+        or tuple(restart.shape) != tuple(prediction.get("action_shape", []))
         or tuple(noise.shape) != tuple(prediction.get("action_noise_shape", []))
     ):
         raise ValueError("prediction action archive has invalid shapes")

@@ -228,8 +228,9 @@ candidate-manifest hash. For the primary utility analysis, exactly one direction
 is retained per independent scene cluster: the first endpoint-eligible direction
 in the already frozen gate order. Additional eligible directions in that cluster
 are recorded but cannot increase the primary denominator. The initial 16-state
-pilot and the catalog population use the same rule. All action-only predictions
-and their complete action arrays are serialized, hashed, and independently
+pilot and the catalog population use the same rule. All action-only predictions,
+their complete ten-by-seven physical action arrays, and their ten-by-32 Gaussian
+noise arrays are serialized, hashed, and independently
 reconstructed before the first continuation rollout. The catalog screen runs
 after the pilot regardless of whether the pilot
 contains an eligible state; pilot convenience therefore cannot replace the
