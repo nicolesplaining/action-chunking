@@ -213,6 +213,22 @@ def _job_summary(
         and _boolean(by_boundary[boundary]["eventual_new_task_success"])
         for boundary in range(11)
     ]
+    first_chunk_old_event_curve = [
+        _boolean(by_boundary[boundary]["first_chunk_old_event"])
+        for boundary in range(11)
+    ]
+    old_target_first_curve = [
+        _boolean(by_boundary[boundary]["old_target_first"])
+        for boundary in range(11)
+    ]
+    clean_replanning_rescue_curve = [
+        _boolean(by_boundary[boundary]["clean_replanning_rescue"])
+        for boundary in range(11)
+    ]
+    first_contact_replan_index_curve = [
+        _optional_int(by_boundary[boundary]["first_contact_replan_index"])
+        for boundary in range(11)
+    ]
     observed_last = max((boundary for boundary, success in enumerate(success_curve) if success), default=None)
     prediction = next(
         entry
@@ -236,19 +252,31 @@ def _job_summary(
             and prediction["predicted_last_successful_boundary"] == observed_last
         ),
         "success_curve": success_curve,
+        "first_chunk_old_event_curve": first_chunk_old_event_curve,
+        "old_target_first_curve": old_target_first_curve,
+        "clean_replanning_rescue_curve": clean_replanning_rescue_curve,
+        "first_contact_replan_index_curve": first_contact_replan_index_curve,
         "boundary7_new_target_first": _boolean(boundary7["new_target_first"]),
         "boundary7_new_task_success": _boolean(boundary7["eventual_new_task_success"]),
+        "boundary7_first_chunk_old_event": _boolean(boundary7["first_chunk_old_event"]),
+        "boundary7_clean_replanning_rescue": _boolean(boundary7["clean_replanning_rescue"]),
         "boundary7_post_event_velocity_evaluations": int(
             boundary7["post_event_velocity_evaluations"]
         ),
         "boundary7_post_event_total_ms": float(boundary7["post_event_total_ms"]),
         "restart_new_target_first": _boolean(restart["new_target_first"]),
         "restart_new_task_success": _boolean(restart["eventual_new_task_success"]),
+        "restart_first_chunk_old_event": _boolean(restart["first_chunk_old_event"]),
+        "restart_clean_replanning_rescue": _boolean(restart["clean_replanning_rescue"]),
         "restart_post_event_velocity_evaluations": int(
             restart["post_event_velocity_evaluations"]
         ),
         "restart_post_event_total_ms": float(restart["post_event_total_ms"]),
     }
+
+
+def _optional_int(value: str) -> int | None:
+    return int(value) if value.strip() else None
 
 
 def _write_summary(

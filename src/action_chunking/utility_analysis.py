@@ -80,12 +80,36 @@ def summarize_utility_jobs(
 
     predicted_boundary_success = []
     next_boundary_failure = []
+    predicted_boundary_first_chunk_old_event = []
+    next_boundary_first_chunk_old_event = []
     for job in valid:
         boundary = int(job["predicted_last_successful_boundary"])
         curve = [bool(value) for value in job["success_curve"]]
+        first_chunk_old_events = [
+            bool(value) for value in job["first_chunk_old_event_curve"]
+        ]
         predicted_boundary_success.append(curve[boundary])
+        predicted_boundary_first_chunk_old_event.append(first_chunk_old_events[boundary])
         if boundary < 10:
             next_boundary_failure.append(not curve[boundary + 1])
+            next_boundary_first_chunk_old_event.append(first_chunk_old_events[boundary + 1])
+
+    wrong_target_failure_replan_histogram: dict[str, int] = {}
+    eventual_failures_after_new_target_first = 0
+    for job in jobs:
+        for success, old_first, replan_index in zip(
+            job["success_curve"],
+            job["old_target_first_curve"],
+            job["first_contact_replan_index_curve"],
+            strict=True,
+        ):
+            if old_first:
+                key = "none" if replan_index is None else str(int(replan_index))
+                wrong_target_failure_replan_histogram[key] = (
+                    wrong_target_failure_replan_histogram.get(key, 0) + 1
+                )
+            elif not success:
+                eventual_failures_after_new_target_first += 1
 
     return {
         "analysis_unit": "independent_scene_cluster",
@@ -105,10 +129,34 @@ def summarize_utility_jobs(
             predicted_boundary_success
         ),
         "next_boundary_composite_failure_rate": _mean_boolean(next_boundary_failure),
+        "predicted_boundary_first_chunk_old_event_rate": _mean_boolean(
+            predicted_boundary_first_chunk_old_event
+        ),
+        "next_boundary_first_chunk_old_event_rate": _mean_boolean(
+            next_boundary_first_chunk_old_event
+        ),
+        "wrong_target_failure_first_contact_replan_histogram": (
+            wrong_target_failure_replan_histogram
+        ),
+        "eventual_failures_without_wrong_target_first": (
+            eventual_failures_after_new_target_first
+        ),
         "boundary7_restart_composite_successes": sum(restart_composite),
         "boundary7_continue_composite_successes": sum(boundary7_composite),
         "boundary7_paired_losses": int(paired_losses),
         "boundary7_paired_gains": int(paired_gains),
+        "boundary7_first_chunk_old_events": sum(
+            bool(job["boundary7_first_chunk_old_event"]) for job in jobs
+        ),
+        "restart_first_chunk_old_events": sum(
+            bool(job["restart_first_chunk_old_event"]) for job in jobs
+        ),
+        "boundary7_clean_replanning_rescues": sum(
+            bool(job["boundary7_clean_replanning_rescue"]) for job in jobs
+        ),
+        "restart_clean_replanning_rescues": sum(
+            bool(job["restart_clean_replanning_rescue"]) for job in jobs
+        ),
         "boundary7_paired_loss_upper_bound_one_sided": upper_bound,
         "noninferiority_margin": noninferiority_margin,
         "noninferiority_alpha_one_sided": alpha,

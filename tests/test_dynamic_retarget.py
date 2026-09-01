@@ -3,12 +3,16 @@ from __future__ import annotations
 import json
 import runpy
 from pathlib import Path
+from types import SimpleNamespace
+
+import pytest
 
 _module = runpy.run_path(
     str(Path(__file__).parents[1] / "scripts" / "run_dynamic_retarget_sweep.py")
 )
 _write_tables = _module["_write_tables"]
 _sides = _module["_sides"]
+_validate_run = _module["_validate_run"]
 
 
 def test_dynamic_retarget_summary_preserves_compute_and_behavior_controls(tmp_path) -> None:
@@ -52,6 +56,10 @@ def test_dynamic_retarget_summary_preserves_compute_and_behavior_controls(tmp_pa
     assert by_boundary[10]["mean_post_event_velocity_evaluations"] == 0.0
     assert summary["all_initial_inputs_exact"] is True
     assert summary["all_simulator_states_exact"] is True
+    assert summary["all_controller_replays_exact"] is True
+    assert by_boundary[7]["first_chunk_old_event_rate"] == 0.0
+    assert by_boundary[7]["no_registered_contact_first_chunk_rate"] == 1.0
+    assert by_boundary[7]["clean_replanning_rescue_rate"] == 1.0
 
 
 def test_dynamic_retarget_summary_allows_restart_only_partial_result(tmp_path) -> None:
@@ -84,6 +92,49 @@ def test_dynamic_retarget_summary_allows_restart_only_partial_result(tmp_path) -
 
 def test_dynamic_retarget_side_parser_accepts_one_direction() -> None:
     assert _sides("donor") == ["donor"]
+
+
+def test_dynamic_retarget_requires_registered_controller_replay(tmp_path) -> None:
+    manifest = tmp_path / "manifest.json"
+    manifest.write_text(
+        json.dumps(
+            {
+                "pairs": [
+                    {
+                        "pair_id": "pair",
+                        "source_replan_index": 2,
+                        "controller_replay_required": True,
+                    }
+                ]
+            }
+        )
+    )
+    result = _result("donor", "bowl", 3, False)
+    result["first_policy_input_is_fixture"] = True
+    summary = {
+        "pair_id": "pair",
+        "noise_seed": 0,
+        "noise_start_index": 2,
+        "dynamic_retarget": {
+            "family": "dynamic_retarget",
+            "strategy": "continue",
+            "switch_after_steps": 7,
+        },
+        "results": [result],
+    }
+    args = SimpleNamespace(pair_id="pair", noise_seed=0, manifest=manifest, sides="donor")
+
+    with pytest.raises(ValueError, match="controller state"):
+        _validate_run(summary, "continue", 7, args)
+
+    result.update(
+        {
+            "controller_replay_required": True,
+            "controller_replay_applied": True,
+            "controller_replay_trajectory_max_abs_error": 0.0,
+        }
+    )
+    _validate_run(summary, "continue", 7, args)
 
 
 def _result(side: str, target: str, post: int, discarded: bool) -> dict:

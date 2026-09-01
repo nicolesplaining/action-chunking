@@ -1,6 +1,6 @@
 # Research protocol: causal editability and retargeting in action chunks
 
-Protocol version: 0.10 (transition-exact controller replay)
+Protocol version: 0.11 (chunk-boundary recovery decomposition)
 
 ## 1. Research question
 
@@ -263,6 +263,18 @@ chunk may be reported as a sensitivity analysis but cannot replace the primary
 endpoint. U1 and U3 are evaluated only in eligible states; the state-zero pilot
 is reported as a negative sensitivity result for those hypotheses and a
 positive engineering pilot for U2's compute and latency components.
+
+Every continuation and restart fork must independently pass the same controller-
+replay equality gate as endpoint screening; flat-state equality alone is
+insufficient. Behavioral outcomes are decomposed before any corrected
+continuation is run: old-target contact within the first five executed actions,
+new-target contact within those actions, no registered contact before the first
+clean replan, first-contact replan index, correct-target/task success rescued
+only after clean replanning, and eventual task success. U1's primary composite
+remains new-target-first plus eventual task success. The decomposition is
+secondary and explains whether failures occur in the intervened chunk, at a
+later chunk boundary, or after correct target selection; it does not replace or
+redefine the frozen primary outcome.
 
 ## 3. Mechanistic hypotheses and utility amendment
 

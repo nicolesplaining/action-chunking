@@ -109,6 +109,12 @@ allowed only if the measured editability boundary predicts the last successful
 continue boundary and `k=7` is noninferior to restart while using three rather
 than ten post-event velocity evaluations.
 
+Decompose failures by whether the old event occurs in the five intervened
+actions, the first registered contact occurs only after a later clean replan,
+or task failure follows correct target-first contact. Report the first-contact
+replan-index histogram rather than collapsing all failures into eventual
+success alone.
+
 The confirmatory population expands in the frozen public-catalog order until 59
 independent endpoint-eligible scene clusters are available or the catalog is
 exhausted, regardless of whether the 16-state pilot is eligible. Select the first

@@ -10,6 +10,12 @@ def test_replay_exact_requires_two_transition_exact_sides() -> None:
 
     assert controller_replay_summary_exact({"results": [result, result]}, required=True) is True
     assert controller_replay_summary_exact({"results": [result]}, required=True) is False
+    assert (
+        controller_replay_summary_exact(
+            {"results": [result]}, required=True, expected_results=1
+        )
+        is True
+    )
 
 
 def test_replay_exact_is_vacuous_when_not_required() -> None:

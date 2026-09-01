@@ -1,5 +1,22 @@
 # Reproducibility log
 
+## 2026-09-01: chunk-boundary recovery decomposition frozen
+
+Protocol version 0.11 was frozen during transition-exact candidate generation,
+before the corrected endpoint gate, selected action-only predictions, or any
+corrected continuation output existed. Every dynamic-retarget fork now fails
+closed unless its registered controller replay is exact; checking the terminal
+MuJoCo state alone is no longer accepted.
+
+The secondary recovery decomposition records old- and new-target contact within
+the five executed actions before the first clean replan, absence of registered
+contact in that chunk, first-contact replan index, correct-target/task success
+that occurs only after subsequent clean replanning, and eventual task success.
+The registered U1 composite remains unchanged. These fields will distinguish an
+immediate unsafe chunk, later wrong-target failures at chunk boundaries, and
+successful clean-replanning rescue without reinterpreting late redirection as
+model indecision. The implementation and summary tests passed before outcomes.
+
 ## 2026-09-01: matched pi0 training completed; final identity frozen
 
 The matched public `pi0_libero` run completed all 30,000 optimizer updates with
