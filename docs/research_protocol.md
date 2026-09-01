@@ -1,6 +1,6 @@
 # Research protocol: causal editability and retargeting in action chunks
 
-Protocol version: 0.9 (clean-selected obstacle-pose family)
+Protocol version: 0.10 (transition-exact controller replay)
 
 ## 1. Research question
 
@@ -243,10 +243,20 @@ arrays rather than a renderer reconstruction from MuJoCo's flat state. Their
 hashes must match the registered fixture, and the old-condition endpoint's
 first action chunk must be byte-exact to saved clean chunk `j`; otherwise the
 candidate is construct-invalid and cannot enter the failure-induction gate.
-The physical rollout separately requires exact restoration of the saved
-simulator state. This alignment makes continue, restart, and the clean
-counterfactual computations from the same action-generation event, not merely
-the same broad trajectory neighborhood.
+The physical rollout cannot rely on the saved MuJoCo flat state alone. A
+rejected partial screen showed that this restores configuration but not all
+transition-relevant robosuite controller and interpolator state. Each candidate
+therefore stores every clean executed action from reset through the snapshot
+and the corresponding simulator-state prefix. Every fork reproduces the clean
+sequence in both task environments: seeded reset, restoration of the registered
+initial MuJoCo configuration, then replay of the entire clean action prefix.
+The restored initial state and every subsequent simulator state must be
+array-exact to the registered prefix, and the final state must be array-exact
+to the candidate fixture. Replay arrays, state arrays, model inputs, and the
+source chunk are independently hashed. Any mismatch is construct-invalid. This
+alignment makes continue, restart, and the clean counterfactual computations
+start from the same action-generation event and the same physical transition
+state, not merely the same visible configuration.
 
 The primary five-action horizon is unchanged. Executing a longer portion of the
 chunk may be reported as a sensitivity analysis but cannot replace the primary
@@ -287,7 +297,7 @@ The utility amendment adds:
 
 ## 4. Paired episode families
 
-Each pair starts from an identical serialized simulator and robot state. Both
+Each pair starts from an identical reconstructed physical transition state. Both
 runs use identical preprocessing and Gaussian action noise. Only one registered
 variable changes.
 

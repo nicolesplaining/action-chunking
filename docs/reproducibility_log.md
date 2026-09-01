@@ -1,5 +1,38 @@
 # Reproducibility log
 
+## 2026-09-01: partial recovery screen rejected; controller replay frozen
+
+Protocol version 0.10 was frozen before any corrected recovery endpoint or
+continuation outcome. The partial version-3 endpoint screen is rejected in full
+and retained only as an audit artifact. It had registered byte-exact policy
+inputs, Gaussian draw, source chunk, and MuJoCo flat state, yet a failed fork's
+end-effector path diverged from its source clean path by centimeters within the
+five-action horizon. For example, after the first action from state 16's base
+snapshot, source and fork end-effector positions were approximately
+`[-0.1901, -0.0606, 1.0356]` and `[-0.1816, -0.0558, 1.0436]`. The associated
+old-target event was therefore not a valid replay test.
+
+The pinned public stack uses robosuite 1.4.1. Source inspection confirmed that
+the operational-space controller and its interpolators maintain state outside
+MuJoCo's flattened simulator state. The corrected fork reproduces the clean
+seeded reset and registered-initial-state restoration, then deterministically
+replays every clean action to the registered replan boundary. It registers
+hashes for the replay actions and full
+simulator-state prefix and requires array equality at every physical step in
+both task environments. Downstream utility validation now fails closed unless
+this controller-replay gate is true. The invalid screen and its automatic
+handoff were stopped without deleting their outputs; no partial row informed
+candidate selection, U1--U3 outcomes, or thresholds.
+
+The first corrected validation reran the previously divergent state-16 base
+snapshot. Both task forks reproduced all 41 registered simulator states with
+zero maximum absolute error; all three live model-input arrays were also exact,
+and the old-condition action chunk matched the registered clean chunk digest.
+The old wine-bottle contact reappeared at step 4, exactly matching the source
+clean event. The new-instruction endpoint contacted the old target at step 3,
+so this state fails the preregistered restart-avoidance gate and is not a utility
+success. This is a positive construct-validation result only.
+
 ## 2026-09-01: obstacle-pose pilot frozen before clean or patched outcomes
 
 Protocol version 0.9 adds a same-task obstacle family before generating any

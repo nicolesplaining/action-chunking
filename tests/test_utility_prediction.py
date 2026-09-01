@@ -30,6 +30,7 @@ def test_eligible_row_requires_every_exact_endpoint_control() -> None:
     row = {
         "eligible": True,
         "event_exact_initial_state": True,
+        "controller_replay_exact": True,
         "source_chunk_exact": True,
         "source_input_exact": True,
         "old_event_induced": True,

@@ -33,6 +33,11 @@ def eligibility_row(
     new_target = entry[f"{new_side}_target"]
     old_event_step = _contact_step(old_result, old_target)
     restart_old_event_step = _contact_step(restart_result, old_target)
+    controller_replay_required = bool(entry.get("controller_replay_required", False))
+    controller_replay_exact = all(
+        _result_controller_replay_exact(result, controller_replay_required)
+        for result in (old_result, restart_result)
+    )
     event_exact = all(_result_exact(result) for result in (old_result, restart_result))
     old_event_induced = old_event_step is not None and old_event_step <= execution_horizon
     restart_avoids_old_event = (
@@ -40,6 +45,7 @@ def eligibility_row(
     )
     event_gate_pass = (
         event_exact
+        and controller_replay_exact
         and source_chunk_exact
         and source_input_exact
         and old_event_induced
@@ -58,7 +64,11 @@ def eligibility_row(
         }
         if set(competence_by_side) != {"base", "donor"}:
             raise ValueError("competence summary must contain exactly base and donor results")
-        competence_exact = all(_result_exact(result) for result in competence_by_side.values())
+        competence_exact = all(
+            _result_exact(result)
+            and _result_controller_replay_exact(result, controller_replay_required)
+            for result in competence_by_side.values()
+        )
         restart_first_contact = _first_contact_object(competence_by_side[new_side])
         restart_new_target_first = restart_first_contact == new_target
         clean_tasks_competent = bool(
@@ -90,6 +100,8 @@ def eligibility_row(
         "restart_old_event_step": restart_old_event_step,
         "restart_first_contact_object": restart_first_contact,
         "event_exact_initial_state": event_exact,
+        "controller_replay_required": controller_replay_required,
+        "controller_replay_exact": controller_replay_exact,
         "source_chunk_exact": source_chunk_exact,
         "source_input_exact": source_input_exact,
         "old_event_induced": old_event_induced,
@@ -128,4 +140,14 @@ def _result_exact(result: dict[str, Any]) -> bool:
             )
         )
         and result.get("restored_sim_state_max_abs_error") == 0.0
+    )
+
+
+def _result_controller_replay_exact(result: dict[str, Any], required: bool) -> bool:
+    if not required:
+        return True
+    return bool(
+        result.get("controller_replay_required")
+        and result.get("controller_replay_applied")
+        and result.get("controller_replay_trajectory_max_abs_error") == 0.0
     )

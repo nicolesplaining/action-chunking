@@ -15,6 +15,7 @@ def validate_eligible_retarget_row(row: dict[str, Any]) -> None:
         raise ValueError("retarget utility requires an eligible endpoint row")
     required = (
         "event_exact_initial_state",
+        "controller_replay_exact",
         "source_chunk_exact",
         "source_input_exact",
         "old_event_induced",
