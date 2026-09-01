@@ -201,6 +201,8 @@ def _run_condition(
         "trial_index": trial_index,
         "task_description": task_description,
         "condition": condition,
+        "environment_seed": env_seed,
+        "noise_seed": noise_seed,
         "after_steps": after_steps,
         "total_flow_steps": 10,
         "success": success,
@@ -279,6 +281,8 @@ def _pair_summary(
         raise ValueError("paired confirmation initial model inputs are not exact")
     if early["initial_sim_state_sha256"] != full["initial_sim_state_sha256"]:
         raise ValueError("paired confirmation simulator states are not exact")
+    if early["initial_state_fixture_sha256"] != full["initial_state_fixture_sha256"]:
+        raise ValueError("paired confirmation initial-state fixtures are not exact")
     common = min(early["replans"], full["replans"])
     if early["noise_sha256_by_replan"][:common] != full["noise_sha256_by_replan"][:common]:
         raise ValueError("paired confirmation action noise is not shared")
@@ -378,13 +382,30 @@ def _validate_existing_pair(pair: dict[str, Any], task_id: int, trial_index: int
         raise ValueError(f"existing confirmation pair is incompatible: {_pair_key(task_id, trial_index)}")
     for condition, after_steps in CONDITIONS.items():
         result = pair.get(condition)
-        if not isinstance(result, dict) or int(result.get("after_steps", -1)) != after_steps:
+        if (
+            not isinstance(result, dict)
+            or int(result.get("environment_seed", -1)) != 7
+            or int(result.get("noise_seed", -1)) != 0
+            or int(result.get("after_steps", -1)) != after_steps
+        ):
             raise ValueError("existing confirmation pair has the wrong condition")
         diagnostics = result.get("early_exit_diagnostics", [])
         if len(diagnostics) != int(result.get("replans", -1)) or not diagnostics:
             raise ValueError("existing confirmation pair has incomplete diagnostics")
         for diagnostic in diagnostics:
             _validate_diagnostic(diagnostic, after_steps)
+        noise_hashes = result.get("noise_sha256_by_replan", [])
+        action_hashes = result.get("action_sha256_by_replan", [])
+        if len(noise_hashes) != int(result["replans"]) or len(action_hashes) != int(
+            result["replans"]
+        ):
+            raise ValueError("existing confirmation pair has incomplete action/noise hashes")
+        for replan_index, observed in enumerate(noise_hashes):
+            expected = _array_digest(
+                _noise_for_replan(0, task_id, trial_index, replan_index)
+            )
+            if observed != expected:
+                raise ValueError("existing confirmation pair has the wrong action noise")
 
 
 def _validate_diagnostic(diagnostic: Any, after_steps: int) -> None:

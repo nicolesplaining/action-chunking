@@ -20,6 +20,7 @@ TASKS = 10
 TRIALS = 50
 EXPECTED = TASKS * TRIALS
 CONDITIONS = {"early_exit_7": 7, "full_control_10": 10}
+NOISE_SHAPE = (10, 32)
 
 
 def parse_args() -> argparse.Namespace:
@@ -187,8 +188,19 @@ def _validate_pair(pair: dict[str, Any], task_id: int, trial_index: int) -> None
         raise ValueError("confirmation pair lacks a condition")
     if early.get("initial_input_sha256") != full.get("initial_input_sha256"):
         raise ValueError("confirmation pair initial inputs differ")
+    if set(early.get("initial_input_sha256", {})) != {
+        "observation/image",
+        "observation/state",
+        "observation/wrist_image",
+        "prompt",
+    }:
+        raise ValueError("confirmation pair initial input hashes are incomplete")
     if early.get("initial_sim_state_sha256") != full.get("initial_sim_state_sha256"):
         raise ValueError("confirmation pair simulator states differ")
+    if early.get("initial_state_fixture_sha256") != full.get(
+        "initial_state_fixture_sha256"
+    ):
+        raise ValueError("confirmation pair initial-state fixtures differ")
     common = min(int(early["replans"]), int(full["replans"]))
     if common <= 0 or int(pair.get("shared_noise_common_replans", -1)) != common:
         raise ValueError("confirmation pair has invalid shared-noise length")
@@ -198,6 +210,8 @@ def _validate_pair(pair: dict[str, Any], task_id: int, trial_index: int) -> None
         after_steps = CONDITIONS[condition]
         if (
             result.get("condition") != condition
+            or int(result.get("environment_seed", -1)) != 7
+            or int(result.get("noise_seed", -1)) != 0
             or int(result.get("after_steps", -1)) != after_steps
             or int(result.get("total_flow_steps", -1)) != 10
             or int(result.get("replans", -1)) <= 0
@@ -208,6 +222,18 @@ def _validate_pair(pair: dict[str, Any], task_id: int, trial_index: int) -> None
             if int(diagnostic.get("replan_index", -1)) != index:
                 raise ValueError("confirmation diagnostics are not replan indexed")
             _validate_diagnostic(diagnostic, after_steps)
+        noise_hashes = result.get("noise_sha256_by_replan", [])
+        action_hashes = result.get("action_sha256_by_replan", [])
+        if len(noise_hashes) != int(result["replans"]) or len(action_hashes) != int(
+            result["replans"]
+        ):
+            raise ValueError("confirmation condition has incomplete action/noise hashes")
+        for replan_index, observed in enumerate(noise_hashes):
+            expected = _array_digest(
+                _noise_for_replan(0, task_id, trial_index, replan_index)
+            )
+            if observed != expected:
+                raise ValueError("confirmation condition has unexpected action noise")
     expected_loss = bool(full["success"] and not early["success"])
     if bool(pair.get("paired_loss")) != expected_loss:
         raise ValueError("confirmation pair has inconsistent loss labeling")
@@ -260,6 +286,24 @@ def _order_digest(task_id: int, trial_index: int) -> str:
 
 def _pair_key(task_id: int, trial_index: int) -> str:
     return f"task_{task_id:02d}_trial_{trial_index:02d}"
+
+
+def _noise_for_replan(
+    noise_seed: int, task_id: int, trial_index: int, replan_index: int
+) -> np.ndarray:
+    material = f"{noise_seed}:{SUITE}:{task_id}:{trial_index}:{replan_index}".encode()
+    seed = int.from_bytes(hashlib.sha256(material).digest()[:8], "little")
+    rng = np.random.default_rng(seed)
+    return rng.standard_normal(NOISE_SHAPE, dtype=np.float32)
+
+
+def _array_digest(value: np.ndarray) -> str:
+    array = np.ascontiguousarray(value)
+    digest = hashlib.sha256()
+    digest.update(str(array.dtype).encode())
+    digest.update(json.dumps(list(array.shape)).encode())
+    digest.update(array.tobytes())
+    return digest.hexdigest()
 
 
 if __name__ == "__main__":

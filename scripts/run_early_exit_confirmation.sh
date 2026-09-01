@@ -39,6 +39,10 @@ if [[ -n "$(nvidia-smi --id="$policy_gpu" --query-compute-apps=pid --format=csv,
   echo "policy GPU has a competing compute process" >&2
   exit 1
 fi
+if [[ -n "$(nvidia-smi --id="$sim_gpu" --query-compute-apps=pid --format=csv,noheader,nounits)" ]]; then
+  echo "simulator GPU has a competing compute process" >&2
+  exit 1
+fi
 
 mkdir -p "$output"
 nvidia-smi --query-gpu=index,uuid,name,driver_version,memory.total --format=csv >"$output/gpu_preflight.csv"

@@ -24,6 +24,10 @@ must have no competing client. Resume is pair-atomic. The exact bound can pass
 with at most four paired losses in 500 trials and fails with five. These are
 execution details for the already-opened confirmation, not changes to the
 observed pilot or its interpretation.
+Before the first confirmation pair existed, the analyzer was also made to
+regenerate and hash every expected replan-indexed Gaussian action-noise tensor,
+rather than accepting pairwise equality alone. The launcher now fails if either
+the policy or simulator GPU has a pre-existing compute process.
 
 ## 2026-09-01: construct-validity decision rule frozen
 

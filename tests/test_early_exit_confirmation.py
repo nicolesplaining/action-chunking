@@ -64,8 +64,12 @@ def _pairs(*, losses: int) -> list[dict]:
     for task_id in range(10):
         for trial_index in range(50):
             early_success = (task_id, trial_index) not in loss_keys
-            early = _condition("early_exit_7", 7, early_success, 7.0)
-            full = _condition("full_control_10", 10, True, 10.0)
+            early = _condition(
+                "early_exit_7", 7, early_success, 7.0, task_id, trial_index
+            )
+            full = _condition(
+                "full_control_10", 10, True, 10.0, task_id, trial_index
+            )
             pairs.append(
                 {
                     "schema_version": 1,
@@ -92,18 +96,34 @@ def _pairs(*, losses: int) -> list[dict]:
 
 
 def _condition(
-    name: str, after_steps: int, success: bool, integration_ms: float
+    name: str,
+    after_steps: int,
+    success: bool,
+    integration_ms: float,
+    task_id: int,
+    trial_index: int,
 ) -> dict:
     savings = 10 - after_steps
+    noise = analysis["_noise_for_replan"](0, task_id, trial_index, 0)
+    noise_hash = analysis["_array_digest"](noise)
     return {
         "condition": name,
+        "environment_seed": 7,
+        "noise_seed": 0,
         "after_steps": after_steps,
         "total_flow_steps": 10,
         "success": success,
         "replans": 1,
-        "initial_input_sha256": {"image": "same", "state": "same"},
+        "initial_input_sha256": {
+            "observation/image": "same",
+            "observation/state": "same",
+            "observation/wrist_image": "same",
+            "prompt": "same",
+        },
+        "initial_state_fixture_sha256": "same-fixture",
         "initial_sim_state_sha256": "same",
-        "noise_sha256_by_replan": ["same-noise"],
+        "noise_sha256_by_replan": [noise_hash],
+        "action_sha256_by_replan": [f"action-{name}-{task_id}-{trial_index}"],
         "early_exit_diagnostics": [
             {
                 "replan_index": 0,
