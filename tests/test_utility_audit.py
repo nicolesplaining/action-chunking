@@ -34,6 +34,7 @@ def test_utility_audit_reconstructs_raw_sweeps_and_detects_tampering(
 
 
 def _study(root: Path) -> tuple[Path, Path]:
+    root.mkdir(parents=True, exist_ok=True)
     pair_id = "pair-a"
     side = "donor"
     gate_row = {

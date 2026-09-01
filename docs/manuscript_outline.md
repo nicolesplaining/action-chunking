@@ -128,6 +128,12 @@ summary, 12-condition rollout table, and grasp-orientation artifact, recheck all
 frozen input hashes, and rerun every statistic. A utility result is reportable
 only when that independently rebuilt payload exactly matches the saved summary.
 
+Use the preregistered four-panel utility figure regardless of decision sign:
+predicted versus observed recovery boundary, all behavioral curves over update
+time, adaptive-policy behavior against fixed cutoff and restart, and exact
+velocity-evaluation cost. Treat its seed-40 bootstrap bands as visualization,
+not as substitutes for the registered inferential intervals.
+
 Position this as training-free reuse of an interrupted flow trajectory, not as
 a general steering algorithm. DynaGuide and Guided Action Flow add learned
 guidance during iterative generation; DSRL learns a latent-noise policy; STEP

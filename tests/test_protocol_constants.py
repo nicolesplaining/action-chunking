@@ -18,7 +18,7 @@ def test_machine_readable_protocol_matches_executable_frozen_defaults() -> None:
 
     utility_defaults = inspect.signature(summarize_utility_jobs).parameters
     catalog_defaults = inspect.signature(build_retarget_screening_plan).parameters
-    assert protocol["study"]["protocol_version"] == "0.36"
+    assert protocol["study"]["protocol_version"] == "0.37"
     assert protocol["inference"]["flow_steps"] == 10
     assert protocol["inference"]["receding_horizon_steps"] == 5
     assert protocol["study"]["editability_retention_threshold"] == 0.8
@@ -72,6 +72,17 @@ def test_machine_readable_protocol_matches_executable_frozen_defaults() -> None:
     assert utility["utility_final_audit_reconstructs_raw_files_per_cluster"] == 3
     assert utility["utility_final_audit_recomputes_all_statistics"] is True
     assert utility["utility_final_audit_resume_requires_exact_match"] is True
+    assert utility["utility_publication_figure_requires_final_audit"] is True
+    assert utility["utility_publication_figure_reruns_raw_reconstruction"] is True
+    assert utility["utility_publication_figure_requires_new_path"] is True
+    assert utility["utility_publication_figure_bootstrap_replicates"] == 10_000
+    assert utility["utility_publication_figure_bootstrap_seed"] == 40
+    assert utility["utility_publication_figure_panels"] == [
+        "predicted_vs_observed_last_successful_boundary",
+        "behavior_by_update_boundary",
+        "adaptive_policy_behavior_vs_controls",
+        "adaptive_policy_velocity_evaluations_vs_controls",
+    ]
     assert utility["noninferiority_outcomes"] == [
         "new_target_first",
         "eventual_new_task_success",

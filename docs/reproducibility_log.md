@@ -1,5 +1,16 @@
 # Reproducibility log
 
+## 2026-09-01: held-out utility figure frozen before outcomes
+
+Protocol version 0.37 fixes the four held-out utility panels before any catalog
+continuation result exists. The renderer requires a passing final audit, reruns
+the complete raw-artifact reconstruction, and refuses an existing output path.
+It shows boundary prediction, behavior across all 11 update times, adaptive-
+policy behavior versus both controls, and exact velocity-evaluation counts.
+Seed-40 cluster-bootstrap bands are descriptive only; registered decisions
+remain those in the audited summary. The manifest binds all source and rendered
+artifacts.
+
 ## 2026-09-01: held-out utility made independently reconstructible
 
 Protocol version 0.36 adds a mandatory final utility audit before any held-out

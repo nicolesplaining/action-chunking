@@ -1,6 +1,6 @@
 # Research protocol: causal editability and retargeting in action chunks
 
-Protocol version: 0.36 (independently reconstructed utility outcomes)
+Protocol version: 0.37 (audited held-out utility visualization)
 
 ## 1. Research question
 
@@ -283,6 +283,17 @@ and registered boundary field; and reruns all bootstrap, permutation, exact
 noninferiority, adaptive-policy, compute, and latency statistics. The resulting
 payload must equal `summary.json` exactly. A repeated audit may verify an
 identical immutable `final_audit.json` but may never overwrite a differing one.
+
+The frozen utility figure can be rendered only after that final audit passes,
+and its loader reruns the raw-artifact reconstruction at render time. Its four
+panels are fixed before held-out continuation outcomes: predicted versus
+observed last successful boundary with the fixed-seven comparator; all three
+behavioral curves over updates 0--10; adaptive, fixed-cutoff, and restart
+behavior under uniform update-time weighting; and their exact mean velocity-
+evaluation counts. Display-only cluster-bootstrap bands use 10,000 resamples
+with seed 40 and do not replace any registered decision interval. The renderer
+refuses an existing output path and hashes the summary, final audit, frozen
+predictions, PDF, and PNG.
 
 U1 is useful only if the state-specific action-only predictor adds information
 beyond the population rule already available from the mechanistic pilot. Its
