@@ -93,9 +93,7 @@ def main() -> int:
                 "prediction": str(prediction_path),
                 "prediction_sha256": _digest(prediction_path),
                 "valid": bool(prediction["valid"]),
-                "predicted_last_successful_boundary": prediction.get(
-                    "predicted_last_successful_boundary"
-                ),
+                "predicted_last_successful_boundary": prediction.get("predicted_last_successful_boundary"),
             }
         )
     frozen_manifest = {
@@ -204,11 +202,7 @@ def _candidate_manifests(root: Path | None, index_path: Path | None) -> dict[str
         missing = [str(path) for path in result.values() if not path.is_file()]
         if missing:
             raise ValueError(f"candidate index contains missing manifests: {missing}")
-        changed = [
-            pair_id
-            for pair_id, path in result.items()
-            if _digest(path) != expected_digests[pair_id]
-        ]
+        changed = [pair_id for pair_id, path in result.items() if _digest(path) != expected_digests[pair_id]]
         if changed:
             raise ValueError(f"candidate manifests changed after catalog handoff: {changed}")
         return result
@@ -246,28 +240,19 @@ def _job_summary(
         and _boolean(by_boundary[boundary]["eventual_new_task_success"])
         for boundary in range(11)
     ]
-    first_chunk_old_event_curve = [
-        _boolean(by_boundary[boundary]["first_chunk_old_event"])
-        for boundary in range(11)
-    ]
-    old_target_first_curve = [
-        _boolean(by_boundary[boundary]["old_target_first"])
-        for boundary in range(11)
-    ]
+    first_chunk_old_event_curve = [_boolean(by_boundary[boundary]["first_chunk_old_event"]) for boundary in range(11)]
+    old_target_first_curve = [_boolean(by_boundary[boundary]["old_target_first"]) for boundary in range(11)]
     clean_replanning_rescue_curve = [
-        _boolean(by_boundary[boundary]["clean_replanning_rescue"])
-        for boundary in range(11)
+        _boolean(by_boundary[boundary]["clean_replanning_rescue"]) for boundary in range(11)
     ]
     first_contact_replan_index_curve = [
-        _optional_int(by_boundary[boundary]["first_contact_replan_index"])
-        for boundary in range(11)
+        _optional_int(by_boundary[boundary]["first_contact_replan_index"]) for boundary in range(11)
     ]
     observed_last = max((boundary for boundary, success in enumerate(success_curve) if success), default=None)
     prediction = next(
         entry
         for entry in prediction_entries
-        if entry["pair_id"] == gate_row["pair_id"]
-        and entry["new_side"] == gate_row["new_side"]
+        if entry["pair_id"] == gate_row["pair_id"] and entry["new_side"] == gate_row["new_side"]
     )
     boundary7 = by_boundary[7]
     restart = next(row for row in rows if row["strategy"] == "restart")
@@ -279,14 +264,9 @@ def _job_summary(
         "new_side": gate_row["new_side"],
         "cluster_id": _cluster_id(gate_row),
         "prediction_valid": prediction["valid"],
-        "predicted_last_successful_boundary": prediction[
-            "predicted_last_successful_boundary"
-        ],
+        "predicted_last_successful_boundary": prediction["predicted_last_successful_boundary"],
         "observed_last_successful_boundary": observed_last,
-        "prediction_exact": (
-            prediction["valid"]
-            and prediction["predicted_last_successful_boundary"] == observed_last
-        ),
+        "prediction_exact": (prediction["valid"] and prediction["predicted_last_successful_boundary"] == observed_last),
         "success_curve": success_curve,
         "first_chunk_old_event_curve": first_chunk_old_event_curve,
         "old_target_first_curve": old_target_first_curve,
@@ -296,32 +276,20 @@ def _job_summary(
         "boundary7_new_task_success": _boolean(boundary7["eventual_new_task_success"]),
         "boundary7_first_chunk_old_event": _boolean(boundary7["first_chunk_old_event"]),
         "boundary7_clean_replanning_rescue": _boolean(boundary7["clean_replanning_rescue"]),
-        "boundary7_post_event_velocity_evaluations": int(
-            boundary7["post_event_velocity_evaluations"]
-        ),
+        "boundary7_post_event_velocity_evaluations": int(boundary7["post_event_velocity_evaluations"]),
         "boundary7_post_event_total_ms": float(boundary7["post_event_total_ms"]),
         "restart_new_target_first": _boolean(restart["new_target_first"]),
         "restart_new_task_success": _boolean(restart["eventual_new_task_success"]),
         "restart_first_chunk_old_event": _boolean(restart["first_chunk_old_event"]),
         "restart_clean_replanning_rescue": _boolean(restart["clean_replanning_rescue"]),
-        "restart_post_event_velocity_evaluations": int(
-            restart["post_event_velocity_evaluations"]
-        ),
+        "restart_post_event_velocity_evaluations": int(restart["post_event_velocity_evaluations"]),
         "restart_post_event_total_ms": float(restart["post_event_total_ms"]),
         "grasp_orientation": str(orientation_path),
         "grasp_orientation_sha256": _digest(orientation_path),
-        "orientation_editability_boundary": orientation[
-            "orientation_editability_boundary"
-        ],
-        "predicted_last_orientation_correction_boundary": orientation[
-            "predicted_last_orientation_correction_boundary"
-        ],
-        "orientation_curve_complete": orientation[
-            "all_boundaries_have_registered_target_contact"
-        ],
-        "orientation_correct_target_first_curve": [
-            bool(row["correct_target_first"]) for row in orientation["rows"]
-        ],
+        "orientation_editability_boundary": orientation["orientation_editability_boundary"],
+        "predicted_last_orientation_correction_boundary": orientation["predicted_last_orientation_correction_boundary"],
+        "orientation_curve_complete": orientation["all_boundaries_have_registered_target_contact"],
+        "orientation_correct_target_first_curve": [bool(row["correct_target_first"]) for row in orientation["rows"]],
     }
 
 
@@ -337,10 +305,12 @@ def _write_summary(
     frozen_digest: str,
 ) -> None:
     statistics = summarize_utility_jobs(jobs)
+    decision = _utility_decision(statistics, len(jobs), expected)
     payload = {
         "schema_version": 1,
         "expected_primary_clusters": expected,
         "completed_primary_clusters": len(jobs),
+        **decision,
         "frozen_predictions": str(frozen_path),
         "frozen_predictions_sha256": frozen_digest,
         **statistics,
@@ -352,6 +322,31 @@ def _write_summary(
     }
     (output / "summary.json").write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n")
     print(f"completed {len(jobs)}/{expected} primary scene clusters", flush=True)
+
+
+def _utility_decision(
+    statistics: dict[str, Any], completed: int, expected: int
+) -> dict[str, bool | str | None]:
+    if expected <= 0 or completed < 0 or completed > expected:
+        raise ValueError("utility completion counts are inconsistent")
+    study_complete = completed == expected
+    if not study_complete:
+        return {
+            "study_complete": False,
+            "prediction_utility_positive": None,
+            "practical_utility_positive": None,
+            "utility_inference_status": "pending",
+        }
+    prediction_positive = bool(statistics["prediction_beats_fixed_boundary_mae"])
+    practical_positive = bool(statistics["boundary7_practical_gate_passed"])
+    return {
+        "study_complete": True,
+        "prediction_utility_positive": prediction_positive,
+        "practical_utility_positive": practical_positive,
+        "utility_inference_status": (
+            "positive" if prediction_positive or practical_positive else "negative"
+        ),
+    }
 
 
 def _digest(path: Path) -> str:

@@ -134,6 +134,21 @@ predicted clean endpoint from a partial ordinary pi0.5 trajectory. It addresses
 a different online event: when an instruction changes after some flow
 evaluations are already sunk, can the current action state be reused rather
 than restarted?
+
+Adaptive generative inference provides closer computational precedents. AdaDiff
+learns uncertainty-guided layer exits within diffusion steps [@tang2023adadiff],
+AdaptiveDiffusion reuses noise predictions when bounded latent differences
+permit step skipping [@ye2024adaptivediffusion], and FastFlow uses finite-
+difference velocity extrapolation with bandit-selected skips
+[@bajpai2026fastflow]. Adaptive-WAM most directly connects early exit to
+planning, using a learned quality scorer over intermediate video-diffusion
+features [@ang2026adaptivewam]. Our intervention is narrower and complementary:
+it neither trains an exit head nor approximates a skipped velocity field. It
+tests whether an unmodified VLA's ordinary intermediate clean-action estimate
+can execute the receding-horizon prefix at matched closed-loop behavior, and
+uses causal localization to choose the candidate exit before the confirmatory
+rollouts.
+
 SafeDiffuser embeds constraints into iterative diffusion planning and separates
 safety satisfaction from planning quality and overhead
 [@xiao2025safediffuser]. We adopt that measurement separation for the planned
@@ -284,8 +299,12 @@ close to a donor vector. The existing target curve freezes boundaries
 negative controls. At `k=7`, continue executes three post-event velocity
 evaluations versus ten for restart. A practical claim requires held-out scene
 states, byte-exact `k=0` equivalence, a five-percentage-point paired
-noninferiority margin for both target-first contact and task success, and lower
-measured post-event latency.
+noninferiority margin for target-first contact, task success, and their primary
+composite, exact velocity-evaluation accounting, and a scene-bootstrap latency-
+savings interval strictly above zero. Each noninferiority test uses the one-
+sided exact upper bound on the conservative paired-loss probability. No utility
+decision is emitted until every cluster selected by the frozen endpoint gate is
+complete.
 
 Held-out candidates use the latest five-action replan boundary strictly before
 the source clean target contact. Because robosuite controller and interpolator
