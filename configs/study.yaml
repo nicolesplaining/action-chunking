@@ -1,6 +1,6 @@
 study:
   name: pi05_libero_conditional_editability
-  protocol_version: "0.37"
+  protocol_version: "0.38"
   pilot_pairs_per_family: 16
   primary_noise_seed: 0
   robustness_noise_seeds_per_pair: 4
@@ -160,6 +160,8 @@ matched_pi0:
   require_prior_failure_digest_equality: true
   require_frozen_normalization_assets: true
   require_new_conversion_output_directories: true
+  conversion_requires_complete_worktree_cleanliness: true
+  conversion_provenance_requires_action_chunking_commit: true
   require_normalization_asset_hashes: true
   require_final_output_lineage_audit: true
   comparison_generated_files: 10

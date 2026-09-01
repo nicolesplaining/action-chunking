@@ -1,5 +1,14 @@
 # Reproducibility log
 
+## 2026-09-01: pi0 conversion bound to orchestration code
+
+Protocol version 0.38 requires the lossless pi0 conversion launcher to start
+from a completely clean worktree and records the full action-chunking commit in
+conversion provenance. The saved provenance is part of the converted-checkpoint
+artifact hash set, and both the parity validator and intervention gate reject a
+missing or malformed code binding. No checkpoint, parity tolerance, fixture,
+noise, or intervention changed.
+
 ## 2026-09-01: held-out utility figure frozen before outcomes
 
 Protocol version 0.37 fixes the four held-out utility panels before any catalog

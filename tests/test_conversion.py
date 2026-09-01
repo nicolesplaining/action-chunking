@@ -28,6 +28,9 @@ def test_conversion_launcher_passes_preserved_failure_to_final_parity() -> None:
     assert 'sibling_assets="$jax_checkpoint/../assets"' in launcher
     assert 'diff -qr "$jax_assets" "$pytorch_output/assets"' in launcher
     assert 'cp -a "$jax_assets" "$pytorch_output/assets"' in launcher
+    assert "status --porcelain=v1 --untracked-files=all" in launcher
+    assert '--action-chunking-commit "$action_chunking_commit"' in launcher
+    assert launcher.count('--action-chunking-commit "$action_chunking_commit"') == 2
 
 
 def test_lossless_adapter_accepts_preserved_failure_argument(
@@ -50,6 +53,8 @@ def test_lossless_adapter_accepts_preserved_failure_argument(
             str(prior),
             "--upstream-revision",
             "openpi-commit",
+            "--action-chunking-commit",
+            "a" * 40,
         ],
     )
 
@@ -89,12 +94,14 @@ def test_lossless_conversion_records_immutable_public_provenance(tmp_path) -> No
         converter,
         "openpi-commit",
         prior,
+        "a" * 40,
     )
 
     assert result["source_precision_repair_commit"] == (
         "e5fe45e2c6784f315ffa59c207457701fb906c05"
     )
     assert result["upstream_openpi_revision"] == "openpi-commit"
+    assert result["action_chunking_commit"] == "a" * 40
     assert result["upstream_converter_sha256"] == hashlib.sha256(
         converter.read_bytes()
     ).hexdigest()
@@ -102,6 +109,14 @@ def test_lossless_conversion_records_immutable_public_provenance(tmp_path) -> No
         prior.read_bytes()
     ).hexdigest()
     assert result["saved_checkpoint_precision"] == "float32"
+
+    with pytest.raises(ValueError, match="full lowercase"):
+        _lossless_script["conversion_provenance"](
+            converter,
+            "openpi-commit",
+            prior,
+            "short",
+        )
 
 
 def test_conversion_parity_requires_every_case() -> None:
@@ -167,6 +182,7 @@ def test_conversion_provenance_binds_upstream_converter(tmp_path) -> None:
         converter,
         "215abfb217dbac7d5f1273282331b9b1866c0479",
         prior,
+        "a" * 40,
     )
     (checkpoint / "conversion_provenance.json").write_text(
         __import__("json").dumps(provenance)
@@ -176,7 +192,28 @@ def test_conversion_provenance_binds_upstream_converter(tmp_path) -> None:
         checkpoint,
         converter,
         prior,
+        "a" * 40,
     ) == provenance
+
+    missing_commit = dict(provenance)
+    missing_commit.pop("action_chunking_commit")
+    (checkpoint / "conversion_provenance.json").write_text(json.dumps(missing_commit))
+    with pytest.raises(ValueError, match="action-chunking commit"):
+        _manifest_script["_validate_conversion_provenance"](
+            checkpoint,
+            converter,
+            prior,
+            "a" * 40,
+        )
+    (checkpoint / "conversion_provenance.json").write_text(json.dumps(provenance))
+
+    with pytest.raises(ValueError, match="wrong action-chunking commit"):
+        _manifest_script["_validate_conversion_provenance"](
+            checkpoint,
+            converter,
+            prior,
+            "b" * 40,
+        )
 
     converter.write_text("# changed converter\n")
     with pytest.raises(ValueError, match="wrong upstream converter digest"):
@@ -184,6 +221,7 @@ def test_conversion_provenance_binds_upstream_converter(tmp_path) -> None:
             checkpoint,
             converter,
             prior,
+            "a" * 40,
         )
 
     converter.write_text("# pinned converter\n")
@@ -193,6 +231,7 @@ def test_conversion_provenance_binds_upstream_converter(tmp_path) -> None:
             checkpoint,
             converter,
             prior,
+            "a" * 40,
         )
 
 

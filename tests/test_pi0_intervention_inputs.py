@@ -18,6 +18,7 @@ _module = runpy.run_path("scripts/validate_pi0_intervention_inputs.py")
 validate = _module["validate_pi0_intervention_inputs"]
 
 _PROVENANCE = {
+    "action_chunking_commit": "c" * 40,
     "source_precision_repair_commit": "e5fe45e2c6784f315ffa59c207457701fb906c05",
     "upstream_openpi_revision": "215abfb217dbac7d5f1273282331b9b1866c0479",
     "saved_checkpoint_precision": "float32",

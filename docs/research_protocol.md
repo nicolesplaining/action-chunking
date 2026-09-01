@@ -1,6 +1,6 @@
 # Research protocol: causal editability and retargeting in action chunks
 
-Protocol version: 0.37 (audited held-out utility visualization)
+Protocol version: 0.38 (conversion bound to clean orchestration code)
 
 ## 1. Research question
 
@@ -629,8 +629,11 @@ summary, and the parity validator independently matches that digest before
 loading either backend. The launcher resolves normalization assets from the
 numbered checkpoint used by the frozen run, with OpenPI's public sibling-assets
 layout as a fallback, and requires any converter-copied assets to be bytewise
-identical to that frozen source. Conversion and parity each require a new output
-path; partial failed artifacts are retained rather than overwritten.
+identical to that frozen source. The conversion launcher requires a completely
+clean worktree and records the full action-chunking commit in the conversion
+provenance; that file is hashed with the converted checkpoint and verified again
+by the parity and intervention gates. Conversion and parity each require a new
+output path; partial failed artifacts are retained rather than overwritten.
 Before any pi0
 activation intervention, conversion parity is evaluated on both directions of
 all 16 held-out target fixtures under identical seed-zero `50 x 32` action

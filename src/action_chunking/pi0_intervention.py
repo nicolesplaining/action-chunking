@@ -88,6 +88,8 @@ def validate_pi0_intervention_inputs(
     }
     if any(provenance.get(key) != value for key, value in required_provenance.items()):
         raise ValueError("pi0 parity summary has invalid lossless-conversion provenance")
+    if re.fullmatch(r"[0-9a-f]{40}", str(provenance.get("action_chunking_commit"))) is None:
+        raise ValueError("pi0 parity summary has no valid conversion code binding")
     actual_provenance = json.loads(
         (pytorch_checkpoint / "conversion_provenance.json").read_text()
     )

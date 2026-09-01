@@ -15,6 +15,7 @@ import dataclasses
 import hashlib
 import importlib.util
 import json
+import re
 from pathlib import Path
 from types import ModuleType
 
@@ -33,6 +34,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--upstream-converter", type=Path, required=True)
     parser.add_argument("--prior-failed-summary", type=Path, required=True)
     parser.add_argument("--upstream-revision", required=True)
+    parser.add_argument("--action-chunking-commit", required=True)
     return parser.parse_args()
 
 
@@ -62,6 +64,7 @@ def conversion_provenance(
     converter: Path,
     upstream_revision: str,
     prior_failed_summary: Path,
+    action_chunking_commit: str,
 ) -> dict:
     if not converter.is_file():
         raise FileNotFoundError(f"upstream converter is missing: {converter}")
@@ -69,12 +72,15 @@ def conversion_provenance(
         raise FileNotFoundError(
             f"preserved failed-parity summary is missing: {prior_failed_summary}"
         )
+    if re.fullmatch(r"[0-9a-f]{40}", action_chunking_commit) is None:
+        raise ValueError("conversion requires a full lowercase action-chunking commit")
     return {
         "schema_version": 1,
         "adapter": "openpi_pr978_float32_intermediate",
         "source_precision_repair_commit": OPENPI_PRECISION_REPAIR_COMMIT,
         "source_precision_repair_url": OPENPI_PRECISION_REPAIR_URL,
         "upstream_openpi_revision": upstream_revision,
+        "action_chunking_commit": action_chunking_commit,
         "upstream_converter_sha256": hashlib.sha256(converter.read_bytes()).hexdigest(),
         "prior_failed_summary_sha256": hashlib.sha256(
             prior_failed_summary.read_bytes()
@@ -107,6 +113,7 @@ def main() -> None:
         args.upstream_converter,
         args.upstream_revision,
         args.prior_failed_summary,
+        args.action_chunking_commit,
     )
     (args.output_path / "conversion_provenance.json").write_text(
         json.dumps(provenance, indent=2, sort_keys=True) + "\n"

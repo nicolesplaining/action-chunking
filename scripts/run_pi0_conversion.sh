@@ -21,6 +21,11 @@ if [[ "$actual_openpi" != "$pinned_openpi" ]]; then
   echo "conversion requires pinned OpenPI commit $pinned_openpi, found $actual_openpi" >&2
   exit 1
 fi
+if [[ -n "$(git -C "$repo_root" status --porcelain=v1 --untracked-files=all)" ]]; then
+  echo "conversion requires a completely clean worktree" >&2
+  exit 1
+fi
+action_chunking_commit="$(git -C "$repo_root" rev-parse HEAD)"
 checkpoint_assets="$jax_checkpoint/assets"
 sibling_assets="$jax_checkpoint/../assets"
 if [[ -d "$checkpoint_assets" ]]; then
@@ -68,7 +73,8 @@ env CUDA_VISIBLE_DEVICES="$gpu" XLA_PYTHON_CLIENT_PREALLOCATE=false \
   --output-path "$pytorch_output" \
   --upstream-converter "$openpi/examples/convert_jax_model_to_pytorch.py" \
   --prior-failed-summary "$prior_failed_parity" \
-  --upstream-revision "$actual_openpi"
+  --upstream-revision "$actual_openpi" \
+  --action-chunking-commit "$action_chunking_commit"
 
 if [[ ! -f "$pytorch_output/model.safetensors" || ! -f "$pytorch_output/config.json" || ! -f "$pytorch_output/conversion_provenance.json" ]]; then
   echo "official conversion did not produce the required PyTorch artifacts" >&2
@@ -89,6 +95,7 @@ PYTHONPATH="$repo_root/src:$openpi:$openpi/packages/openpi-client/src" \
   --pytorch-checkpoint "$pytorch_output" \
   --upstream-converter "$openpi/examples/convert_jax_model_to_pytorch.py" \
   --prior-failed-summary "$prior_failed_parity" \
+  --action-chunking-commit "$action_chunking_commit" \
   --manifest "$manifest" \
   --output "$parity_output" \
   --config pi0_libero \

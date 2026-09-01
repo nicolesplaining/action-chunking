@@ -7,6 +7,7 @@ import argparse
 import dataclasses
 import json
 import os
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -29,6 +30,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--pytorch-checkpoint", type=Path, required=True)
     parser.add_argument("--upstream-converter", type=Path, required=True)
     parser.add_argument("--prior-failed-summary", type=Path, required=True)
+    parser.add_argument("--action-chunking-commit", required=True)
     parser.add_argument("--manifest", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--config", default="pi0_libero")
@@ -85,6 +87,7 @@ def run_parent(args: argparse.Namespace) -> int:
         args.pytorch_checkpoint,
         args.upstream_converter,
         args.prior_failed_summary,
+        args.action_chunking_commit,
     )
     common = [
         sys.executable,
@@ -97,6 +100,8 @@ def run_parent(args: argparse.Namespace) -> int:
         str(args.upstream_converter),
         "--prior-failed-summary",
         str(args.prior_failed_summary),
+        "--action-chunking-commit",
+        args.action_chunking_commit,
         "--manifest",
         str(args.manifest),
         "--output",
@@ -159,6 +164,7 @@ def _validate_conversion_provenance(
     checkpoint: Path,
     upstream_converter: Path,
     prior_failed_summary: Path,
+    action_chunking_commit: str,
 ) -> dict:
     path = checkpoint / "conversion_provenance.json"
     if not path.is_file():
@@ -181,6 +187,10 @@ def _validate_conversion_provenance(
     }
     if mismatched:
         raise ValueError(f"conversion provenance mismatch: {mismatched}")
+    if re.fullmatch(r"[0-9a-f]{40}", action_chunking_commit) is None:
+        raise ValueError("parity requires a full lowercase action-chunking commit")
+    if provenance.get("action_chunking_commit") != action_chunking_commit:
+        raise ValueError("conversion provenance has the wrong action-chunking commit")
     if not upstream_converter.is_file():
         raise FileNotFoundError(f"upstream converter is missing: {upstream_converter}")
     actual_digest = file_digest(upstream_converter)

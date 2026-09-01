@@ -223,7 +223,9 @@ LIBERO Goal episodes and 15/16 exact dual-success target pairs. Its first
 bfloat16 conversion fails parity at 24/32 cases, so the matched mechanistic
 comparison remains conversion-limited. Rerun the same cases with the public
 float32-intermediate repair and unchanged thresholds; only a 32/32 pass may
-release the two-H100 coarse and all-50-position grids.
+release the two-H100 coarse and all-50-position grids. The repair is launched
+only from a completely clean worktree, and its provenance binds the full
+action-chunking commit into the hashed converted-checkpoint artifact set.
 
 The model comparison is a matched experimental protocol, not a pure
 architectural ablation: pi0 and pi0.5 differ in pretraining and checkpoint
