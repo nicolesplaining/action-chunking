@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import runpy
+import sys
 from pathlib import Path
 
 import pytest
@@ -10,6 +11,7 @@ from action_chunking.noninferiority import binomial_upper_bound
 _module = runpy.run_path("scripts/make_confirmation_figure.py")
 validate = _module["validate_confirmation_summary"]
 make_figure = _module["make_confirmation_figure"]
+main = _module["main"]
 
 
 def test_confirmation_figure_reconstructs_all_paired_counts(tmp_path: Path) -> None:
@@ -42,6 +44,34 @@ def test_confirmation_figure_keeps_negative_confirmation_reportable(tmp_path: Pa
 
     assert audited["paired_losses"] == 5
     assert (tmp_path / "fig_early_exit_confirmation.pdf").is_file()
+
+
+def test_confirmation_figure_rejects_unhardened_summary() -> None:
+    summary = _summary(losses=4, positive=True)
+    summary.pop("source_artifact_manifest_sha256")
+
+    with pytest.raises(ValueError, match="hardened source-artifact digest"):
+        validate(summary)
+
+
+def test_confirmation_figure_cli_refuses_existing_output(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "make_confirmation_figure.py",
+            "--summary",
+            str(tmp_path / "summary.json"),
+            "--output",
+            str(tmp_path),
+        ],
+    )
+
+    with pytest.raises(FileExistsError, match="output already exists"):
+        main()
 
 
 def _summary(*, losses: int, positive: bool) -> dict:
@@ -92,6 +122,8 @@ def _summary(*, losses: int, positive: bool) -> dict:
         "maximum_passing_losses": 4,
         "all_compute_counts_exact": True,
         "velocity_evaluation_savings_fraction": 0.3,
+        "source_artifact_files": 1505,
+        "source_artifact_manifest_sha256": "a" * 64,
         "confirmation_positive": positive,
         "early_exit_successes": 500 - losses,
         "full_control_successes": 500,

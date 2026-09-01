@@ -1,6 +1,6 @@
 study:
   name: pi05_libero_conditional_editability
-  protocol_version: "0.30"
+  protocol_version: "0.31"
   pilot_pairs_per_family: 16
   primary_noise_seed: 0
   robustness_noise_seeds_per_pair: 4
@@ -62,6 +62,9 @@ early_exit_confirmation:
   bootstrap_seed: 0
   evaluation_savings_fraction: 0.30
   require_balanced_order_per_task: true
+  publication_audit_requires_completely_clean_worktree: true
+  publication_figure_requires_hardened_source_digest: true
+  publication_outputs_require_new_paths: true
 
 pair_families:
   - instruction_target

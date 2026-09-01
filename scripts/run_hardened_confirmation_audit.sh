@@ -20,8 +20,8 @@ if [[ -e "$audit_output" ]]; then
   echo "hardened audit output already exists" >&2
   exit 1
 fi
-if ! git -C "$repo_root" diff --quiet || ! git -C "$repo_root" diff --cached --quiet; then
-  echo "hardened confirmation audit requires no tracked worktree changes" >&2
+if [[ -n "$(git -C "$repo_root" status --porcelain=v1 --untracked-files=all)" ]]; then
+  echo "hardened confirmation audit requires a completely clean worktree" >&2
   exit 1
 fi
 

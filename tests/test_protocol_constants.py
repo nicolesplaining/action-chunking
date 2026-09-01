@@ -18,7 +18,7 @@ def test_machine_readable_protocol_matches_executable_frozen_defaults() -> None:
 
     utility_defaults = inspect.signature(summarize_utility_jobs).parameters
     catalog_defaults = inspect.signature(build_retarget_screening_plan).parameters
-    assert protocol["study"]["protocol_version"] == "0.30"
+    assert protocol["study"]["protocol_version"] == "0.31"
     assert protocol["inference"]["flow_steps"] == 10
     assert protocol["inference"]["receding_horizon_steps"] == 5
     assert protocol["study"]["editability_retention_threshold"] == 0.8
@@ -65,6 +65,9 @@ def test_machine_readable_protocol_matches_executable_frozen_defaults() -> None:
         "early_exit_flow_steps": 7,
         "full_control_flow_steps": 10,
     }
+    assert confirmation["publication_audit_requires_completely_clean_worktree"] is True
+    assert confirmation["publication_figure_requires_hardened_source_digest"] is True
+    assert confirmation["publication_outputs_require_new_paths"] is True
     assert comparison["optimizer_updates"] == 30_000
     assert comparison["final_checkpoint_label"] == 29_999
     assert comparison["parity_cases"] == 32

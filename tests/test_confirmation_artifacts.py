@@ -38,6 +38,19 @@ def test_promotion_rejects_figure_tampering(tmp_path: Path) -> None:
         promote_confirmation_artifacts(audit, figures, tmp_path / "paper-result")
 
 
+def test_promotion_rejects_figure_with_different_raw_source_digest(
+    tmp_path: Path,
+) -> None:
+    audit, figures = _bundle(tmp_path)
+    manifest_path = figures / "figure_manifest.json"
+    manifest = json.loads(manifest_path.read_text())
+    manifest["source_artifact_manifest_sha256"] = "c" * 64
+    _write_json(manifest_path, manifest)
+
+    with pytest.raises(ValueError, match="figure manifest is incompatible"):
+        promote_confirmation_artifacts(audit, figures, tmp_path / "paper-result")
+
+
 def _bundle(tmp_path: Path) -> tuple[Path, Path]:
     audit = tmp_path / "audit"
     figures = tmp_path / "figures"
@@ -90,6 +103,8 @@ def _bundle(tmp_path: Path) -> tuple[Path, Path]:
         {
             "schema_version": 1,
             "source_summary_sha256": file_digest(hardened_path),
+            "source_artifact_files": 1505,
+            "source_artifact_manifest_sha256": "b" * 64,
             "confirmation_positive": True,
             "episode_pairs": 500,
             "early_exit_successes": 496,

@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import re
 from pathlib import Path
 from typing import Any
 
@@ -39,6 +40,7 @@ def validate_confirmation_summary(summary: dict[str, Any]) -> dict[str, Any]:
         "maximum_passing_losses": 4,
         "all_compute_counts_exact": True,
         "velocity_evaluation_savings_fraction": 0.3,
+        "source_artifact_files": 1505,
     }
     mismatched = {
         key: {"expected": expected, "actual": summary.get(key)}
@@ -49,6 +51,9 @@ def validate_confirmation_summary(summary: dict[str, Any]) -> dict[str, Any]:
         raise ValueError(f"confirmation figure received an incompatible summary: {mismatched}")
     if type(summary.get("confirmation_positive")) is not bool:
         raise ValueError("confirmation summary has no boolean decision")
+    source_digest = summary.get("source_artifact_manifest_sha256")
+    if not isinstance(source_digest, str) or re.fullmatch(r"[0-9a-f]{64}", source_digest) is None:
+        raise ValueError("confirmation figure requires a hardened source-artifact digest")
 
     rows = summary.get("rows")
     if not isinstance(rows, list) or len(rows) != 500:
@@ -235,6 +240,10 @@ def make_confirmation_figure(
 
 def main() -> int:
     args = parse_args()
+    if args.output.exists():
+        raise FileExistsError(
+            f"confirmation figure output already exists: {args.output}"
+        )
     summary = json.loads(args.summary.read_text())
     audited = make_confirmation_figure(summary, args.output)
     outputs = ["fig_early_exit_confirmation.pdf", "fig_early_exit_confirmation.png"]
@@ -242,6 +251,10 @@ def main() -> int:
         "schema_version": 1,
         "source_summary": str(args.summary),
         "source_summary_sha256": _sha256(args.summary),
+        "source_artifact_files": summary["source_artifact_files"],
+        "source_artifact_manifest_sha256": summary[
+            "source_artifact_manifest_sha256"
+        ],
         "confirmation_positive": summary["confirmation_positive"],
         "episode_pairs": 500,
         "early_exit_successes": audited["early_exit_successes"],

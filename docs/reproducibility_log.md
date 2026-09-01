@@ -1,5 +1,15 @@
 # Reproducibility log
 
+## 2026-09-01: confirmation rendering restricted to hardened lineage
+
+Protocol version 0.31 strengthens the sealed confirmation publication handoff
+while the run remains incomplete. The independent audit now rejects untracked
+as well as tracked worktree changes. The figure CLI requires the hardened
+summary's 1,505-file source digest, propagates that digest into its own manifest,
+and refuses an existing output path; promotion already refuses overwrite and
+now verifies the repeated raw-source binding. This applies identically to a
+positive or negative final result.
+
 ## 2026-09-01: obstacle restart identity extended to behavior
 
 Protocol version 0.30 strengthens the future obstacle-update pilot before its

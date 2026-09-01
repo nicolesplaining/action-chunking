@@ -1,6 +1,6 @@
 # Research protocol: causal editability and retargeting in action chunks
 
-Protocol version: 0.30 (obstacle boundary-zero behavioral identity)
+Protocol version: 0.31 (immutable audited confirmation rendering)
 
 ## 1. Research question
 
@@ -443,7 +443,7 @@ ordinary clean-sampler request exactly. No other client may use the policy GPU,
 and each episode contributes one paired
 success/loss outcome regardless of its number of replans. Every warm-up,
 condition, pair, and progress artifact must name the same full Git commit, and
-the launcher rejects tracked worktree changes. The registered 0.02 exact bound
+the launcher rejects every tracked or untracked worktree change. The registered 0.02 exact bound
 permits at most four paired losses among 500 trials; five or more cannot pass. A
 resume may skip only a pair whose two condition artifacts and hashes are
 complete and whose code commit matches the current process.
@@ -468,6 +468,13 @@ The figure generator independently reconstructs aggregate successes, paired
 losses/gains, the exact loss bound, latency median, and the final decision from
 the row-level artifact. A negative result is therefore not replaced by the
 earlier positive pilot figure.
+
+Publication rendering accepts only the independently hardened summary carrying
+the exact 1,505-file raw-source digest. Both the audit and figure directories
+must be new, and promotion refuses an existing paper output. The figure manifest
+repeats the raw-source count and digest, so the promoted image, hardened summary,
+and immutable episode artifacts form one checked lineage rather than merely
+sharing aggregate values.
 
 Promotion into `paper/results` is a separate fail-closed step. It requires the
 original and hardened summaries to have passed exact comparison, the 1,505-file
