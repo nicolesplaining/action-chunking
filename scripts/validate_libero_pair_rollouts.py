@@ -80,6 +80,10 @@ def main() -> int:
             raise ValueError("dynamic retargeting and causal intervention flags are mutually exclusive")
         if "dynamic_retarget" not in server_metadata.get("causal_intervention_families", []):
             raise ValueError("server does not advertise dynamic retargeting support")
+        if entry.get("semantic_role") == "obstacle_pose" and not server_metadata.get(
+            "accepts_donor_observation"
+        ):
+            raise ValueError("server does not advertise paired visual-condition switching")
     intervention_replans = _replan_selection(args.intervene_replans)
 
     source_paths = manifest["source"]
@@ -170,6 +174,11 @@ def _rollout(
     prompt = getattr(pair, f"{side}_prompt")
     other_side = "donor" if side == "base" else "base"
     old_prompt = getattr(pair, f"{other_side}_prompt") if dynamic_retarget is not None else prompt
+    visual_condition_switch = bool(
+        dynamic_retarget is not None and entry.get("semantic_role") == "obstacle_pose"
+    )
+    if visual_condition_switch and side != "donor":
+        raise ValueError("obstacle visual update must execute in the moved-obstacle donor state")
     rng = np.random.default_rng(args.noise_seed)
     advance_action_noise(rng, args.noise_start_index, noise_shape)
     frames = []
@@ -238,6 +247,7 @@ def _rollout(
             mismatched = [key for key, field in initial_input_diagnostics.items() if not field["array_equal"]]
             raise ValueError(f"restored {side} rollout differs from fixture in {mismatched}")
         fixture_initial = _fixture_model_input(pair, side, prompt)
+        source_fixture_initial = _fixture_model_input(pair, other_side, old_prompt)
         if args.save_sim_states:
             simulator_states.append(restored_sim_state.copy())
         action_plan = collections.deque()
@@ -251,7 +261,11 @@ def _rollout(
                 noise = rng.standard_normal(noise_shape, dtype=np.float32)
                 policy_input = fixture_initial if replans == 0 and args.initial_input_mode == "fixture" else model_input
                 if dynamic_retarget is not None and replans == 0:
-                    policy_input = {**policy_input, "prompt": old_prompt}
+                    policy_input = (
+                        source_fixture_initial
+                        if visual_condition_switch
+                        else {**policy_input, "prompt": old_prompt}
+                    )
                 if args.save_sim_states:
                     replan_inputs.append(
                         {
@@ -265,6 +279,16 @@ def _rollout(
                 request = {**policy_input, "_action_noise": noise}
                 if dynamic_retarget is not None and replans == 0:
                     request["_donor_prompt"] = prompt
+                    if visual_condition_switch:
+                        request.update(
+                            {
+                                "_donor_image": fixture_initial["observation/image"],
+                                "_donor_wrist_image": fixture_initial[
+                                    "observation/wrist_image"
+                                ],
+                                "_donor_state": fixture_initial["observation/state"],
+                            }
+                        )
                     request["_intervention"] = dynamic_retarget
                     applied_replans.append(replans)
                 elif intervention is not None and (intervention_replans is None or replans in intervention_replans):
@@ -356,6 +380,14 @@ def _rollout(
             "target": target,
             "prompt": prompt,
             "old_prompt": old_prompt if dynamic_retarget is not None else None,
+            "dynamic_condition_source_side": other_side if dynamic_retarget is not None else None,
+            "dynamic_condition_donor_side": side if dynamic_retarget is not None else None,
+            "visual_condition_switch": visual_condition_switch,
+            "source_condition_is_frozen_fixture": visual_condition_switch,
+            "donor_live_input_is_frozen_fixture": bool(
+                visual_condition_switch
+                and all(field["array_equal"] for field in initial_input_diagnostics.values())
+            ),
             "success": success,
             "steps": steps,
             "replans": replans,

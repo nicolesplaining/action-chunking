@@ -1,5 +1,21 @@
 # Reproducibility log
 
+## 2026-09-01: late visual-safety update pilot frozen
+
+Protocol version 0.12 was frozen before inspecting any obstacle-pose clean or
+intervention outcome. The robot will execute in the moved-obstacle state while
+the first flow trajectory is initialized from the exactly paired original-pose
+image and switched to the live moved-obstacle condition at every boundary
+`0..10`. The full-source chunk must induce obstacle contact within the first
+five controls, whereas full restart must avoid contact and eventually complete
+the unchanged task. A continued boundary is successful only if it avoids the
+obstacle through the first chunk and eventually succeeds, with exact fixture,
+simulator, boundary-zero, and neural-function-evaluation controls. All
+boundaries are reported; the single selected scene is descriptive and cannot
+support a population timing-prediction claim. This amendment was motivated by
+the construct-validity concern that successful instruction redirection is good
+instruction following, not evidence that a policy was previously undecided.
+
 ## 2026-09-01: chunk-boundary recovery decomposition frozen
 
 Protocol version 0.11 was frozen during transition-exact candidate generation,
