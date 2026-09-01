@@ -10,6 +10,8 @@ import sys
 from pathlib import Path
 from typing import Any
 
+from action_chunking.pairs import file_digest
+
 MODES = {
     "flow_only": {
         "steps": "all",
@@ -67,20 +69,25 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--device", default="cuda:0")
     parser.add_argument("--noise-seeds", default="0")
     parser.add_argument("--num-steps", type=int, default=10)
+    parser.add_argument("--minimum-selected-pairs", type=int, default=1)
     return parser.parse_args()
 
 
 def main() -> int:
     args = parse_args()
-    if args.num_steps <= 0:
-        raise ValueError("num-steps must be positive")
+    if args.num_steps <= 0 or args.minimum_selected_pairs <= 0:
+        raise ValueError("num-steps and minimum-selected-pairs must be positive")
     seeds = _seeds(args.noise_seeds)
     model_selected = _select_pairs(args.clean_validation, args.eligibility)
+    model_validation_hashes = _validation_summary_hashes(args.clean_validation)
     reference_selected = None
+    reference_validation_hashes = None
     selected = model_selected
     if args.reference_clean_validation is not None:
         reference_selected = _select_pairs(args.reference_clean_validation, args.eligibility)
+        reference_validation_hashes = _validation_summary_hashes(args.reference_clean_validation)
         selected = _intersect_pairs(model_selected, reference_selected)
+    _require_minimum_selection(selected, args.minimum_selected_pairs)
     mode = MODES[args.mode]
     manifest = json.loads(args.manifest.read_text())
     manifest_ids = {entry["pair_id"] for entry in manifest["pairs"]}
@@ -91,11 +98,15 @@ def main() -> int:
         "schema_version": 1,
         "selection_uses_interventions": False,
         "clean_validation": str(args.clean_validation),
+        "clean_validation_summary_sha256": model_validation_hashes,
         "reference_clean_validation": (
-            str(args.reference_clean_validation)
-            if args.reference_clean_validation is not None
-            else None
+            str(args.reference_clean_validation) if args.reference_clean_validation is not None else None
         ),
+        "reference_clean_validation_summary_sha256": reference_validation_hashes,
+        "manifest": str(args.manifest),
+        "manifest_sha256": file_digest(args.manifest),
+        "repo_commit": _git_revision(Path(__file__).resolve().parents[1]),
+        "repo_tracked_clean": _git_tracked_clean(Path(__file__).resolve().parents[1]),
         "model_clean_eligible_pairs": model_selected,
         "reference_clean_eligible_pairs": reference_selected,
         "selection_is_clean_eligible_intersection": args.reference_clean_validation is not None,
@@ -103,6 +114,7 @@ def main() -> int:
         "mode": args.mode,
         "mode_parameters": mode,
         "pairs": selected,
+        "minimum_selected_pairs": args.minimum_selected_pairs,
         "noise_seeds": seeds,
     }
     selection_path = args.output / "selection.json"
@@ -214,6 +226,41 @@ def _select_pairs(root: Path, eligibility: str) -> list[str]:
     if not selected or len(selected) != len(set(selected)):
         raise ValueError("clean validation yields an empty or duplicate intervention selection")
     return selected
+
+
+def _validation_summary_hashes(root: Path) -> dict[str, str]:
+    paths = sorted(root.glob("*/noise_*/summary.json"))
+    if not paths:
+        raise ValueError("clean validation has no pair summaries to hash")
+    return {str(path.relative_to(root)): file_digest(path) for path in paths}
+
+
+def _require_minimum_selection(selected: list[str], minimum: int) -> None:
+    if minimum <= 0:
+        raise ValueError("minimum selected pairs must be positive")
+    if len(selected) < minimum:
+        raise ValueError(f"clean-eligible pair intersection has {len(selected)} pairs; at least {minimum} are required")
+
+
+def _git_revision(repo: Path) -> str:
+    result = subprocess.run(
+        ["git", "-C", str(repo), "rev-parse", "HEAD"],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    revision = result.stdout.strip()
+    if len(revision) != 40:
+        raise ValueError("repository revision is not a full Git commit")
+    return revision
+
+
+def _git_tracked_clean(repo: Path) -> bool:
+    unstaged = subprocess.run(["git", "-C", str(repo), "diff", "--quiet"], check=False).returncode
+    staged = subprocess.run(["git", "-C", str(repo), "diff", "--cached", "--quiet"], check=False).returncode
+    if unstaged not in {0, 1} or staged not in {0, 1}:
+        raise RuntimeError("could not determine tracked repository cleanliness")
+    return unstaged == 0 and staged == 0
 
 
 def _first_contact_is_target(result: dict[str, Any]) -> bool:

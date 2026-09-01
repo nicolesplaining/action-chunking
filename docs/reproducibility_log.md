@@ -1,5 +1,27 @@
 # Reproducibility log
 
+## 2026-09-01: twelve-state matched-control overlap frozen
+
+Protocol version 0.22 was frozen while the pi0 suite evaluation was incomplete
+and before any held-out pi0 pair outcome. The earlier standalone gate required
+12/16 pi0 clean pairs, while pi0.5 has 15/16; those marginals guarantee only 11
+common states. Both pi0 intervention grids now require at least 12 states in the
+actual clean-eligible intersection. A smaller overlap is reported but cannot
+support architecture-timing claims. No model outcome was available when this
+logical correction was made.
+
+## 2026-09-01: matched-control grid provenance sealed
+
+Before any converted-pi0 activation intervention, the matched-grid launcher was
+made to reject a busy GPU, tracked worktree changes, an OpenPI revision other
+than the pinned commit, or a parity artifact that does not contain all 32
+passing `50 x 7` physical-action cases at the frozen tolerances. Its run root
+records code, hardware, competence, parity, and manifest identity. Each
+clean-only selection now hashes every model and reference validation summary
+that determines the common scene intersection, plus the pair manifest and
+repository commit. No intervention outcome or cross-model statistic existed
+when these checks were added.
+
 ## 2026-09-01: confirmation full control checked against clean sampling
 
 Before the first scored confirmation pair, every session warm-up was extended

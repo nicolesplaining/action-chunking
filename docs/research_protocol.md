@@ -1,6 +1,6 @@
 # Research protocol: causal editability and retargeting in action chunks
 
-Protocol version: 0.21 (confirmation session provenance)
+Protocol version: 0.22 (matched-control common-state gate)
 
 ## 1. Research question
 
@@ -487,10 +487,13 @@ must pass both levels of the following gate:
 
 The 90% suite threshold is fixed below the public pi0.5-LIBERO-goal reference
 of 98.0% but high enough that causal differences are not dominated by a broadly
-incompetent control. The 12/16 pair threshold ensures a minimum paired overlap
-for descriptive model contrasts. Primary pi0-versus-pi0.5 estimates use only
-the clean-eligible state intersection and retain every exclusion. If either
-level fails, pi0 is reported as a competence-limited negative control and no
+incompetent control. Because pi0.5 has 15/16 clean-eligible states, the
+standalone 12/16 pi0 threshold mathematically guarantees only 11 common states.
+Architecture-timing claims therefore require a separate minimum of 12 states
+in the exact clean-eligible intersection before either pi0 intervention grid
+can run. Primary pi0-versus-pi0.5 estimates use only that intersection and
+retain every exclusion. If either competence level or the common-state gate
+fails, pi0 is reported as a competence-limited negative control and no
 architectural timing comparison is claimed; the gate is not relaxed or rescued
 by selecting a later checkpoint.
 
