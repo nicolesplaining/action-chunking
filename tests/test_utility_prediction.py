@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import pytest
 
+import action_chunking.utility_prediction as utility_prediction
 from action_chunking.utility_prediction import (
     predict_last_successful_boundary,
     validate_eligible_retarget_row,
@@ -17,6 +18,20 @@ def test_predicts_last_successful_boundary_before_retention_crossing() -> None:
     assert result["editability_boundary"] == 8
     assert result["predicted_last_successful_boundary"] == 7
     assert result["isotonic_retention"] == pytest.approx(retention)
+
+
+def test_boundary_zero_uses_restart_only_sentinel(monkeypatch) -> None:
+    records = [_record(boundary, 1.0 - boundary / 10) for boundary in range(11)]
+    monkeypatch.setattr(
+        utility_prediction,
+        "commitment_step",
+        lambda retention, threshold: (0, retention),
+    )
+
+    result = predict_last_successful_boundary(records, "base_to_donor")
+
+    assert result["editability_boundary"] == 0
+    assert result["predicted_last_successful_boundary"] == -1
 
 
 def test_rejects_degenerate_target_direction_contrast() -> None:

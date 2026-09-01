@@ -76,7 +76,7 @@ def predict_last_successful_boundary(
         "minimum_target_contrast": minimum_target_contrast,
         "endpoint_target_contrast": abs(float(contrast)),
         "editability_boundary": boundary,
-        "predicted_last_successful_boundary": boundary - 1 if boundary > 0 else None,
+        "predicted_last_successful_boundary": boundary - 1,
         "raw_retention": retention.tolist(),
         "isotonic_retention": fitted.tolist(),
     }
