@@ -81,7 +81,7 @@ class InterventionPolicy(base_policy.BasePolicy):
             )
             return actions
 
-        source_trace, donor_trace, donor_residual = self._clean_traces(noise, source, donor)
+        _source_trace, donor_trace, donor_residual = self._clean_traces(noise, source, donor)
         step = _bounded_int(spec, "flow_step", 0, self.num_steps)
         if family == "residual_patch":
             layer = _bounded_int(spec, "layer", 0, len(self.layers))
