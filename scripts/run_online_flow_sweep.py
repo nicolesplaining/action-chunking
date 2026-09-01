@@ -78,8 +78,10 @@ def main() -> int:
 
 def _write_tables(output: Path, pair_id: str, entry: dict[str, Any], noise_seed: int) -> None:
     rows = []
+    run_summaries = []
     for path in sorted(output.glob("switch_after_*/summary.json")):
         summary = json.loads(path.read_text())
+        run_summaries.append(summary)
         boundary = int(summary["intervention"]["switch_after_steps"])
         for result in summary["results"]:
             side = result["side"]
@@ -150,10 +152,8 @@ def _write_tables(output: Path, pair_id: str, entry: dict[str, Any], noise_seed:
         "schema_version": 1,
         "pair_id": pair_id,
         "noise_seed": noise_seed,
-        "intervention_applied_at_replans": json.loads(next(output.glob("switch_after_*/summary.json")).read_text())[
-            "intervene_replans"
-        ],
-        "rollout_endpoint": _rollout_endpoint(rows),
+        "intervention_applied_at_replans": run_summaries[0]["intervene_replans"],
+        "rollout_endpoint": _rollout_endpoint(run_summaries),
         "all_initial_inputs_exact": all(row["initial_input_exact"] for row in rows),
         "all_simulator_states_exact": all(row["simulator_state_exact"] for row in rows),
         "boundaries": by_boundary,
@@ -190,20 +190,18 @@ def _boundaries(value: str) -> list[int]:
     return boundaries
 
 
-def _rollout_endpoint(rows: list[dict[str, Any]]) -> str:
-    if all(row["terminated_after_first_task_contact"] for row in rows):
-        return "first_contact"
-    if all(
-        row["terminated_after_registered_destination"] or row["success"]
-        for row in rows
-    ):
-        return "destination"
-    if not any(
-        row["terminated_after_first_task_contact"] or row["terminated_after_registered_destination"]
-        for row in rows
-    ):
-        return "full"
-    return "mixed"
+def _rollout_endpoint(summaries: list[dict[str, Any]]) -> str:
+    modes = {
+        (
+            "first_contact"
+            if summary.get("stop_after_first_task_contact", False)
+            else "destination"
+            if summary.get("stop_after_registered_destination", False)
+            else "full"
+        )
+        for summary in summaries
+    }
+    return next(iter(modes)) if len(modes) == 1 else "mixed"
 
 
 def _manifest_entry(manifest: dict[str, Any], pair_id: str) -> dict[str, Any]:

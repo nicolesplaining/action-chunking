@@ -482,3 +482,19 @@ eligible. The seed-0 causal and token-localization results remain valid for that
 sampled action mode but are not a noise-robust state-level effect. By contrast,
 translation, rotation, target direction, and the full action remain eligible in
 all four seeds; their four-seed commitment boundaries are 10, 10, 9, and 10.
+
+The first closed-loop recovery pilot used the instruction pair alphabet soup
+versus cream cheese and replaced only the first receding-horizon chunk. Boundary
+10 reproduced both clean full-rollout outcomes exactly; boundary 0 reproduced
+the opposite side's first action chunk bitwise. All initial model inputs and
+restored simulator states were exact, the intervention was applied only at
+replan zero, and all four endpoint rollouts succeeded. These controls do not,
+however, establish recovery. In the donor-side identity rollout the policy had
+already contacted alphabet soup before cream cheese, so the corresponding
+patched wrong-object contact was not induced by the donor chunk. The corrected
+eligibility rule requires both source-first contact under the identity control
+and donor-first contact under the patched chunk. Zero of two directions pass
+that rule; recovery rates are therefore undefined and interpretation is
+disabled. The pilot is retained as a negative result and as a regression test
+against conflating eventual success after a patch with causally induced
+recovery.
