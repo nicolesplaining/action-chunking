@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-if [[ $# -lt 6 || $# -gt 16 ]]; then
-  echo "usage: $0 <manifest> <pair-id> <gpu> <port> <noise-seed> <output-dir> [clean-screen-jsonl] [initial-input-mode] [save-sim-states] [intervention-json] [intervene-replans] [stop-after-first-task-contact] [stop-after-registered-destination] [dynamic-retarget-strategy] [dynamic-retarget-boundary] [max-steps]" >&2
+if [[ $# -lt 6 || $# -gt 17 ]]; then
+  echo "usage: $0 <manifest> <pair-id> <gpu> <port> <noise-seed> <output-dir> [clean-screen-jsonl] [initial-input-mode] [save-sim-states] [intervention-json] [intervene-replans] [stop-after-first-task-contact] [stop-after-registered-destination] [dynamic-retarget-strategy] [dynamic-retarget-boundary] [max-steps] [sides]" >&2
   exit 2
 fi
 
@@ -25,6 +25,7 @@ stop_after_registered_destination="${13:-false}"
 dynamic_retarget_strategy="${14:-}"
 dynamic_retarget_boundary="${15:-}"
 max_steps="${16:-400}"
+sides="${17:-base,donor}"
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 mkdir -p "$output_dir"
@@ -46,7 +47,7 @@ if ! [[ "$max_steps" =~ ^[1-9][0-9]*$ ]]; then
   echo "max-steps must be a positive integer" >&2
   exit 2
 fi
-rollout_args=(--max-steps "$max_steps")
+rollout_args=(--max-steps "$max_steps" --sides "$sides")
 if [[ -n "$clean_screen" ]]; then
   clean_screen="$(realpath "$clean_screen")"
   extra_mounts+=(--volume "$(dirname "$clean_screen"):/screen:ro")

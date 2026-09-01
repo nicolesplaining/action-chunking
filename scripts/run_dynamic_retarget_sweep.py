@@ -23,18 +23,26 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--noise-seed", type=int, default=0)
     parser.add_argument("--clean-screen", type=Path)
     parser.add_argument("--boundaries", default="0,7,8,9,10")
+    parser.add_argument("--sides", default="base,donor")
     return parser.parse_args()
 
 
 def main() -> int:
     args = parse_args()
     boundaries = _boundaries(args.boundaries)
+    sides = _sides(args.sides)
     if 0 not in boundaries:
         raise ValueError("dynamic-retarget sweep requires boundary-zero exact controls")
     manifest = json.loads(args.manifest.read_text())
     entry = _manifest_entry(manifest, args.pair_id)
     if entry.get("semantic_role", "manipulated_object") != "manipulated_object":
         raise ValueError("dynamic target retargeting requires a manipulated-object pair")
+    if entry.get("origin_side") is not None:
+        expected_side = "donor" if entry["origin_side"] == "base" else "base"
+        if sides != [expected_side]:
+            raise ValueError(
+                f"pre-contact retargeting must evaluate only new-task side {expected_side!r}"
+            )
     args.output.mkdir(parents=True, exist_ok=True)
     launcher = Path(__file__).with_name("run_pair_validation.sh")
     jobs = [("restart", 0), *(('continue', boundary) for boundary in boundaries)]
@@ -62,17 +70,26 @@ def main() -> int:
             "false",
             strategy,
             str(boundary),
+            "400",
+            ",".join(sides),
         ]
         completed = subprocess.run(command, check=False)
         if completed.returncode not in {0, 1} or not summary_path.is_file():
             raise RuntimeError(f"dynamic retarget {strategy} boundary {boundary} produced no summary")
         _validate_run(json.loads(summary_path.read_text()), strategy, boundary, args)
-        _write_tables(args.output, args.pair_id, entry, args.noise_seed)
-    _write_tables(args.output, args.pair_id, entry, args.noise_seed)
+        _write_tables(args.output, args.pair_id, entry, args.noise_seed, sides)
+    _write_tables(args.output, args.pair_id, entry, args.noise_seed, sides)
     return 0
 
 
-def _write_tables(output: Path, pair_id: str, entry: dict[str, Any], noise_seed: int) -> None:
+def _write_tables(
+    output: Path,
+    pair_id: str,
+    entry: dict[str, Any],
+    noise_seed: int,
+    sides: list[str] | None = None,
+) -> None:
+    sides = sides or ["base", "donor"]
     rows = []
     summaries = []
     for path in sorted(output.glob("*_after_*/summary.json")):
@@ -133,7 +150,7 @@ def _write_tables(output: Path, pair_id: str, entry: dict[str, Any], noise_seed:
     boundary_zero_paths = [
         output / strategy / f"{side}_actions.json"
         for strategy in ("restart_after_0", "continue_after_0")
-        for side in ("base", "donor")
+        for side in sides
     ]
     boundary_zero_actions_exact = (
         all(
@@ -141,7 +158,7 @@ def _write_tables(output: Path, pair_id: str, entry: dict[str, Any], noise_seed:
                 _first_chunk(output / "restart_after_0" / f"{side}_actions.json"),
                 _first_chunk(output / "continue_after_0" / f"{side}_actions.json"),
             )
-            for side in ("base", "donor")
+            for side in sides
         )
         if all(path.is_file() for path in boundary_zero_paths)
         else None
@@ -199,6 +216,8 @@ def _validate_run(
         raise ValueError("existing dynamic-retarget output has different pair or noise seed")
     if summary.get("dynamic_retarget") != expected:
         raise ValueError("existing dynamic-retarget output has different strategy or boundary")
+    if {result["side"] for result in summary["results"]} != set(_sides(args.sides)):
+        raise ValueError("existing dynamic-retarget output has different requested sides")
     for result in summary["results"]:
         if result.get("intervention_replans_applied") != [0]:
             raise ValueError("dynamic retargeting must be applied only at the first replan")
@@ -217,6 +236,13 @@ def _boundaries(value: str) -> list[int]:
         raise ValueError("boundaries must be comma-separated integers") from error
     if not result or result[0] < 0 or result[-1] > 10:
         raise ValueError("boundaries must lie within [0, 10]")
+    return result
+
+
+def _sides(value: str) -> list[str]:
+    result = [side.strip() for side in value.split(",") if side.strip()]
+    if not result or len(result) != len(set(result)) or not set(result) <= {"base", "donor"}:
+        raise ValueError("sides must be a nonempty unique subset of base,donor")
     return result
 
 

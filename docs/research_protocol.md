@@ -137,6 +137,17 @@ state-level accuracy and Spearman correlation; the useful claim requires
 out-of-sample scene states and cannot be established from the original 15
 mechanistic states alone.
 
+The state-level predictor is frozen before inspecting any intermediate
+continuation outcome. On the exact eligible fixture and shared noise, run the
+offline source-to-new-condition flow switch and compute direction-specific
+target-approach retention. The endpoint target-affinity contrast must be at
+least 0.01. Let `k*` be the earliest boundary whose isotonic retention reaches
+0.8 and remains there; the preregistered predicted last successful continued
+boundary is `k* - 1`. Predictions, including invalid contrasts, are serialized
+before the closed-loop boundary sweep. The symmetric population curve remains
+the primary mechanistic summary, but it is not substituted for this
+direction-matched utility predictor.
+
 ### 2.5 Post-pilot behavioral-sensitivity amendment
 
 This amendment was added after inspecting the state-zero dynamic-retargeting

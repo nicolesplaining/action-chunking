@@ -8,6 +8,7 @@ _module = runpy.run_path(
     str(Path(__file__).parents[1] / "scripts" / "run_dynamic_retarget_sweep.py")
 )
 _write_tables = _module["_write_tables"]
+_sides = _module["_sides"]
 
 
 def test_dynamic_retarget_summary_preserves_compute_and_behavior_controls(tmp_path) -> None:
@@ -79,6 +80,10 @@ def test_dynamic_retarget_summary_allows_restart_only_partial_result(tmp_path) -
     assert summary["boundary_zero_continue_restart_actions_exact"] is None
     assert summary["restart_new_task_success_rate"] == 1.0
     assert summary["continuation"] == []
+
+
+def test_dynamic_retarget_side_parser_accepts_one_direction() -> None:
+    assert _sides("donor") == ["donor"]
 
 
 def _result(side: str, target: str, post: int, discarded: bool) -> dict:
