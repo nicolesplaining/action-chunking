@@ -1,5 +1,18 @@
 # Reproducibility log
 
+## 2026-09-01: pi0 conversion-parity gate frozen
+
+Before the step-30,000 pi0 checkpoint or any pi0 intervention outcome existed,
+the post-competence JAX-to-PyTorch handoff was made numerical. Conversion uses
+OpenPI's pinned public `convert_jax_model_to_pytorch.py` unchanged and can run
+only after both competence levels pass. Parity then uses both directions of all
+16 held-out target fixtures and identical seed-zero model-native `50 x 32`
+noise. Each of the 32 physical-action tensors must have maximum absolute error
+at most 0.02 and cosine similarity at least 0.999. The earlier pi0.5 synthetic
+conversion check had maximum error 0.00711, but its permissive 0.15 threshold is
+not reused. Any failed pi0 case blocks activation-level architecture claims;
+the JAX behavioral competence result remains separately reportable.
+
 ## 2026-09-01: population action-token grid frozen
 
 Before any population target-token intervention was generated, the missing
