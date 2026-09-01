@@ -158,6 +158,12 @@ successor. For boundary seven, report the one-sided exact upper confidence bound
 on paired composite losses, with one scene cluster per trial, alongside median
 paired latency savings and its frozen cluster-bootstrap interval.
 
+For execution only, screen two adjacent outcome-independent catalog rows on
+isolated GPU/port workers. Preserve the inferential population as the exact
+contiguous frozen prefix; retain and label at most one concurrently completed
+successor as speculative and exclude it from selection. Do not reuse the prior
+28-row exploratory screen because it lacks a code-commit binding.
+
 The first state-zero pilot gives a qualified positive result. At `k=7`, both
 directions reached the newly instructed object first and completed the new task,
 matching restart while using 3/10 post-event velocity evaluations. Median

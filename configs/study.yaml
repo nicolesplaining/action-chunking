@@ -1,6 +1,6 @@
 study:
   name: pi05_libero_conditional_editability
-  protocol_version: "0.34"
+  protocol_version: "0.35"
   pilot_pairs_per_family: 16
   primary_noise_seed: 0
   robustness_noise_seeds_per_pair: 4
@@ -34,6 +34,12 @@ retarget_utility:
     - target_first_and_task_success_composite
   minimum_eligible_scene_clusters: 59
   stop_rule: first_59_eligible_scene_clusters_or_public_catalog_exhaustion
+  endpoint_screen_parallel_workers: 2
+  endpoint_screen_requires_distinct_gpu_and_port: true
+  endpoint_screen_selection_is_contiguous_completed_prefix: true
+  endpoint_screen_speculative_rows_excluded_from_selection: true
+  endpoint_screen_requires_row_result_hashes: true
+  endpoint_screen_resume_requires_code_and_plan_binding: true
   prediction_fixed_boundary_comparator: 7
   prediction_bootstrap_replicates: 10000
   prediction_bootstrap_seed: 0
