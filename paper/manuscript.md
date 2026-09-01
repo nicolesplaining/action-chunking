@@ -132,13 +132,25 @@ supporting tighter receding-horizon control [@jiang2025streaming]. A1 jointly
 early-exits the VLM backbone and warm-starts truncated flow matching across
 intermediate layers [@zhang2026a1]. FASTER instead uses a horizon-aware schedule
 to prioritize near-term action positions and streams them for low reaction time
-[@lu2026faster]. These are the closest adaptive-VLA precedents. Our practical
+[@lu2026faster]. OptimusVLA retrieves task-level action priors and adapts its
+noise scale and function-evaluation budget [@li2026optimusvla], while Reducing
+Temporal Redundancy trains a compact two-step action sampler alongside
+incremental visual-token updates [@wu2026temporalredundancy]. These are the
+closest adaptive-VLA precedents. Our practical
 experiment neither retrains nor changes the released flow semantics or schedule:
 it emits a predicted clean endpoint from a partial ordinary pi0.5 trajectory.
 Its distinct question is whether causal localization on an unmodified public
 VLA can select a reusable inference prefix before sealed closed-loop evaluation,
 including when an instruction changes after some flow evaluations are already
 sunk.
+
+Inference-time guidance offers a complementary route to better samples. Action
+Coherence Guidance constructs a training-free guidance vector that suppresses
+jitter and trajectory drift in flow-based VLAs [@park2026acg]. DynaGuide and
+Guided Action Flow instead use learned dynamics or value guidance. Our target
+switch uses only the fixed VLA's natural instruction pathway; the comparison
+therefore asks whether a measured editability boundary can decide when that
+pathway is sufficient and when the partial sample should be discarded.
 
 Adaptive generative inference provides closer computational precedents. AdaDiff
 learns uncertainty-guided layer exits within diffusion steps [@tang2023adadiff],

@@ -1,5 +1,29 @@
 # Reproducibility log
 
+## 2026-09-01: public efficiency and guidance comparison refreshed
+
+A primary-source search before the held-out catalog added three direct
+comparisons that were absent from the manuscript: OptimusVLA's retrieved-prior
+adaptive-NFE sampler, Reducing Temporal Redundancy's trained two-step VLA
+sampler and incremental visual encoder, and training-free Action Coherence
+Guidance. Public code is linked where available. These methods sharpen the
+distinction between learned priors, trained compression, auxiliary guidance,
+and our causal decision to continue or restart an unmodified in-progress pi0.5
+sample. No experimental population, intervention, endpoint, threshold, or
+decision rule changed.
+
+## 2026-09-01: pi0.5 prediction artifacts made shape-exact
+
+An outcome-blind implementation audit before the fresh endpoint catalog found
+that the prediction verifier incorrectly expected pi0's 50-action arrays even
+though the utility experiment uses pi0.5's ten-action checkpoint. Sampling had
+not started. The sampler and independent verifier now require all eleven
+ten-by-seven physical action arrays and the ten-by-32 Gaussian noise array,
+record both shapes, and reject missing, nonnumeric, or nonfinite data. A
+threshold crossing at boundary zero is represented by the registered
+restart-only sentinel `-1`, not a null value. No candidate, prediction, endpoint,
+continuation outcome, threshold, or decision was observed or changed.
+
 ## 2026-09-01: catalog stop rule guarantees the predictive sample size
 
 Protocol version 0.40 corrects the confirmatory catalog before the fresh screen
