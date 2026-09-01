@@ -4,13 +4,16 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import subprocess
 import sys
 from pathlib import Path
 from typing import Any
 
-from action_chunking.pairs import file_digest
+import numpy as np
+
+from action_chunking.pairs import array_digest, file_digest
 
 
 def parse_args() -> argparse.Namespace:
@@ -35,17 +38,23 @@ def main() -> int:
     args.output.mkdir(parents=True, exist_ok=True)
     jobs = []
     selected = None
+    base_cache: dict[str, dict[str, Any]] = {}
     for plan_row in plan["rows"]:
         row = source_rows[plan_row["screen_id"]]
         index = int(plan_row["obstacle_plan_index"])
         row_root = args.output / "rows" / f"{index:05d}_{row['screen_id'][:12]}"
         result_path = row_root / "row_result.json"
         if result_path.is_file():
-            result = json.loads(result_path.read_text())
+            result = _with_base_cache_fields(
+                json.loads(result_path.read_text()), row
+            )
         else:
-            result = _run_row(index, row, row_root, args)
+            result = _run_row(index, row, row_root, args, base_cache)
             result_path.write_text(json.dumps(result, indent=2, sort_keys=True) + "\n")
         jobs.append(result)
+        cache_key = result.get("source_base_cache_key")
+        if cache_key is not None:
+            base_cache.setdefault(cache_key, result)
         if result.get("selected_pair_id"):
             selected = result
         _write_summary(args, plan, jobs, selected)
@@ -59,6 +68,7 @@ def _run_row(
     row: dict[str, Any],
     row_root: Path,
     args: argparse.Namespace,
+    base_cache: dict[str, dict[str, Any]],
 ) -> dict[str, Any]:
     repo = Path(__file__).resolve().parents[1]
     row_root.mkdir(parents=True, exist_ok=True)
@@ -90,9 +100,21 @@ def _run_row(
     ):
         raise ValueError("generated obstacle source fixture differs from the frozen row")
 
+    base_signature = _base_fixture_signature(source_manifest, source_entry)
+    base_cache_key = _base_cache_key(row, base_signature)
+    cached_base = base_cache.get(base_cache_key)
+
     base_gate = row_root / "source_base_gate"
     base_gate_summary_path = base_gate / "summary.json"
-    if not base_gate_summary_path.is_file():
+    reused_from = None
+    if cached_base is not None:
+        base_gate_summary_path = Path(cached_base["source_base_gate"])
+        if file_digest(base_gate_summary_path) != cached_base["source_base_gate_sha256"]:
+            raise ValueError("cached source-base gate changed after screening")
+        if cached_base["source_base_fixture_signature"] != base_signature:
+            raise ValueError("cached source-base gate has a different fixture signature")
+        reused_from = int(cached_base["obstacle_plan_index"])
+    elif not base_gate_summary_path.is_file():
         completed = subprocess.run(
             [
                 str(repo / "scripts" / "run_pair_validation.sh"),
@@ -124,6 +146,10 @@ def _run_row(
     base_fields = {
         "source_base_gate": str(base_gate_summary_path),
         "source_base_gate_sha256": file_digest(base_gate_summary_path),
+        "source_base_cache_key": base_cache_key,
+        "source_base_fixture_signature": base_signature,
+        "source_base_gate_reused": reused_from is not None,
+        "source_base_gate_reused_from_obstacle_plan_index": reused_from,
         **base_endpoint,
     }
     if not base_endpoint["source_base_endpoint_eligible"]:
@@ -268,7 +294,7 @@ def _write_summary(
 ) -> None:
     payload = {
         "schema_version": 1,
-        "protocol_version": "0.15",
+        "protocol_version": "0.16",
         "selection_uses_interventions": False,
         "plan": str(args.plan),
         "plan_sha256": file_digest(args.plan),
@@ -285,6 +311,12 @@ def _write_summary(
         ),
         "total_geometric_exclusions": sum(job["geometric_exclusions"] for job in jobs),
         "total_clean_screened_pairs": sum(job["clean_screened_pairs"] for job in jobs),
+        "unique_source_base_endpoints": len(
+            {job["source_base_cache_key"] for job in jobs}
+        ),
+        "reused_source_base_endpoints": sum(
+            bool(job["source_base_gate_reused"]) for job in jobs
+        ),
         "jobs": jobs,
     }
     (args.output / "summary.json").write_text(
@@ -329,6 +361,60 @@ def _base_endpoint(summary: dict[str, Any], target: str) -> dict[str, Any]:
         "source_base_endpoint_eligible": bool(
             input_exact and state_exact and result["success"] and first_contact == target
         ),
+    }
+
+
+def _base_fixture_signature(
+    source_manifest: Path, source_entry: dict[str, Any]
+) -> dict[str, str]:
+    fixture = source_manifest.parent / source_entry["fixture"]
+    with np.load(fixture, allow_pickle=False) as data:
+        signature = {
+            field: array_digest(np.asarray(data[field]))
+            for field in (
+                "base_image",
+                "base_wrist_image",
+                "base_state",
+                "base_sim_state",
+            )
+        }
+        prompt = str(np.asarray(data["base_prompt"]).item())
+    signature["base_prompt"] = hashlib.sha256(prompt.encode()).hexdigest()
+    return signature
+
+
+def _base_cache_key(row: dict[str, Any], signature: dict[str, str]) -> str:
+    payload = {
+        "suite": row["suite"],
+        "canonical_scene_sha256": row["canonical_scene_sha256"],
+        "base_task": row["base_task"],
+        "base_target": row["base_target"],
+        "init_index": int(row["init_index"]),
+        "fixture_signature": signature,
+    }
+    return hashlib.sha256(
+        json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()
+    ).hexdigest()
+
+
+def _with_base_cache_fields(
+    result: dict[str, Any], row: dict[str, Any]
+) -> dict[str, Any]:
+    if result.get("source_base_cache_key") is not None:
+        return result
+    source_manifest = Path(result["source_manifest"])
+    source = json.loads(source_manifest.read_text())
+    entries = source["pairs"]
+    if len(entries) != 1 or entries[0]["pair_id"] != result["source_pair_id"]:
+        raise ValueError("existing obstacle row has a different source fixture")
+    signature = _base_fixture_signature(source_manifest, entries[0])
+    return {
+        **result,
+        "source_base_cache_key": _base_cache_key(row, signature),
+        "source_base_fixture_signature": signature,
+        "source_base_gate_reused": False,
+        "source_base_gate_reused_from_obstacle_plan_index": None,
+        "source_base_cache_fields_derived_from_prior_row": True,
     }
 
 

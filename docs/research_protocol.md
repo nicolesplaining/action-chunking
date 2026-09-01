@@ -1,6 +1,6 @@
 # Research protocol: causal editability and retargeting in action chunks
 
-Protocol version: 0.15 (obstacle source-base pre-gate)
+Protocol version: 0.16 (exact obstacle base-endpoint cache)
 
 ## 1. Research question
 
@@ -524,6 +524,15 @@ and skip all nine geometry/clean placements when it fails. This is logically
 necessary for the existing paired-clean criterion and changes only compute;
 the failed source row and reason remain in the denominator. No obstacle
 intervention outcome is read.
+
+Multiple target-pair rows can share an identical base task, initialization, and
+serialized base fixture. After observing repeated alphabet-soup base endpoints
+but before the next duplicated base family completes, cache the source-base
+gate only when image, wrist image, proprioception, simulator state, and prompt
+signatures are all exact. Every catalog row retains its own exclusion record
+and points to the reused gate artifact and digest. A signature mismatch forces
+a fresh rollout. This changes compute only, not the row order, denominator, or
+eligibility rule.
 
 Selection then uses clean closed-loop behavior only. Both paired rollouts must
 restore their fixture exactly, contact the unchanged instructed target first,

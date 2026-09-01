@@ -4,6 +4,8 @@ import json
 import runpy
 from pathlib import Path
 
+import numpy as np
+
 from action_chunking.pairs import file_digest
 
 _module = runpy.run_path(
@@ -15,6 +17,8 @@ _runner = runpy.run_path(
 )
 _validate_plans = _runner["_validate_plans"]
 _base_endpoint = _runner["_base_endpoint"]
+_base_cache_key = _runner["_base_cache_key"]
+_with_base_cache_fields = _runner["_with_base_cache_fields"]
 
 
 def test_obstacle_plan_round_robins_target_pair_families(tmp_path) -> None:
@@ -73,6 +77,36 @@ def test_source_base_endpoint_gate_requires_exact_target_first_success() -> None
     assert result["source_base_first_contact_object"] == "distractor"
     assert result["source_base_task_success"] is True
     assert result["source_base_endpoint_eligible"] is False
+
+
+def test_existing_obstacle_row_derives_exact_base_cache_fields(tmp_path) -> None:
+    fixture = tmp_path / "pair.npz"
+    np.savez_compressed(
+        fixture,
+        base_image=np.zeros((2, 2, 3), dtype=np.uint8),
+        base_wrist_image=np.ones((2, 2, 3), dtype=np.uint8),
+        base_state=np.asarray([1.0, 2.0]),
+        base_sim_state=np.asarray([3.0, 4.0]),
+        base_prompt=np.asarray("pick target"),
+    )
+    manifest = tmp_path / "manifest.json"
+    manifest.write_text(
+        json.dumps({"pairs": [{"pair_id": "pair", "fixture": fixture.name}]})
+    )
+    row = _row("screen", "family", 0)
+    result = {
+        "source_manifest": str(manifest),
+        "source_pair_id": "pair",
+    }
+
+    enriched = _with_base_cache_fields(result, row)
+
+    assert enriched["source_base_cache_fields_derived_from_prior_row"] is True
+    assert len(enriched["source_base_cache_key"]) == 64
+    assert enriched["source_base_gate_reused"] is False
+    changed = dict(enriched["source_base_fixture_signature"])
+    changed["base_state"] = "different"
+    assert _base_cache_key(row, changed) != enriched["source_base_cache_key"]
 
 
 def _row(screen_id: str, family: str, init_index: int) -> dict:

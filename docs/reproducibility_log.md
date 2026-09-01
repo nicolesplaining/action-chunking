@@ -1,5 +1,15 @@
 # Reproducibility log
 
+## 2026-09-01: exact obstacle base-endpoint cache frozen
+
+Protocol version 0.16 was frozen after seven public obstacle source rows were
+excluded and repeated rows were found to rerun the same alphabet-soup base
+episode. Future reuse requires exact signatures for the base image, wrist
+image, proprioception, simulator state, and prompt. Each catalog row retains a
+separate audit record with the source gate path and digest; signature mismatch
+forces a fresh rollout. Ordering, denominators, thresholds, and all intervention
+seals are unchanged.
+
 ## 2026-09-01: obstacle source-base pre-gate frozen
 
 Protocol version 0.15 was frozen after the first public-catalog obstacle row's
