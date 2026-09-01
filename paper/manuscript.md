@@ -134,6 +134,21 @@ predicted clean endpoint from a partial ordinary pi0.5 trajectory. It addresses
 a different online event: when an instruction changes after some flow
 evaluations are already sunk, can the current action state be reused rather
 than restarted?
+
+Adaptive generative inference provides closer computational precedents. AdaDiff
+learns uncertainty-guided layer exits within diffusion steps [@tang2023adadiff],
+AdaptiveDiffusion reuses noise predictions when bounded latent differences
+permit step skipping [@ye2024adaptivediffusion], and FastFlow uses finite-
+difference velocity extrapolation with bandit-selected skips
+[@bajpai2026fastflow]. Adaptive-WAM most directly connects early exit to
+planning, using a learned quality scorer over intermediate video-diffusion
+features [@ang2026adaptivewam]. Our intervention is narrower and complementary:
+it neither trains an exit head nor approximates a skipped velocity field. It
+tests whether an unmodified VLA's ordinary intermediate clean-action estimate
+can execute the receding-horizon prefix at matched closed-loop behavior, and
+uses causal localization to choose the candidate exit before the confirmatory
+rollouts.
+
 SafeDiffuser embeds constraints into iterative diffusion planning and separates
 safety satisfaction from planning quality and overhead
 [@xiao2025safediffuser]. We adopt that measurement separation for the planned
