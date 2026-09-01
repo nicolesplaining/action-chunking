@@ -58,6 +58,9 @@ def analyze_early_exit_pilot(
     entries = manifest.get("pairs", [])
     if len(entries) != 16:
         raise ValueError("early-exit pilot requires the frozen 16-state manifest")
+    scene_hashes = [str(entry["scene_state_sha256"]) for entry in entries]
+    if len(set(scene_hashes)) != len(scene_hashes):
+        raise ValueError("early-exit pilot scene clusters must have unique state hashes")
     clean_catalog = _catalog(clean_root, 16, None)
     full_catalog = _catalog(full_root, 16, 10)
     early_catalog = _catalog(early_root, 16, 7)
@@ -138,10 +141,14 @@ def analyze_early_exit_pilot(
 def _catalog(root: Path, expected: int, after_steps: int | None) -> dict[str, dict[str, Any]]:
     summary_path = root / "validation_summary.json"
     summary = json.loads(summary_path.read_text())
+    if int(summary.get("noise_seed", -1)) != 0:
+        raise ValueError(f"validation catalog has the wrong noise seed: {summary_path}")
     if int(summary.get("expected_pairs", -1)) != expected or int(
         summary.get("completed_pairs", -1)
     ) != expected:
         raise ValueError(f"validation catalog is incomplete: {summary_path}")
+    if not bool(summary.get("all_initial_states_exact")):
+        raise ValueError(f"validation catalog has inexact initial states: {summary_path}")
     intervention = summary.get("intervention")
     if after_steps is None:
         if intervention is not None:
@@ -203,7 +210,11 @@ def _pair_composite(entry: dict[str, Any], summary: dict[str, Any]) -> bool:
 
 def _first_contact(result: dict[str, Any]) -> str | None:
     contacts = result.get("first_contact_step_by_object", {})
-    return min(contacts, key=contacts.get) if contacts else None
+    if not contacts:
+        return None
+    first_step = min(contacts.values())
+    first_objects = [name for name, step in contacts.items() if step == first_step]
+    return first_objects[0] if len(first_objects) == 1 else None
 
 
 def _first_replan_cluster_latency(summary: dict[str, Any]) -> float:

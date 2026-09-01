@@ -87,8 +87,10 @@ def _write_catalog(
     (root / "validation_summary.json").write_text(
         json.dumps(
             {
+                "noise_seed": 0,
                 "expected_pairs": 16,
                 "completed_pairs": 16,
+                "all_initial_states_exact": True,
                 "intervention": intervention,
                 "intervene_replans": "all" if intervention is not None else None,
                 "jobs": jobs,

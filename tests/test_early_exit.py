@@ -7,6 +7,7 @@ from types import SimpleNamespace
 import pytest
 
 _job_record = runpy.run_path("scripts/run_manifest_pair_validations.py")["_job_record"]
+_first_contact = runpy.run_path("scripts/run_manifest_pair_validations.py")["_first_contact"]
 
 
 def test_early_exit_validation_requires_exact_compute_accounting(tmp_path) -> None:
@@ -59,6 +60,16 @@ def test_early_exit_validation_rejects_wrong_evaluation_count(tmp_path) -> None:
 
     with pytest.raises(ValueError, match="exact compute accounting"):
         _job_record(_entry(), summary, tmp_path, args)
+
+
+def test_simultaneous_first_contacts_do_not_receive_arbitrary_target_credit() -> None:
+    result = {
+        "first_contact_step_by_object": {
+            "wine_bottle_1": 7,
+            "akita_black_bowl_1": 7,
+        }
+    }
+    assert _first_contact(result) is None
 
 
 def _entry() -> dict:

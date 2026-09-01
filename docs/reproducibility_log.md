@@ -14,6 +14,12 @@ not evidence that the source plan was absent or undecided. Immediate
 correction, induced-failure avoidance, persistence through clean replanning,
 and eventual success remain separately reported outcomes.
 
+The same pre-`k=7` audit made the pilot analyzer fail closed on duplicated
+physical-state hashes, a nonzero noise seed, or inexact initial-state catalogs.
+Simultaneous first contacts now receive no arbitrary target credit. The frozen
+clean eligibility set contains no such ties, so this changes no denominator or
+observed control outcome.
+
 ## 2026-09-01: executed-action early-exit pilot frozen
 
 Protocol version 0.18 was frozen after the population action-position result and
