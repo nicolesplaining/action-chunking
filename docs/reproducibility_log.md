@@ -1,5 +1,14 @@
 # Reproducibility log
 
+## 2026-09-01: converted-control weights receive content identity
+
+Before the matched pi0 conversion completed, the frozen conversion-parity
+summary was extended to include the already-pinned finalized JAX checkpoint
+identity and SHA-256 digests of the converted PyTorch `config.json` and
+`model.safetensors`. Missing converted artifacts now fail before a parity
+summary can be written. The parity cases and preregistered numerical tolerances
+are unchanged.
+
 ## 2026-09-01: confirmation rollout count made explicit
 
 Before the first scored confirmation pair, reporting was clarified to state the

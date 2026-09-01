@@ -15,6 +15,7 @@ import numpy as np
 
 from action_chunking.conversion import conversion_parity_summary
 from action_chunking.pairs import file_digest
+from action_chunking.pi0_checkpoint import validate_pi0_final_checkpoint
 
 
 def parse_args() -> argparse.Namespace:
@@ -59,13 +60,9 @@ def run_worker(args: argparse.Namespace) -> None:
         )
         for side in ("base", "donor"):
             identifiers.append(f"{entry['pair_id']}:{side}")
-            actions.append(
-                np.asarray(policy.infer(pair.raw_observation(side), noise=noise)["actions"])
-            )
+            actions.append(np.asarray(policy.infer(pair.raw_observation(side), noise=noise)["actions"]))
     np.save(args.output / f"actions_{args.worker}.npy", np.stack(actions))
-    (args.output / f"identifiers_{args.worker}.json").write_text(
-        json.dumps(identifiers, indent=2) + "\n"
-    )
+    (args.output / f"identifiers_{args.worker}.json").write_text(json.dumps(identifiers, indent=2) + "\n")
 
 
 def run_parent(args: argparse.Namespace) -> int:
@@ -118,13 +115,21 @@ def run_parent(args: argparse.Namespace) -> int:
             "manifest_sha256": file_digest(args.manifest),
             "jax_checkpoint": str(args.jax_checkpoint),
             "pytorch_checkpoint": str(args.pytorch_checkpoint),
+            "jax_checkpoint_identity": validate_pi0_final_checkpoint(args.jax_checkpoint),
+            "pytorch_checkpoint_artifact_sha256": _checkpoint_hashes(args.pytorch_checkpoint),
         }
     )
-    (args.output / "summary.json").write_text(
-        json.dumps(result, indent=2, sort_keys=True) + "\n"
-    )
+    (args.output / "summary.json").write_text(json.dumps(result, indent=2, sort_keys=True) + "\n")
     print(json.dumps(result, indent=2, sort_keys=True))
     return 0 if result["passed"] else 1
+
+
+def _checkpoint_hashes(checkpoint: Path) -> dict[str, str]:
+    required = ("config.json", "model.safetensors")
+    missing = [name for name in required if not (checkpoint / name).is_file()]
+    if missing:
+        raise FileNotFoundError(f"converted checkpoint artifacts are missing: {missing}")
+    return {name: file_digest(checkpoint / name) for name in required}
 
 
 def main() -> int:
