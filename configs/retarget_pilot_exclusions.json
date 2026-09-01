@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "exclusions": [
+    {
+      "suite": "libero_goal",
+      "canonical_scene_sha256": "78d2c5c5f90daf44e1af3fdbf6c839cd1fad5b9dc4a1343b4fc10ca04ec287c5",
+      "base_task_id": 2,
+      "donor_task_id": 4,
+      "init_index_start": 0,
+      "init_index_stop": 32,
+      "reason": "mechanistic and heldout utility pilot states"
+    }
+  ]
+}

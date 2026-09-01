@@ -1,5 +1,28 @@
 # Reproducibility log
 
+## 2026-08-31: public-catalog expansion order frozen
+
+Before the corrected 16-state endpoint screen completed, strict task-pair
+catalogs were regenerated from the pinned public LIBERO registry. LIBERO-90
+contains 44 manipulated-object and three destination pair definitions; the
+catalog SHA-256 is
+`7b7da0b386367a1c0a5876d7df4ac05a8ce6086c59d54ebeaab00ff2d4a15ecc`.
+LIBERO-goal contains one manipulated-object and four destination definitions;
+its catalog SHA-256 is
+`bc02e792876dea72be6d4817f41e93d5ee8ed60771bc170b423f0adb509080cb`.
+
+Protocol version 0.6 freezes the utility-screen expansion artifact at
+`catalogs/retarget_screening_plan.json`, SHA-256
+`a6bd9fc6d72a31b111fbcb7ebbd81e43cb80068c1982f759047e9f42ff142762`.
+It orders 45 manipulated-object pair definitions by canonical-scene hash,
+suite, base task ID, donor task ID, and initialization index. After explicit
+exclusion of wine-bottle/bowl indices 0--31 used in prior pilots, it contains
+2,218 rows spanning 718 unique `(suite, scene, initialization)` clusters. The
+screen stops only after at least 59 unique eligible clusters have been frozen,
+or after catalog exhaustion. Directions and repeated target contrasts never
+increase the independent cluster count. Selection uses endpoint eligibility
+only; no intermediate continuation outcome existed when this plan was written.
+
 ## 2026-08-31: exact clean-replan input correction
 
 The first protocol-0.4 aligned candidate was screened using endpoint controls

@@ -1,6 +1,6 @@
 # Research protocol: causal editability and retargeting in action chunks
 
-Protocol version: 0.5 (exact clean-replan input amendment)
+Protocol version: 0.6 (public-catalog expansion order)
 
 ## 1. Research question
 
@@ -138,10 +138,23 @@ loss rate to fall below 0.05. This requirement is computed by the versioned
 design utility and cannot be met by treating directions, noise seeds, or action
 tokens as independent. The confirmatory screen therefore proceeds through
 additional exact-scene instruction pairs in the clean public-catalog order
-(canonical-scene hash, then task IDs) until at least 59 eligible scene clusters
-are frozen. All screened clusters remain in the denominator of the screening
-report. If the public catalog is exhausted first, U2 remains a pilot estimate
-and no five-point noninferiority claim is made.
+(canonical-scene hash, suite, base task ID, donor task ID, then initialization
+index) until at least 59 unique eligible scene-state clusters are frozen. A
+cluster is `(suite, canonical-scene hash, initialization index)` and is counted
+once even when multiple target contrasts or directions are screened within it.
+All screened rows and clusters remain in the denominator. If the public catalog
+is exhausted first, U2 remains a pilot estimate and no five-point
+noninferiority claim is made.
+
+The immutable expansion artifact combines the pinned `libero_goal` and
+`libero_90` strict-pair catalogs. It contains 45 manipulated-object pair
+definitions, 2,218 non-pilot screening rows, and 718 unique candidate clusters.
+The 32 wine-bottle/bowl initialization states already used for mechanistic or
+utility pilots are excluded explicitly. The plan, source catalog hashes,
+exclusions, ordering, cluster unit, and 59-cluster stop rule were serialized
+before the corrected held-out endpoint screen completed. Eligibility uses only
+the frozen old-condition and restart endpoints; no intermediate continuation
+outcome can affect where screening stops.
 
 For each accepted state, the separately measured first-chunk editability
 boundary predicts the last continued boundary that preserves new-target-first

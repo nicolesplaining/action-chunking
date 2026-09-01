@@ -1,0 +1,86 @@
+{
+  "canonical_scenes": 1,
+  "exact_instruction_destination_pairs": 4,
+  "exact_instruction_target_pairs": 1,
+  "exact_single_variable_pairs": 5,
+  "pairs": [
+    {
+      "base_bddl_sha256": "c6812d6c988be830412aa6fc4801af04d60f8c4565d2625763b6a0f2b843a87f",
+      "base_language": "put the bowl on the stove",
+      "base_target": "flat_stove_1_cook_region",
+      "base_task": "put_the_bowl_on_the_stove.bddl",
+      "base_task_id": 1,
+      "canonical_scene_sha256": "78d2c5c5f90daf44e1af3fdbf6c839cd1fad5b9dc4a1343b4fc10ca04ec287c5",
+      "donor_bddl_sha256": "2ffba859a154f50c3c99ffb3420743fa5aa65c70bf7d4cd26f5bc81d07be5713",
+      "donor_language": "put the bowl on top of the cabinet",
+      "donor_target": "wooden_cabinet_1_top_side",
+      "donor_task": "put_the_bowl_on_top_of_the_cabinet.bddl",
+      "donor_task_id": 4,
+      "semantic_role": "destination"
+    },
+    {
+      "base_bddl_sha256": "c6812d6c988be830412aa6fc4801af04d60f8c4565d2625763b6a0f2b843a87f",
+      "base_language": "put the bowl on the stove",
+      "base_target": "flat_stove_1_cook_region",
+      "base_task": "put_the_bowl_on_the_stove.bddl",
+      "base_task_id": 1,
+      "canonical_scene_sha256": "78d2c5c5f90daf44e1af3fdbf6c839cd1fad5b9dc4a1343b4fc10ca04ec287c5",
+      "donor_bddl_sha256": "358b7781437e412c67d6a7648c1c28796b6b1bf117a25e61316cb8dfeb940e5b",
+      "donor_language": "put the bowl on the plate",
+      "donor_target": "plate_1",
+      "donor_task": "put_the_bowl_on_the_plate.bddl",
+      "donor_task_id": 8,
+      "semantic_role": "destination"
+    },
+    {
+      "base_bddl_sha256": "2ef6f403a8451e216af44158c1a6c975cf8e5058ad02d78367ac0be443d096fe",
+      "base_language": "put the wine bottle on top of the cabinet",
+      "base_target": "wine_bottle_1",
+      "base_task": "put_the_wine_bottle_on_top_of_the_cabinet.bddl",
+      "base_task_id": 2,
+      "canonical_scene_sha256": "78d2c5c5f90daf44e1af3fdbf6c839cd1fad5b9dc4a1343b4fc10ca04ec287c5",
+      "donor_bddl_sha256": "2ffba859a154f50c3c99ffb3420743fa5aa65c70bf7d4cd26f5bc81d07be5713",
+      "donor_language": "put the bowl on top of the cabinet",
+      "donor_target": "akita_black_bowl_1",
+      "donor_task": "put_the_bowl_on_top_of_the_cabinet.bddl",
+      "donor_task_id": 4,
+      "semantic_role": "manipulated_object"
+    },
+    {
+      "base_bddl_sha256": "2ef6f403a8451e216af44158c1a6c975cf8e5058ad02d78367ac0be443d096fe",
+      "base_language": "put the wine bottle on top of the cabinet",
+      "base_target": "wooden_cabinet_1_top_side",
+      "base_task": "put_the_wine_bottle_on_top_of_the_cabinet.bddl",
+      "base_task_id": 2,
+      "canonical_scene_sha256": "78d2c5c5f90daf44e1af3fdbf6c839cd1fad5b9dc4a1343b4fc10ca04ec287c5",
+      "donor_bddl_sha256": "3d3ee18139056aa3780572cde17b1c50dc20ae0d299403f65e514e8471ba0e8e",
+      "donor_language": "put the wine bottle on the rack",
+      "donor_target": "wine_rack_1_top_region",
+      "donor_task": "put_the_wine_bottle_on_the_rack.bddl",
+      "donor_task_id": 9,
+      "semantic_role": "destination"
+    },
+    {
+      "base_bddl_sha256": "2ffba859a154f50c3c99ffb3420743fa5aa65c70bf7d4cd26f5bc81d07be5713",
+      "base_language": "put the bowl on top of the cabinet",
+      "base_target": "wooden_cabinet_1_top_side",
+      "base_task": "put_the_bowl_on_top_of_the_cabinet.bddl",
+      "base_task_id": 4,
+      "canonical_scene_sha256": "78d2c5c5f90daf44e1af3fdbf6c839cd1fad5b9dc4a1343b4fc10ca04ec287c5",
+      "donor_bddl_sha256": "358b7781437e412c67d6a7648c1c28796b6b1bf117a25e61316cb8dfeb940e5b",
+      "donor_language": "put the bowl on the plate",
+      "donor_target": "plate_1",
+      "donor_task": "put_the_bowl_on_the_plate.bddl",
+      "donor_task_id": 8,
+      "semantic_role": "destination"
+    }
+  ],
+  "scenes_with_multiple_tasks": 1,
+  "schema_version": 2,
+  "semantic_role_counts": {
+    "destination": 4,
+    "manipulated_object": 1
+  },
+  "suite": "libero_goal",
+  "tasks": 10
+}
