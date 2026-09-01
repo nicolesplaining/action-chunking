@@ -8,7 +8,14 @@ paper version, not this summary.
 
 - **OpenPI:** Physical Intelligence's public pi0/pi0.5 implementation. Pinned at
   commit `215abfb217dbac7d5f1273282331b9b1866c0479` in
-  `third_party/openpi`.
+  `third_party/openpi`. The matched-pi0 checkpoint conversion reuses the pinned
+  public converter's parameter mapping and adopts the narrowly scoped
+  float32-intermediate safeguard proposed in public
+  [OpenPI PR #978](https://github.com/Physical-Intelligence/openpi/pull/978).
+  The original bfloat16 conversion failure is retained because public reports
+  also document JAX/PyTorch output and performance discrepancies
+  ([issue #810](https://github.com/Physical-Intelligence/openpi/issues/810),
+  [issue #840](https://github.com/Physical-Intelligence/openpi/issues/840)).
 - **pi0:** flow-matching VLA and action-expert architecture
   ([paper](https://arxiv.org/abs/2410.24164)).
 - **pi0.5:** open-world VLA and heterogeneous co-training

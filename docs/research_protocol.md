@@ -500,7 +500,13 @@ architectural timing comparison, and neither gate is relaxed or rescued by
 selecting a later checkpoint.
 
 Only a checkpoint passing both competence levels is converted to the hookable
-PyTorch implementation with OpenPI's pinned public converter. Before any pi0
+PyTorch implementation with OpenPI's pinned public converter. The public
+parameter mapping is called through the float32-intermediate safeguard proposed
+in OpenPI PR #978: the intermediate model and saved checkpoint remain float32,
+then OpenPI's unchanged policy loader recreates its intended mixed-precision
+inference layout. This prevents an irreversible bfloat16 checkpoint downcast;
+it does not change model weights, inputs, sampling, or the parity criterion.
+Before any pi0
 activation intervention, conversion parity is evaluated on both directions of
 all 16 held-out target fixtures under identical seed-zero `50 x 32` action
 noise. Every physical-action case must have maximum absolute JAX/PyTorch error

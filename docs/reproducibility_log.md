@@ -442,6 +442,26 @@ conversion check had maximum error 0.00711, but its permissive 0.15 threshold is
 not reused. Any failed pi0 case blocks activation-level architecture claims;
 the JAX behavioral competence result remains separately reportable.
 
+## 2026-09-01: lossless pi0 conversion repair
+
+The first full held-out conversion audit used OpenPI's default bfloat16 output
+and failed unchanged parity thresholds: 24/32 cases passed, maximum absolute
+error was 2.01304, and minimum cosine similarity was 0.805807. Five large-error
+donor cases differed primarily at abrupt gripper sign transitions, while two
+additional cases narrowly exceeded the 0.02 physical-action threshold. The
+failed summary and converted-weight hashes are retained; no intervention was
+launched.
+
+This exposed an implementation issue rather than authorizing a threshold
+change. Public OpenPI PR #978 identifies silent precision loss when a
+non-float32 PI0 config constructs the intermediate converted model. The repair
+calls the pinned public converter's parameter mapping with a float32
+intermediate config and float32 saved checkpoint, after which OpenPI's unchanged
+loader recreates mixed-precision inference. The exact same 32 inputs, seed-zero
+noise, 0.02 maximum-error threshold, and 0.999 cosine threshold must be rerun in
+a new output directory. The original failure is never overwritten; if the
+lossless rerun fails, pi0 remains conversion-limited.
+
 ## 2026-09-01: population action-token grid frozen
 
 Before any population target-token intervention was generated, the missing

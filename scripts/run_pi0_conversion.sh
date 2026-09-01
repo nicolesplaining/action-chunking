@@ -36,11 +36,12 @@ if [[ -e "$pytorch_output" || -e "$parity_output/summary.json" ]]; then
 fi
 
 env CUDA_VISIBLE_DEVICES="$gpu" XLA_PYTHON_CLIENT_PREALLOCATE=false \
-  "$openpi/.venv/bin/python" "$openpi/examples/convert_jax_model_to_pytorch.py" \
+  PYTHONPATH="$repo_root/src:$openpi" \
+  "$openpi/.venv/bin/python" "$repo_root/scripts/convert_pi0_checkpoint_lossless.py" \
   --checkpoint-dir "$jax_checkpoint" \
   --config-name pi0_libero \
   --output-path "$pytorch_output" \
-  --precision bfloat16
+  --upstream-converter "$openpi/examples/convert_jax_model_to_pytorch.py"
 
 if [[ ! -f "$pytorch_output/model.safetensors" || ! -f "$pytorch_output/config.json" ]]; then
   echo "official conversion did not produce the required PyTorch artifacts" >&2

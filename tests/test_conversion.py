@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import runpy
+from dataclasses import dataclass
 
 import numpy as np
 import pytest
@@ -9,6 +10,28 @@ import pytest
 from action_chunking.conversion import conversion_parity_summary
 
 _manifest_script = runpy.run_path("scripts/validate_conversion_manifest.py")
+_lossless_script = runpy.run_path("scripts/convert_pi0_checkpoint_lossless.py")
+
+
+@dataclass(frozen=True)
+class _FakeModelConfig:
+    dtype: str
+    action_dim: int = 32
+
+
+def test_lossless_conversion_forces_float32_without_mutating_source() -> None:
+    source = _FakeModelConfig(dtype="bfloat16")
+
+    converted = _lossless_script["float32_conversion_config"](source)
+
+    assert source.dtype == "bfloat16"
+    assert converted.dtype == "float32"
+    assert converted.action_dim == source.action_dim
+
+
+def test_lossless_conversion_rejects_non_dataclass_config() -> None:
+    with pytest.raises(TypeError, match="dataclass"):
+        _lossless_script["float32_conversion_config"]({"dtype": "bfloat16"})
 
 
 def test_conversion_parity_requires_every_case() -> None:
