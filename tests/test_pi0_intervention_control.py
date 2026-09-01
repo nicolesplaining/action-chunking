@@ -9,6 +9,7 @@ import pytest
 _module = runpy.run_path(str(Path(__file__).parents[1] / "scripts" / "run_selected_pair_interventions.py"))
 _intersect_pairs = _module["_intersect_pairs"]
 _require_minimum_selection = _module["_require_minimum_selection"]
+_selection_gate = _module["_selection_gate"]
 _validation_summary_hashes = _module["_validation_summary_hashes"]
 
 
@@ -26,6 +27,12 @@ def test_matched_grid_requires_twelve_common_pairs() -> None:
         _require_minimum_selection([str(index) for index in range(11)], 12)
 
     _require_minimum_selection([str(index) for index in range(12)], 12)
+    failed = _selection_gate([str(index) for index in range(11)], 12)
+    assert failed == {
+        "minimum_selected_pairs": 12,
+        "minimum_selection_passed": False,
+        "failure_interpretation": "overlap_limited_control",
+    }
 
 
 def test_clean_validation_hashes_every_pair_summary(tmp_path) -> None:

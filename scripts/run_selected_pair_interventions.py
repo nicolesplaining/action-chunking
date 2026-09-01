@@ -87,7 +87,6 @@ def main() -> int:
         reference_selected = _select_pairs(args.reference_clean_validation, args.eligibility)
         reference_validation_hashes = _validation_summary_hashes(args.reference_clean_validation)
         selected = _intersect_pairs(model_selected, reference_selected)
-    _require_minimum_selection(selected, args.minimum_selected_pairs)
     mode = MODES[args.mode]
     manifest = json.loads(args.manifest.read_text())
     manifest_ids = {entry["pair_id"] for entry in manifest["pairs"]}
@@ -114,13 +113,14 @@ def main() -> int:
         "mode": args.mode,
         "mode_parameters": mode,
         "pairs": selected,
-        "minimum_selected_pairs": args.minimum_selected_pairs,
+        **_selection_gate(selected, args.minimum_selected_pairs),
         "noise_seeds": seeds,
     }
     selection_path = args.output / "selection.json"
     if selection_path.exists() and json.loads(selection_path.read_text()) != selection:
         raise ValueError("existing selection differs from the requested clean-only intervention grid")
     selection_path.write_text(json.dumps(selection, indent=2, sort_keys=True) + "\n")
+    _require_minimum_selection(selected, args.minimum_selected_pairs)
 
     script = Path(__file__).with_name("run_pair_interventions.py")
     jobs = []
@@ -253,6 +253,17 @@ def _git_revision(repo: Path) -> str:
     if len(revision) != 40:
         raise ValueError("repository revision is not a full Git commit")
     return revision
+
+
+def _selection_gate(selected: list[str], minimum: int) -> dict[str, Any]:
+    if minimum <= 0:
+        raise ValueError("minimum selected pairs must be positive")
+    passed = len(selected) >= minimum
+    return {
+        "minimum_selected_pairs": minimum,
+        "minimum_selection_passed": passed,
+        "failure_interpretation": None if passed else "overlap_limited_control",
+    }
 
 
 def _git_tracked_clean(repo: Path) -> bool:

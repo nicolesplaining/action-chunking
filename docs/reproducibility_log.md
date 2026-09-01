@@ -8,7 +8,9 @@ and before any held-out pi0 pair outcome. The earlier standalone gate required
 common states. Both pi0 intervention grids now require at least 12 states in the
 actual clean-eligible intersection. A smaller overlap is reported but cannot
 support architecture-timing claims. No model outcome was available when this
-logical correction was made.
+logical correction was made. The selection artifact is written before a failed
+gate stops execution, and distinguishes `overlap_limited` from a
+competence-limited control; no activation intervention can run after failure.
 
 ## 2026-09-01: matched-control grid provenance sealed
 

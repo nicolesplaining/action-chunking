@@ -491,11 +491,13 @@ incompetent control. Because pi0.5 has 15/16 clean-eligible states, the
 standalone 12/16 pi0 threshold mathematically guarantees only 11 common states.
 Architecture-timing claims therefore require a separate minimum of 12 states
 in the exact clean-eligible intersection before either pi0 intervention grid
-can run. Primary pi0-versus-pi0.5 estimates use only that intersection and
-retain every exclusion. If either competence level or the common-state gate
-fails, pi0 is reported as a competence-limited negative control and no
-architectural timing comparison is claimed; the gate is not relaxed or rescued
-by selecting a later checkpoint.
+can run. The clean-only selection artifact is written before this stop, so a
+failed overlap and every contributing pair ID remain reportable. Primary
+pi0-versus-pi0.5 estimates use only the passing intersection and retain every
+exclusion. A competence-level failure is labeled competence-limited; a
+common-state failure is labeled overlap-limited. Neither permits an
+architectural timing comparison, and neither gate is relaxed or rescued by
+selecting a later checkpoint.
 
 Only a checkpoint passing both competence levels is converted to the hookable
 PyTorch implementation with OpenPI's pinned public converter. Before any pi0
