@@ -1,6 +1,6 @@
 # Research protocol: causal editability and retargeting in action chunks
 
-Protocol version: 0.19 (construct-validity decision rule)
+Protocol version: 0.20 (paired early-exit confirmation execution)
 
 ## 1. Research question
 
@@ -388,6 +388,23 @@ an altered task denominator, adaptive boundary choice, or approximate compute
 accounting is not accepted. This test complements public distillation and warm-
 start approaches by evaluating zero-training reuse of the released sampler; it
 does not claim the training-time gains of those methods.
+
+The paired confirmation execution was frozen after the pilot decision but
+before any suite-confirmation rollout. Each task/trial key has one serialized
+reset and one deterministic Gaussian-noise stream indexed by replan; both
+conditions must reproduce their hashes exactly. Within each task, condition
+order is balanced 25/25 by the rank of a frozen SHA-256 digest of the
+task/trial key, rather than chosen from behavior. A fixed unscored warm-up precedes timing, no other client may use
+the policy GPU, and each episode contributes one paired success/loss outcome
+regardless of its number of replans. The registered 0.02 exact bound permits at
+most four paired losses among 500 trials; five or more cannot pass. A resume may
+skip only a pair whose two condition artifacts and hashes are complete.
+
+The observed pilot passes the descriptive rule: target-first contact is
+preserved in 15/15 eligible clusters, eventual success and the registered
+composite in 14/15, all replan compute counts are exact, and median paired
+first-replan latency savings are 30.0%. The result opens the confirmation; it
+does not alter its denominator, margin, pairing, or stopping rule.
 
 ## 3. Mechanistic hypotheses and utility amendment
 

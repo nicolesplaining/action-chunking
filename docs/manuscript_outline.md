@@ -45,6 +45,7 @@ This distinction builds on pi0/pi0.5 flow-matching action generation
 | Conditional pilot | Wine-bottle target pose, one state, seed 0 | Closure formation and editability boundary at 7; only token 9 affects categorical closure in 120 token sites | Closure timing can be localized to its matching future token for one sampled action mode |
 | Negative robustness result | Same target-pose state, four noise seeds | Only seed 0 has a closure contrast; all-seed eligible state count is zero | The closure-token result is noise conditional and is not a state-level population effect |
 | Negative recovery pilot | Alphabet soup versus cream cheese, first-replan donor chunk | Exact inputs, simulator restoration, swapped chunks, and clean controls; 0/2 directions have an intervention-induced donor-first contact | Eventual success is not interpretable as recovery unless the patched chunk first causes the defined failure event |
+| Positive inference pilot | Same 16-state wine/bowl manifest; 15 clean-eligible scene clusters; seven versus ten evaluations at every replan | Target-first contact preserved in 15/15 clusters; eventual success and composite preserved in 14/15; exact 30% evaluation savings; median latency savings 30.0% (95% bootstrap interval 27.4--32.9%) | The executed five-control prefix can often be emitted three evaluations early, but this exploratory same-population pilot is not confirmatory noninferiority or evidence of indecision |
 
 ## Primary results narrative
 
@@ -148,6 +149,18 @@ replanning rescued a benign first chunk, so this initial-state pilot supports
 an inference-efficiency demonstration but not the claim that the measured
 boundary predicts the last successful recovery point. Require a pre-contact
 failure-induction gate before the held-out test.
+
+### R8. Late deferred-token mediation motivates an inference shortcut
+
+Report the post-grid early-exit pilot as a distinct practical result, not as the
+recovery test. Seven evaluations preserve correct target-first contact in all
+15 eligible scene clusters and the target-first-plus-eventual-success composite
+in 14, with exact 30% evaluation savings. Separate the one eventual-success
+loss from instruction following: both conditions contact the instructed bowl
+first at step 35, but only the ten-evaluation control finishes. Report the wide
+14/15 exact interval, all 15 paired latency differences, and the fixed-order
+limitation. The pilot reuses the mechanistic population and therefore opens but
+does not replace the frozen 500-episode paired confirmation.
 
 ## Matched pi0 control
 

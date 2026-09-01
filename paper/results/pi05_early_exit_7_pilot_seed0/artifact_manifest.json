@@ -1,0 +1,16 @@
+{
+  "analysis_code_commit": "48a749aaa811ba1be7351ed113b28258c5e8dfa9",
+  "analysis_unit": "physical_scene_state",
+  "artifacts": {
+    "early_exit_validation_summary.json": "89fc8ad27e1a27a49447d349876215d5852d9a55b50372701ba684f34126977d",
+    "failure_pair_013_early_summary.json": "ba2bf9bb3007a3c8a423aaf5bbc13ca644e228b0a2416680867a26d3d596b1bb",
+    "failure_pair_013_full_summary.json": "1a2003481253a145ca41a597f887411d03a5b5d69d05c766a3bfa7cb18ba8e84",
+    "full_validation_summary.json": "a135feb25f4ca0c634d23e9fda6e65fe232619c85d54fb8b865312aee6c86e7d",
+    "summary.json": "81dd36886a218104ca89e75bbe97c7721a3cb0c8ffc0d0a19c92385fd3cb273a"
+  },
+  "eligible_scene_clusters": 15,
+  "frozen_scene_states": 16,
+  "manifest_sha256": "c6971992b57b78d8410d9a18b66b28fdae496f36afc3cd4d31a0e33cd4f8fb3c",
+  "openpi_commit": "215abfb217dbac7d5f1273282331b9b1866c0479",
+  "schema_version": 1
+}
