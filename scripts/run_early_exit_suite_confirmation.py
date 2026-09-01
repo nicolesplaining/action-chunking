@@ -13,6 +13,7 @@ import collections
 import hashlib
 import json
 import math
+import re
 from pathlib import Path
 from typing import Any
 
@@ -38,6 +39,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--seed", type=int, default=7)
     parser.add_argument("--noise-seed", type=int, default=0)
+    parser.add_argument("--code-commit", required=True)
     return parser.parse_args()
 
 
@@ -45,6 +47,8 @@ def main() -> int:
     args = parse_args()
     if args.port <= 0 or args.seed < 0 or args.noise_seed < 0:
         raise ValueError("port must be positive and seeds must be nonnegative")
+    if re.fullmatch(r"[0-9a-f]{40}", args.code_commit) is None:
+        raise ValueError("code commit must be a full lowercase Git SHA-1")
 
     from libero.libero import benchmark, get_libero_path
     from libero.libero.envs import OffScreenRenderEnv
@@ -56,7 +60,8 @@ def main() -> int:
         raise ValueError("frozen LIBERO Goal confirmation requires exactly ten tasks")
     client = websocket_client_policy.WebsocketClientPolicy(args.host, args.port)
     jobs: list[dict[str, Any]] = []
-    warmup_complete = (args.output / "warmup.json").is_file()
+    warmup_complete = False
+    warmup_sessions = _existing_warmup_sessions(args.output, args.code_commit)
 
     for task_id in range(TASKS):
         task = suite.get_task(task_id)
@@ -79,9 +84,11 @@ def main() -> int:
                     image_tools,
                 )
                 warmup = _warmup(client, prepared["model_input"], args.noise_seed)
-                (args.output / "warmup.json").write_text(
-                    json.dumps(warmup, indent=2, sort_keys=True) + "\n"
-                )
+                warmup["session_index"] = len(warmup_sessions)
+                warmup["code_commit"] = args.code_commit
+                with (args.output / "warmup_sessions.jsonl").open("a") as stream:
+                    stream.write(json.dumps(warmup, sort_keys=True) + "\n")
+                warmup_sessions.append(warmup)
                 warmup_complete = True
 
             for trial_index in range(TRIALS_PER_TASK):
@@ -90,7 +97,7 @@ def main() -> int:
                 pair_summary_path = pair_root / "pair_summary.json"
                 if pair_summary_path.is_file():
                     pair_summary = json.loads(pair_summary_path.read_text())
-                    _validate_existing_pair(pair_summary, task_id, trial_index)
+                    _validate_existing_pair(pair_summary, task_id, trial_index, args.code_commit)
                 else:
                     pair_root.mkdir(parents=True, exist_ok=True)
                     order = _condition_order(task_id, trial_index)
@@ -105,6 +112,7 @@ def main() -> int:
                             condition=condition,
                             env_seed=args.seed,
                             noise_seed=args.noise_seed,
+                            code_commit=args.code_commit,
                             client=client,
                             image_tools=image_tools,
                         )
@@ -118,12 +126,13 @@ def main() -> int:
                         str(task.language),
                         order,
                         results,
+                        args.code_commit,
                     )
                     (pair_root / "pair_summary.json").write_text(
                         json.dumps(pair_summary, indent=2, sort_keys=True) + "\n"
                     )
                 jobs.append(_job_record(pair_summary, pair_summary_path))
-                _write_progress(args, jobs)
+                _write_progress(args, jobs, len(warmup_sessions))
         finally:
             env.close()
     return 0
@@ -139,6 +148,7 @@ def _run_condition(
     condition: str,
     env_seed: int,
     noise_seed: int,
+    code_commit: str,
     client: Any,
     image_tools: Any,
 ) -> dict[str, Any]:
@@ -201,6 +211,7 @@ def _run_condition(
         "trial_index": trial_index,
         "task_description": task_description,
         "condition": condition,
+        "code_commit": code_commit,
         "environment_seed": env_seed,
         "noise_seed": noise_seed,
         "after_steps": after_steps,
@@ -232,11 +243,7 @@ def _prepare_initial(
         if done:
             raise ValueError("confirmation task succeeded during the fixed wait prefix")
     model_input = _model_input(obs, task_description, image_tools)
-    hashes = {
-        key: _array_digest(np.asarray(value))
-        for key, value in model_input.items()
-        if key != "prompt"
-    }
+    hashes = {key: _array_digest(np.asarray(value)) for key, value in model_input.items() if key != "prompt"}
     hashes["prompt"] = hashlib.sha256(task_description.encode()).hexdigest()
     return {
         "observation": obs,
@@ -272,6 +279,7 @@ def _pair_summary(
     task_description: str,
     order: list[str],
     results: dict[str, dict[str, Any]],
+    code_commit: str,
 ) -> dict[str, Any]:
     if set(results) != set(CONDITIONS):
         raise ValueError("confirmation pair lacks one condition")
@@ -293,6 +301,7 @@ def _pair_summary(
         "trial_index": trial_index,
         "pair_key": _pair_key(task_id, trial_index),
         "task_description": task_description,
+        "code_commit": code_commit,
         "condition_order": order,
         "order_digest_sha256": _order_digest(task_id, trial_index),
         "initial_inputs_exact": True,
@@ -328,7 +337,7 @@ def _warmup(client: Any, model_input: dict[str, Any], noise_seed: int) -> dict[s
     return {"schema_version": 1, "scored": False, "records": records}
 
 
-def _write_progress(args: argparse.Namespace, jobs: list[dict[str, Any]]) -> None:
+def _write_progress(args: argparse.Namespace, jobs: list[dict[str, Any]], warmup_sessions: int) -> None:
     payload = {
         "schema_version": 1,
         "suite": SUITE,
@@ -337,14 +346,14 @@ def _write_progress(args: argparse.Namespace, jobs: list[dict[str, Any]]) -> Non
         "seed": args.seed,
         "noise_seed": args.noise_seed,
         "conditions": CONDITIONS,
+        "code_commit": args.code_commit,
+        "warmup_sessions": warmup_sessions,
         "paired_losses_so_far": sum(job["paired_loss"] for job in jobs),
         "early_exit_successes_so_far": sum(job["early_exit_success"] for job in jobs),
         "full_control_successes_so_far": sum(job["full_control_success"] for job in jobs),
         "jobs": jobs,
     }
-    (args.output / "progress.json").write_text(
-        json.dumps(payload, indent=2, sort_keys=True) + "\n"
-    )
+    (args.output / "progress.json").write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n")
     print(
         f"confirmed {len(jobs)}/{TOTAL_PAIRS}: "
         f"losses={payload['paired_losses_so_far']}, "
@@ -367,10 +376,11 @@ def _job_record(pair: dict[str, Any], path: Path) -> dict[str, Any]:
     }
 
 
-def _validate_existing_pair(pair: dict[str, Any], task_id: int, trial_index: int) -> None:
+def _validate_existing_pair(pair: dict[str, Any], task_id: int, trial_index: int, code_commit: str) -> None:
     if (
         pair.get("schema_version") != 1
         or pair.get("suite") != SUITE
+        or pair.get("code_commit") != code_commit
         or int(pair.get("task_id", -1)) != task_id
         or int(pair.get("trial_index", -1)) != trial_index
         or pair.get("condition_order") != _condition_order(task_id, trial_index)
@@ -384,6 +394,7 @@ def _validate_existing_pair(pair: dict[str, Any], task_id: int, trial_index: int
         result = pair.get(condition)
         if (
             not isinstance(result, dict)
+            or result.get("code_commit") != pair.get("code_commit")
             or int(result.get("environment_seed", -1)) != 7
             or int(result.get("noise_seed", -1)) != 0
             or int(result.get("after_steps", -1)) != after_steps
@@ -396,16 +407,35 @@ def _validate_existing_pair(pair: dict[str, Any], task_id: int, trial_index: int
             _validate_diagnostic(diagnostic, after_steps)
         noise_hashes = result.get("noise_sha256_by_replan", [])
         action_hashes = result.get("action_sha256_by_replan", [])
-        if len(noise_hashes) != int(result["replans"]) or len(action_hashes) != int(
-            result["replans"]
-        ):
+        if len(noise_hashes) != int(result["replans"]) or len(action_hashes) != int(result["replans"]):
             raise ValueError("existing confirmation pair has incomplete action/noise hashes")
         for replan_index, observed in enumerate(noise_hashes):
-            expected = _array_digest(
-                _noise_for_replan(0, task_id, trial_index, replan_index)
-            )
+            expected = _array_digest(_noise_for_replan(0, task_id, trial_index, replan_index))
             if observed != expected:
                 raise ValueError("existing confirmation pair has the wrong action noise")
+
+
+def _existing_warmup_sessions(output: Path, code_commit: str) -> list[dict[str, Any]]:
+    path = output / "warmup_sessions.jsonl"
+    if not path.is_file():
+        return []
+    sessions = [json.loads(line) for line in path.read_text().splitlines() if line.strip()]
+    for index, session in enumerate(sessions):
+        if (
+            int(session.get("session_index", -1)) != index
+            or session.get("scored") is not False
+            or session.get("code_commit") != code_commit
+        ):
+            raise ValueError("existing warm-up session log is invalid")
+        records = session.get("records", [])
+        if [record.get("condition") for record in records] != [
+            "full_control_10",
+            "early_exit_7",
+        ]:
+            raise ValueError("existing warm-up session conditions are invalid")
+        for record in records:
+            _validate_diagnostic(record.get("diagnostic"), CONDITIONS[record["condition"]])
+    return sessions
 
 
 def _validate_diagnostic(diagnostic: Any, after_steps: int) -> None:
@@ -417,8 +447,7 @@ def _validate_diagnostic(diagnostic: Any, after_steps: int) -> None:
         or int(diagnostic.get("total_flow_steps", -1)) != 10
         or int(diagnostic.get("velocity_field_evaluations", -1)) != after_steps
         or int(diagnostic.get("velocity_field_evaluation_savings", -1)) != expected_savings
-        or float(diagnostic.get("velocity_field_evaluation_savings_fraction", -1.0))
-        != expected_savings / 10
+        or float(diagnostic.get("velocity_field_evaluation_savings_fraction", -1.0)) != expected_savings / 10
         or float(diagnostic.get("integration_ms", 0.0)) <= 0.0
     ):
         raise ValueError("early-exit diagnostic fails exact compute or latency accounting")
@@ -442,9 +471,7 @@ def _pair_key(task_id: int, trial_index: int) -> str:
     return f"task_{task_id:02d}_trial_{trial_index:02d}"
 
 
-def _noise_for_replan(
-    noise_seed: int, task_id: int, trial_index: int, replan_index: int
-) -> np.ndarray:
+def _noise_for_replan(noise_seed: int, task_id: int, trial_index: int, replan_index: int) -> np.ndarray:
     material = f"{noise_seed}:{SUITE}:{task_id}:{trial_index}:{replan_index}".encode()
     seed = int.from_bytes(hashlib.sha256(material).digest()[:8], "little")
     rng = np.random.default_rng(seed)

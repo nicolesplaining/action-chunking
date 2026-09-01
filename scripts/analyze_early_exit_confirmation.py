@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import re
 from pathlib import Path
 from typing import Any
 
@@ -32,18 +33,25 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> int:
     args = parse_args()
+    warmups = _load_warmups(args.root)
     pairs = _load_pairs(args.root)
     rows, summary = analyze_confirmation(pairs)
+    progress = json.loads((args.root / "progress.json").read_text())
+    if int(progress.get("warmup_sessions", -1)) != len(warmups):
+        raise ValueError("confirmation progress has the wrong warm-up session count")
+    warmup_commits = {str(session["code_commit"]) for session in warmups}
+    if warmup_commits != {summary["code_commit"]}:
+        raise ValueError("warm-up sessions and scored pairs use different code commits")
     args.output.mkdir(parents=True, exist_ok=True)
     payload = {
         **summary,
         "confirmation_root": str(args.root),
         "progress_sha256": file_digest(args.root / "progress.json"),
+        "warmup_sessions": len(warmups),
+        "warmup_sessions_sha256": file_digest(args.root / "warmup_sessions.jsonl"),
         "rows": rows,
     }
-    (args.output / "summary.json").write_text(
-        json.dumps(payload, indent=2, sort_keys=True) + "\n"
-    )
+    (args.output / "summary.json").write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n")
     print(json.dumps(payload, indent=2, sort_keys=True))
     return 0 if summary["confirmation_positive"] else 1
 
@@ -57,6 +65,7 @@ def _load_pairs(root: Path) -> list[dict[str, Any]]:
         or int(progress.get("expected_pairs", -1)) != EXPECTED
         or int(progress.get("completed_pairs", -1)) != EXPECTED
         or progress.get("conditions") != CONDITIONS
+        or re.fullmatch(r"[0-9a-f]{40}", str(progress.get("code_commit"))) is None
         or len(progress.get("jobs", [])) != EXPECTED
     ):
         raise ValueError("confirmation progress is incomplete or incompatible")
@@ -65,6 +74,8 @@ def _load_pairs(root: Path) -> list[dict[str, Any]]:
         for trial_index in range(TRIALS):
             path = root / "pairs" / _pair_key(task_id, trial_index) / "pair_summary.json"
             pairs.append(json.loads(path.read_text()))
+    if {str(pair.get("code_commit")) for pair in pairs} != {str(progress["code_commit"])}:
+        raise ValueError("confirmation progress and pairs use different code commits")
     return pairs
 
 
@@ -73,17 +84,13 @@ def analyze_confirmation(
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     if len(pairs) != EXPECTED:
         raise ValueError("confirmation requires exactly 500 episode pairs")
-    expected_keys = {
-        (task_id, trial_index)
-        for task_id in range(TASKS)
-        for trial_index in range(TRIALS)
-    }
-    observed_keys = {
-        (int(pair.get("task_id", -1)), int(pair.get("trial_index", -1)))
-        for pair in pairs
-    }
+    expected_keys = {(task_id, trial_index) for task_id in range(TASKS) for trial_index in range(TRIALS)}
+    observed_keys = {(int(pair.get("task_id", -1)), int(pair.get("trial_index", -1))) for pair in pairs}
     if observed_keys != expected_keys:
         raise ValueError("confirmation task/trial grid is incomplete or duplicated")
+    code_commits = {str(pair.get("code_commit")) for pair in pairs}
+    if len(code_commits) != 1 or re.fullmatch(r"[0-9a-f]{40}", next(iter(code_commits))) is None:
+        raise ValueError("confirmation pairs do not share one valid code commit")
 
     rows = []
     for pair in sorted(pairs, key=lambda value: (value["task_id"], value["trial_index"])):
@@ -108,9 +115,7 @@ def analyze_confirmation(
                 "full_control_replans": int(full["replans"]),
                 "early_exit_first_replan_integration_ms": early_latency,
                 "full_control_first_replan_integration_ms": full_latency,
-                "first_replan_latency_savings_fraction": (
-                    (full_latency - early_latency) / full_latency
-                ),
+                "first_replan_latency_savings_fraction": ((full_latency - early_latency) / full_latency),
             }
         )
 
@@ -128,26 +133,19 @@ def analyze_confirmation(
     median_latency = float(np.median(latency))
     latency_interval = _bootstrap_median_interval(latency)
     order_counts = {
-        "early_exit_first": sum(
-            row["condition_order"][0] == "early_exit_7" for row in rows
-        ),
-        "full_control_first": sum(
-            row["condition_order"][0] == "full_control_10" for row in rows
-        ),
+        "early_exit_first": sum(row["condition_order"][0] == "early_exit_7" for row in rows),
+        "full_control_first": sum(row["condition_order"][0] == "full_control_10" for row in rows),
     }
     if order_counts != {"early_exit_first": 250, "full_control_first": 250}:
         raise ValueError("confirmation condition order is not exactly balanced")
     early_interval = wilson_interval(early_successes, EXPECTED)
     full_interval = wilson_interval(full_successes, EXPECTED)
-    positive = bool(
-        loss_upper < 0.02
-        and latency_interval[0] > 0.0
-        and losses <= 4
-    )
+    positive = bool(loss_upper < 0.02 and latency_interval[0] > 0.0 and losses <= 4)
     return rows, {
         "schema_version": 1,
         "analysis_unit": "paired_libero_episode",
         "suite": SUITE,
+        "code_commit": next(iter(code_commits)),
         "episode_pairs": EXPECTED,
         "condition_order_counts": order_counts,
         "early_exit_successes": early_successes,
@@ -174,6 +172,7 @@ def _validate_pair(pair: dict[str, Any], task_id: int, trial_index: int) -> None
     if (
         pair.get("schema_version") != 1
         or pair.get("suite") != SUITE
+        or re.fullmatch(r"[0-9a-f]{40}", str(pair.get("code_commit"))) is None
         or pair.get("pair_key") != _pair_key(task_id, trial_index)
         or pair.get("condition_order") != _condition_order(task_id, trial_index)
         or pair.get("order_digest_sha256") != _order_digest(task_id, trial_index)
@@ -197,9 +196,7 @@ def _validate_pair(pair: dict[str, Any], task_id: int, trial_index: int) -> None
         raise ValueError("confirmation pair initial input hashes are incomplete")
     if early.get("initial_sim_state_sha256") != full.get("initial_sim_state_sha256"):
         raise ValueError("confirmation pair simulator states differ")
-    if early.get("initial_state_fixture_sha256") != full.get(
-        "initial_state_fixture_sha256"
-    ):
+    if early.get("initial_state_fixture_sha256") != full.get("initial_state_fixture_sha256"):
         raise ValueError("confirmation pair initial-state fixtures differ")
     common = min(int(early["replans"]), int(full["replans"]))
     if common <= 0 or int(pair.get("shared_noise_common_replans", -1)) != common:
@@ -210,6 +207,7 @@ def _validate_pair(pair: dict[str, Any], task_id: int, trial_index: int) -> None
         after_steps = CONDITIONS[condition]
         if (
             result.get("condition") != condition
+            or result.get("code_commit") != pair.get("code_commit")
             or int(result.get("environment_seed", -1)) != 7
             or int(result.get("noise_seed", -1)) != 0
             or int(result.get("after_steps", -1)) != after_steps
@@ -224,14 +222,10 @@ def _validate_pair(pair: dict[str, Any], task_id: int, trial_index: int) -> None
             _validate_diagnostic(diagnostic, after_steps)
         noise_hashes = result.get("noise_sha256_by_replan", [])
         action_hashes = result.get("action_sha256_by_replan", [])
-        if len(noise_hashes) != int(result["replans"]) or len(action_hashes) != int(
-            result["replans"]
-        ):
+        if len(noise_hashes) != int(result["replans"]) or len(action_hashes) != int(result["replans"]):
             raise ValueError("confirmation condition has incomplete action/noise hashes")
         for replan_index, observed in enumerate(noise_hashes):
-            expected = _array_digest(
-                _noise_for_replan(0, task_id, trial_index, replan_index)
-            )
+            expected = _array_digest(_noise_for_replan(0, task_id, trial_index, replan_index))
             if observed != expected:
                 raise ValueError("confirmation condition has unexpected action noise")
     expected_loss = bool(full["success"] and not early["success"])
@@ -246,31 +240,47 @@ def _validate_diagnostic(diagnostic: dict[str, Any], after_steps: int) -> None:
         or int(diagnostic.get("total_flow_steps", -1)) != 10
         or int(diagnostic.get("velocity_field_evaluations", -1)) != after_steps
         or int(diagnostic.get("velocity_field_evaluation_savings", -1)) != savings
-        or float(diagnostic.get("velocity_field_evaluation_savings_fraction", -1.0))
-        != savings / 10
+        or float(diagnostic.get("velocity_field_evaluation_savings_fraction", -1.0)) != savings / 10
         or float(diagnostic.get("integration_ms", 0.0)) <= 0.0
     ):
         raise ValueError("confirmation compute or latency diagnostic is invalid")
 
 
 def _first_latency(result: dict[str, Any]) -> float:
-    first = [
-        item
-        for item in result["early_exit_diagnostics"]
-        if int(item["replan_index"]) == 0
-    ]
+    first = [item for item in result["early_exit_diagnostics"] if int(item["replan_index"]) == 0]
     if len(first) != 1:
         raise ValueError("confirmation condition lacks one first-replan latency")
     return float(first[0]["integration_ms"])
 
 
-def _bootstrap_median_interval(
-    values: np.ndarray, *, samples: int = 10_000, seed: int = 0
-) -> list[float]:
+def _bootstrap_median_interval(values: np.ndarray, *, samples: int = 10_000, seed: int = 0) -> list[float]:
     rng = np.random.default_rng(seed)
     indices = rng.integers(0, values.size, size=(samples, values.size))
     medians = np.median(values[indices], axis=1)
     return [float(value) for value in np.quantile(medians, [0.025, 0.975])]
+
+
+def _load_warmups(root: Path) -> list[dict[str, Any]]:
+    path = root / "warmup_sessions.jsonl"
+    sessions = [json.loads(line) for line in path.read_text().splitlines() if line.strip()]
+    if not sessions:
+        raise ValueError("confirmation has no warm-up session")
+    for index, session in enumerate(sessions):
+        if (
+            int(session.get("session_index", -1)) != index
+            or session.get("scored") is not False
+            or re.fullmatch(r"[0-9a-f]{40}", str(session.get("code_commit"))) is None
+        ):
+            raise ValueError("confirmation warm-up session metadata is invalid")
+        records = session.get("records", [])
+        if [record.get("condition") for record in records] != [
+            "full_control_10",
+            "early_exit_7",
+        ]:
+            raise ValueError("confirmation warm-up session order is invalid")
+        for record in records:
+            _validate_diagnostic(record.get("diagnostic", {}), CONDITIONS[record["condition"]])
+    return sessions
 
 
 def _condition_order(task_id: int, trial_index: int) -> list[str]:
@@ -288,9 +298,7 @@ def _pair_key(task_id: int, trial_index: int) -> str:
     return f"task_{task_id:02d}_trial_{trial_index:02d}"
 
 
-def _noise_for_replan(
-    noise_seed: int, task_id: int, trial_index: int, replan_index: int
-) -> np.ndarray:
+def _noise_for_replan(noise_seed: int, task_id: int, trial_index: int, replan_index: int) -> np.ndarray:
     material = f"{noise_seed}:{SUITE}:{task_id}:{trial_index}:{replan_index}".encode()
     seed = int.from_bytes(hashlib.sha256(material).digest()[:8], "little")
     rng = np.random.default_rng(seed)

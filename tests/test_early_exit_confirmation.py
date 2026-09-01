@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import runpy
 
 import numpy as np
@@ -8,6 +9,7 @@ import pytest
 analysis = runpy.run_path("scripts/analyze_early_exit_confirmation.py")
 runner = runpy.run_path("scripts/run_early_exit_suite_confirmation.py")
 analyze_confirmation = analysis["analyze_confirmation"]
+CODE_COMMIT = "a" * 40
 
 
 def test_confirmation_passes_with_four_paired_losses() -> None:
@@ -49,13 +51,46 @@ def test_runner_noise_and_condition_order_are_deterministic_and_balanced() -> No
     assert first.shape == (10, 32)
     assert np.array_equal(first, second)
     assert not np.array_equal(first, other)
-    orders = [
-        runner["_condition_order"](task_id, trial_index)[0]
-        for task_id in range(10)
-        for trial_index in range(50)
-    ]
+    orders = [runner["_condition_order"](task_id, trial_index)[0] for task_id in range(10) for trial_index in range(50)]
     assert orders.count("early_exit_7") == 250
     assert orders.count("full_control_10") == 250
+
+
+def test_runner_rejects_resuming_pair_from_another_commit() -> None:
+    pair = _pairs(losses=0)[0]
+
+    with pytest.raises(ValueError, match="incompatible"):
+        runner["_validate_existing_pair"](pair, 0, 0, "b" * 40)
+
+
+def test_runner_rejects_warmup_from_another_commit(tmp_path) -> None:
+    warmup = {
+        "schema_version": 1,
+        "scored": False,
+        "session_index": 0,
+        "code_commit": CODE_COMMIT,
+        "records": [
+            {
+                "condition": name,
+                "diagnostic": {
+                    "after_steps": after_steps,
+                    "total_flow_steps": 10,
+                    "velocity_field_evaluations": after_steps,
+                    "velocity_field_evaluation_savings": 10 - after_steps,
+                    "velocity_field_evaluation_savings_fraction": (10 - after_steps) / 10,
+                    "integration_ms": 1.0,
+                },
+            }
+            for name, after_steps in (
+                ("full_control_10", 10),
+                ("early_exit_7", 7),
+            )
+        ],
+    }
+    (tmp_path / "warmup_sessions.jsonl").write_text(json.dumps(warmup) + "\n")
+
+    with pytest.raises(ValueError, match="warm-up session log"):
+        runner["_existing_warmup_sessions"](tmp_path, "b" * 40)
 
 
 def _pairs(*, losses: int) -> list[dict]:
@@ -64,25 +99,18 @@ def _pairs(*, losses: int) -> list[dict]:
     for task_id in range(10):
         for trial_index in range(50):
             early_success = (task_id, trial_index) not in loss_keys
-            early = _condition(
-                "early_exit_7", 7, early_success, 7.0, task_id, trial_index
-            )
-            full = _condition(
-                "full_control_10", 10, True, 10.0, task_id, trial_index
-            )
+            early = _condition("early_exit_7", 7, early_success, 7.0, task_id, trial_index)
+            full = _condition("full_control_10", 10, True, 10.0, task_id, trial_index)
             pairs.append(
                 {
                     "schema_version": 1,
                     "suite": "libero_goal",
+                    "code_commit": CODE_COMMIT,
                     "task_id": task_id,
                     "trial_index": trial_index,
                     "pair_key": f"task_{task_id:02d}_trial_{trial_index:02d}",
-                    "condition_order": analysis["_condition_order"](
-                        task_id, trial_index
-                    ),
-                    "order_digest_sha256": analysis["_order_digest"](
-                        task_id, trial_index
-                    ),
+                    "condition_order": analysis["_condition_order"](task_id, trial_index),
+                    "order_digest_sha256": analysis["_order_digest"](task_id, trial_index),
                     "initial_inputs_exact": True,
                     "initial_sim_state_exact": True,
                     "shared_noise_common_replans": 1,
@@ -108,6 +136,7 @@ def _condition(
     noise_hash = analysis["_array_digest"](noise)
     return {
         "condition": name,
+        "code_commit": CODE_COMMIT,
         "environment_seed": 7,
         "noise_seed": 0,
         "after_steps": after_steps,

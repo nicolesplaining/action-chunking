@@ -45,8 +45,13 @@ if [[ -n "$(nvidia-smi --id="$sim_gpu" --query-compute-apps=pid --format=csv,noh
 fi
 
 mkdir -p "$output"
+if ! git -C "$repo_root" diff --quiet || ! git -C "$repo_root" diff --cached --quiet; then
+  echo "confirmation requires a worktree with no tracked changes" >&2
+  exit 1
+fi
 nvidia-smi --query-gpu=index,uuid,name,driver_version,memory.total --format=csv >"$output/gpu_preflight.csv"
 git -C "$repo_root" rev-parse HEAD >"$output/code_commit.txt"
+code_commit="$(git -C "$repo_root" rev-parse HEAD)"
 sha256sum "$pilot_summary" >"$output/pilot_summary.sha256"
 
 printf -v server_command '%q ' \
@@ -100,7 +105,7 @@ fi
   --env PYOPENGL_PLATFORM=egl \
   action-chunking-libero-client \
   /bin/bash -lc \
-  "source /.venv/bin/activate && PYTHONPATH=/app/src:/app/third_party/openpi:/app/third_party/openpi/packages/openpi-client/src:/app/third_party/openpi/third_party/libero python /app/scripts/run_early_exit_suite_confirmation.py --host 0.0.0.0 --port '$port' --output /data --seed 7 --noise-seed 0"
+  "source /.venv/bin/activate && PYTHONPATH=/app/src:/app/third_party/openpi:/app/third_party/openpi/packages/openpi-client/src:/app/third_party/openpi/third_party/libero python /app/scripts/run_early_exit_suite_confirmation.py --host 0.0.0.0 --port '$port' --output /data --seed 7 --noise-seed 0 --code-commit '$code_commit'"
 
 env PYTHONPATH="$repo_root/src" "$repo_root/.venv/bin/python" \
   "$repo_root/scripts/analyze_early_exit_confirmation.py" \

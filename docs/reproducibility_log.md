@@ -1,5 +1,17 @@
 # Reproducibility log
 
+## 2026-09-01: confirmation sessions bound to code provenance
+
+Protocol version 0.21 was frozen before the first scored confirmation pair.
+Every newly started confirmation client/server process now performs and logs a
+fresh unscored warm-up of both conditions, including on resume, so a cold
+process cannot contribute scored latency. Warm-up sessions, condition records,
+pair summaries, and progress now carry one exact full Git commit; the launcher
+rejects tracked worktree changes, and both resume and final analysis reject
+mixed commits. The analyzer independently checks the warm-up count and hashes
+the append-only session log. This changes no task, trial, condition order,
+outcome, margin, stopping rule, or compute/latency gate.
+
 ## 2026-09-01: partial catalog resume repaired
 
 The resumed public obstacle screen lost its websocket connection while writing
