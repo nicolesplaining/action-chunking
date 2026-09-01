@@ -34,9 +34,8 @@ def eligibility_row(
     old_event_step = _contact_step(old_result, old_target)
     restart_old_event_step = _contact_step(restart_result, old_target)
     controller_replay_required = bool(entry.get("controller_replay_required", False))
-    controller_replay_exact = all(
-        _result_controller_replay_exact(result, controller_replay_required)
-        for result in (old_result, restart_result)
+    controller_replay_exact = controller_replay_summary_exact(
+        event_summary, controller_replay_required
     )
     event_exact = all(_result_exact(result) for result in (old_result, restart_result))
     old_event_induced = old_event_step is not None and old_event_step <= execution_horizon
@@ -150,4 +149,15 @@ def _result_controller_replay_exact(result: dict[str, Any], required: bool) -> b
         result.get("controller_replay_required")
         and result.get("controller_replay_applied")
         and result.get("controller_replay_trajectory_max_abs_error") == 0.0
+    )
+
+
+def controller_replay_summary_exact(summary: dict[str, Any], required: bool) -> bool:
+    """Require exactly two transition-exact sides when controller replay is registered."""
+    if not required:
+        return True
+    results = summary.get("results", [])
+    return bool(
+        len(results) == 2
+        and all(_result_controller_replay_exact(result, required=True) for result in results)
     )
