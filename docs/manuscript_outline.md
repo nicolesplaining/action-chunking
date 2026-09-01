@@ -185,6 +185,11 @@ obstacle avoidance while the unmodified trajectory would intersect the moved
 obstacle corridor. Interpret its causal grid as obstacle-sensitive trajectory
 editability, not yet as successful response to a late safety constraint.
 
+State 0 had no geometrically valid placement and generated no policy outcome.
+The registered expansion scans the original 16 exact target-pair states in
+manifest order, preserving the grid, all exclusions, and the first-clean-pass
+stop rule. Report state 0 and every later screened row in the denominator.
+
 The registered dynamic follow-up always executes in the moved-obstacle world.
 It compares restart with continuation from every interrupted flow state after
 switching from the paired original-pose image to the live obstacle image. Call

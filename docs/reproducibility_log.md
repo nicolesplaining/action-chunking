@@ -1,5 +1,16 @@
 # Reproducibility log
 
+## 2026-09-01: obstacle scene-order expansion frozen after geometric exhaustion
+
+Protocol version 0.13 was frozen after initialization state 0 produced no
+geometrically valid placement and before any obstacle policy call or
+intervention outcome. All nine state-0 grid points were rejected solely by the
+already frozen MuJoCo overlap and clearance checks. The search now scans the
+same 16 exact target-pair states in original manifest order and retains the
+existing nested placement order and every exclusion. It stops at the first
+clean-eligible placement using no patched or dynamic outcome. No geometry or
+behavioral threshold was changed.
+
 ## 2026-09-01: late visual-safety update pilot frozen
 
 Protocol version 0.12 was frozen before inspecting any obstacle-pose clean or

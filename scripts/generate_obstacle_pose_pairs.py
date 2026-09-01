@@ -142,8 +142,6 @@ def main() -> int:
                     },
                 }
             )
-    if not output_entries:
-        raise ValueError("all preregistered obstacle placements were geometrically invalid")
     output_manifest = {
         "schema_version": 1,
         "pair_family": "obstacle_pose",
@@ -169,6 +167,7 @@ def main() -> int:
             "selection_uses_interventions": False,
         },
         "exclusions": exclusions,
+        "geometry_exhausted": not output_entries,
         "pairs": output_entries,
     }
     manifest_path = args.output / "manifest.json"

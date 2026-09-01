@@ -1,6 +1,6 @@
 # Research protocol: causal editability and retargeting in action chunks
 
-Protocol version: 0.12 (late visual-safety update pilot)
+Protocol version: 0.13 (fixed-order obstacle scene expansion)
 
 ## 1. Research question
 
@@ -488,6 +488,16 @@ placed at fractions `{0.35, 0.50, 0.65}` along the initial end-effector-to-targe
 line, with lateral offsets `{0.00, -0.05, +0.05}` meters in that fixed nested
 order. Placements whose MuJoCo bounding spheres violate the frozen 1 cm
 target-object or 4 cm gripper clearance are excluded before policy evaluation.
+
+The initially attempted initialization state 0 yielded zero geometrically
+valid placements, before any policy call or intervention outcome. The pilot
+therefore expands across the existing 16 exact wine-bottle/bowl target-pair
+states in their original manifest order (`init_index=0..15`). Within each state,
+the frozen fraction/lateral grid order is unchanged. Geometry-invalid states
+and clean-invalid placements remain in the denominator, and screening stops at
+the first clean-eligible placement. No patched, dynamic-continuation, or timing
+outcome may be read during this scan. The geometry and clean thresholds are not
+relaxed.
 
 Selection then uses clean closed-loop behavior only. Both paired rollouts must
 restore their fixture exactly, contact the unchanged instructed target first,
