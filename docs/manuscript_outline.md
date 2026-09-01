@@ -38,6 +38,7 @@ This distinction builds on pi0/pi0.5 flow-matching action generation
 | Replicated narrow pilot | Bowl-on-stove versus bowl-on-plate after grasp; two independently selected physical-state blocks | Four monotonic directions; commitment boundaries 7 and 8 in both blocks | A post-grasp destination/subgoal can be causally transferred and fixes around 70--80% of integration |
 | Conditional pilot | Wine-bottle target pose, one state, seed 0 | Closure formation and commitment at 7; only token 9 affects categorical closure in 120 token sites | Closure timing can be localized to its matching future token for one sampled action mode |
 | Negative robustness result | Same target-pose state, four noise seeds | Only seed 0 has a closure contrast; all-seed eligible state count is zero | The closure-token result is noise conditional and is not a state-level population effect |
+| Negative recovery pilot | Alphabet soup versus cream cheese, first-replan donor chunk | Exact inputs, simulator restoration, swapped chunks, and clean controls; 0/2 directions have an intervention-induced donor-first contact | Eventual success is not interpretable as recovery unless the patched chunk first causes the defined failure event |
 
 ## Primary results narrative
 
@@ -82,6 +83,16 @@ one eligible seed from becoming a population estimate. The next experiment
 must expand target-pose pairs across scene states and report the fraction of
 noise modes with an eligible closure contrast.
 
+### R6. Recovery requires an intervention-induced failure event
+
+Retain the first-replan endpoint pilot as a negative result. Although all
+rollouts eventually succeeded and every exactness control passed, neither
+direction met the frozen recovery eligibility gate. One tempting direction had
+the same wrong-object-first behavior under its identity control, so the donor
+chunk did not cause the event from which recovery would be inferred. Do not
+report an eventual recovery rate for this pair; use it to motivate clean-screened
+failure induction before any population recovery timing study.
+
 ## Matched pi0 control
 
 The control uses the public pi0 base architecture and upstream `pi0_libero`
@@ -103,15 +114,23 @@ history. Model-by-property contrasts must be reported with that limitation.
 
 ## Required figures
 
-1. Formation and commitment curves with clustered intervals for four eligible
-   target-pair properties.
-2. Closed-loop target source-retention and donor-transfer curves.
-3. Flow-step by layer residual heatmaps with BH-significant cells marked.
-4. Flow-step by tensor/action-group dimension heatmaps.
-5. Destination curves for both phase-aligned physical-state blocks.
-6. Token-position heatmaps after the 15-state token sweep is authorized and
-   complete.
-7. Paired pi0 versus pi0.5 commitment and mediation differences.
+The current figure build is generated directly from immutable CSV tables by
+`scripts/make_manuscript_figures.py`; `figure_manifest.json` records every input
+path and SHA-256.
+
+1. Formation error, continuous action retention, and closed-loop target
+   retention in one aligned flow-time figure.
+2. Flow-step by residual-layer heatmaps plus property-matched `x_t` and `v_t`
+   coordinate effects. Open circles require both BH-adjusted `q < 0.05` and a
+   scene-cluster interval strictly above zero; negative transfer remains visible
+   in the color field but is not counted as positive mediation.
+3. Target-identity and replicated post-grasp destination curves on shared axes.
+4. The token-9 closure case, labeled as descriptive `n=1` eligible
+   state/noise-mode evidence with no population significance marker.
+5. Paired pi0 versus pi0.5 commitment and mediation differences after the pi0
+   competence gate passes.
+6. A population token-position figure only after the 15-state token sweep is
+   explicitly authorized and complete.
 
 ## Explicit nonclaims
 
@@ -121,6 +140,8 @@ history. Model-by-property contrasts must be reported with that limitation.
 - Different rollout phases cannot be ordered into a universal semantic
   hierarchy without a phase-matched design.
 - A single eligible noise seed is not a replicated gripper result.
+- Eventual success after a patched chunk is not recovery unless the patch
+  induces the preregistered failure event relative to the identity control.
 - Probe accuracy or clean decodability is not causal commitment.
 - The current pi0.5 result does not determine whether pi0 or pi0.7 has the same
   timing; pi0 requires the matched control run, and public pi0.7 internal weights
