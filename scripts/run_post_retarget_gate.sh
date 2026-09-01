@@ -22,7 +22,7 @@ if ! [[ "$gpu" =~ ^[0-9]+$ && "$port" =~ ^[1-9][0-9]*$ && "$noise_seed" =~ ^[0-9
 fi
 eligible_directions="$(
   PYTHONPATH="$repo_root/src" "$repo_root/.venv/bin/python" -c \
-    'import json,sys; value=json.load(open(sys.argv[1])); assert value.get("selection_uses_continuation_outcomes") is False; print(int(value["eligible_directions"]))' \
+    'import json,sys; value=json.load(open(sys.argv[1])); candidates=int(value["candidate_manifests"]); completed=int(value["completed_directions"]); rows=value["rows"]; assert value.get("selection_uses_continuation_outcomes") is False; assert candidates > 0; assert completed == 2 * candidates == len(rows), "endpoint gate is incomplete"; print(int(value["eligible_directions"]))' \
     "$gate_summary"
 )"
 

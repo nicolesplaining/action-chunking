@@ -247,6 +247,18 @@ states, byte-exact `k=0` equivalence, a five-percentage-point paired
 noninferiority margin for both target-first contact and task success, and lower
 measured post-event latency.
 
+Held-out candidates use the latest five-action replan boundary strictly before
+the source clean target contact. Because robosuite controller and interpolator
+state is not fully represented in MuJoCo's flat state, each fork reproduces the
+clean seeded reset and registered initial configuration, then replays the full
+executed action prefix. The initial and every replayed simulator state must be
+array-exact to a hashed clean trace before inference is permitted. The first old-
+condition chunk must also be byte-exact to the saved clean chunk. Eligibility is
+then selected without intermediate-continuation outcomes: the old endpoint must
+induce old-target contact within five actions, a full new-instruction restart
+must avoid that event, and both clean tasks must remain competent. Intermediate
+boundaries stay sealed until this gate and the action-only prediction are frozen.
+
 ### 3.6 Layer, action-state, and token interventions
 
 At flow step `s` and action-expert layer `l`, residual interchange replaces all
