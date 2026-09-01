@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+from collections import defaultdict
 from pathlib import Path
 from typing import Any
 
@@ -207,7 +208,7 @@ def _validate_analysis_summary(root: Path) -> None:
         or float(summary.get("formation_relative_error_tolerance", -1.0)) != 0.2
         or int(summary.get("jobs", 0)) <= 0
         or int(summary.get("pairs", 0)) <= 0
-        or int(summary.get("state_clusters", 0)) <= 0
+        or int(summary.get("state_clusters", 0)) < 12
     ):
         raise ValueError(f"incompatible intervention analysis summary: {root}")
 
@@ -218,11 +219,26 @@ def _validate_coarse_grid(
     dimension: list[dict[str, Any]],
     model: str,
 ) -> None:
-    if {int(row["switch_after_steps"]) for row in flow} != set(range(11)):
-        raise ValueError(f"{model} flow-switch grid is incomplete")
+    _validate_scene_metric_grid(
+        flow,
+        ("switch_after_steps",),
+        {(boundary,) for boundary in range(11)},
+        model,
+        "flow-switch",
+    )
     residual_cells = {(int(row["flow_step"]), int(row["layer"])) for row in residual}
-    if residual_cells != {(flow_step, layer) for flow_step in range(10) for layer in range(18)}:
-        raise ValueError(f"{model} residual grid is incomplete")
+    expected_residual = {(flow_step, layer) for flow_step in range(10) for layer in range(18)}
+    if residual_cells != expected_residual:
+        raise ValueError(
+            f"{model} residual grid is incomplete or contains an unexpected registered cell"
+        )
+    _validate_scene_metric_grid(
+        residual,
+        ("flow_step", "layer"),
+        expected_residual,
+        model,
+        "residual",
+    )
     dimension_cells = {
         (
             int(row["flow_step"]),
@@ -238,7 +254,16 @@ def _validate_coarse_grid(
         for group in ("translation", "rotation", "gripper")
     }
     if dimension_cells != expected_dimensions:
-        raise ValueError(f"{model} action-dimension grid is incomplete")
+        raise ValueError(
+            f"{model} action-dimension grid is incomplete or contains an unexpected registered cell"
+        )
+    _validate_scene_metric_grid(
+        dimension,
+        ("flow_step", "patched_tensor", "patched_dimension_group"),
+        expected_dimensions,
+        model,
+        "action-dimension",
+    )
 
 
 def _validate_position_grid(rows: list[dict[str, Any]], action_horizon: int, model: str) -> None:
@@ -257,7 +282,64 @@ def _validate_position_grid(rows: list[dict[str, Any]], action_horizon: int, mod
         for position in range(action_horizon)
     }
     if cells != expected:
-        raise ValueError(f"{model} action-position grid is incomplete")
+        raise ValueError(
+            f"{model} action-position grid is incomplete or contains an unexpected registered cell"
+        )
+    _validate_scene_metric_grid(
+        rows,
+        ("flow_step", "layer", "action_position"),
+        expected,
+        model,
+        "action-position",
+    )
+
+
+def _validate_scene_metric_grid(
+    rows: list[dict[str, Any]],
+    cell_fields: tuple[str, ...],
+    expected_cells: set[tuple[Any, ...]],
+    model: str,
+    family: str,
+) -> None:
+    grouped: dict[tuple[str, str, int, str], set[tuple[Any, ...]]] = defaultdict(set)
+    for row in rows:
+        if not _boolean(row.get("eligible")):
+            continue
+        key = (
+            str(row["pair_id"]),
+            str(row["scene_state_sha256"]),
+            int(row["noise_seed"]),
+            str(row["metric"]),
+        )
+        cell = tuple(_cell_value(row[field]) for field in cell_fields)
+        if cell in grouped[key]:
+            raise ValueError(f"{model} {family} grid contains a duplicate scene-metric cell")
+        grouped[key].add(cell)
+    if not grouped:
+        raise ValueError(f"{model} {family} grid has no eligible scene-metric units")
+    incomplete = [key for key, cells in grouped.items() if cells != expected_cells]
+    if incomplete:
+        raise ValueError(
+            f"{model} {family} grid is incomplete within {len(incomplete)} eligible intervention units"
+        )
+
+
+def _cell_value(value: Any) -> int | str:
+    text = str(value)
+    try:
+        return int(text)
+    except ValueError:
+        return text
+
+
+def _boolean(value: Any) -> bool:
+    if isinstance(value, bool):
+        return value
+    if value in {"True", "true", "1", 1}:
+        return True
+    if value in {"False", "false", "0", 0}:
+        return False
+    raise ValueError(f"invalid serialized boolean: {value!r}")
 
 
 def _write_csv(path: Path, rows: list[dict[str, Any]]) -> None:

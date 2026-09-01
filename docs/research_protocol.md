@@ -1,6 +1,6 @@
 # Research protocol: causal editability and retargeting in action chunks
 
-Protocol version: 0.25 (boundary-zero behavioral identity control)
+Protocol version: 0.26 (per-unit matched-control grid completeness)
 
 ## 1. Research question
 
@@ -581,9 +581,13 @@ passed conversion/checkpoint binding, both clean-validation summary maps, the
 ordered common-state intersection, all job identities and metadata, both
 analysis populations, and all 14 comparison-source digests. Coarse and
 position grids must use the same ordered set of at least 12 independent scene
-states. The launcher writes a passing `final_audit.json` only after every check
-succeeds; a missing or failed audit makes the matched-control result
-unreportable.
+states. Before aggregation, every eligible raw intervention unit, identified by
+pair ID, serialized scene state, noise seed, and metric, must contain the exact
+registered cell set for its flow, residual, action-dimension, or position grid.
+This prevents a complete union across scenes from hiding cell-specific missing
+data and changing the denominator across the heatmap. The launcher writes a
+passing `final_audit.json` only after every check succeeds; a missing or failed
+audit makes the matched-control result unreportable.
 
 1. **Instruction target:** identical scene with two valid objects; change only
    the target phrase in the instruction.

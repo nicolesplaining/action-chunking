@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import runpy
 
 import pytest
@@ -66,6 +67,11 @@ def test_comparison_rejects_incomplete_registered_position_grid() -> None:
             "flow_step": flow_step,
             "layer": layer,
             "action_position": position,
+            "scene_state_sha256": "a",
+            "pair_id": "pair-a",
+            "noise_seed": 0,
+            "metric": "translation",
+            "eligible": True,
         }
         for flow_step in (0, 7, 8, 9)
         for layer in (0, 8, 14, 17)
@@ -75,6 +81,48 @@ def test_comparison_rejects_incomplete_registered_position_grid() -> None:
 
     with pytest.raises(ValueError, match="position grid is incomplete"):
         _script["_validate_position_grid"](rows, 10, "pi0.5")
+
+
+def test_comparison_rejects_mode_specific_missing_cell_hidden_by_union() -> None:
+    rows = [
+        {
+            "flow_step": flow_step,
+            "layer": layer,
+            "action_position": position,
+            "scene_state_sha256": "shared-scene",
+            "pair_id": f"pair-{mode}",
+            "noise_seed": 0,
+            "metric": "translation",
+            "eligible": True,
+        }
+        for mode in ("a", "b")
+        for flow_step in (0, 7, 8, 9)
+        for layer in (0, 8, 14, 17)
+        for position in range(10)
+    ]
+    rows.pop(0)
+
+    with pytest.raises(ValueError, match="incomplete within 1 eligible"):
+        _script["_validate_position_grid"](rows, 10, "pi0.5")
+
+
+def test_comparison_requires_twelve_input_state_clusters(tmp_path) -> None:
+    (tmp_path / "summary.json").write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "noise_seeds": [0],
+                "commitment_threshold": 0.8,
+                "formation_relative_error_tolerance": 0.2,
+                "jobs": 11,
+                "pairs": 11,
+                "state_clusters": 11,
+            }
+        )
+    )
+
+    with pytest.raises(ValueError, match="incompatible intervention analysis"):
+        _script["_validate_analysis_summary"](tmp_path)
 
 
 def _unit(cluster: str, *, formation: int, boundary: int) -> dict:

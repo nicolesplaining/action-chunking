@@ -1,5 +1,16 @@
 # Reproducibility log
 
+## 2026-09-01: matched grids made complete per intervention unit
+
+Protocol version 0.26 strengthens the future pi0-versus-pi0.5 comparison before
+any repaired pi0 conversion or intervention outcome exists. The comparison now
+requires every eligible pair, serialized scene, noise seed, and metric to have
+the exact registered cell set in each intervention family. Checking only the
+union of cells could have hidden a missing cell in one scene when another scene
+still supplied it, causing cell-specific denominator drift. The analysis-input
+gate also enforces the registered minimum of 12 independent source scene
+clusters. No intervention, estimator, threshold, or model configuration changed.
+
 ## 2026-09-01: closest adaptive-vla precedents added
 
 The related-work audit now includes A1 and FASTER with their public papers and
