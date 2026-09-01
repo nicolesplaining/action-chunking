@@ -15,6 +15,7 @@ import numpy as np
 from libero.libero.envs import OffScreenRenderEnv
 from openpi_client import image_tools, websocket_client_policy
 
+from action_chunking.metrics import gripper_closure_position
 from action_chunking.pairs import load_instruction_pair
 
 
@@ -37,12 +38,17 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--intervention", type=Path, help="JSON intervention specification")
     parser.add_argument("--intervene-replans", default="0", help="Comma-separated zero-based replans or all")
     parser.add_argument("--stop-after-first-task-contact", action="store_true")
+    parser.add_argument("--stop-after-registered-destination", action="store_true")
+    parser.add_argument("--destination-radius", type=float, default=0.08)
+    parser.add_argument("--destination-persistence-steps", type=int, default=5)
     return parser.parse_args()
 
 
 def main() -> int:
     args = parse_args()
     args.output.mkdir(parents=True, exist_ok=True)
+    if args.destination_radius <= 0.0 or args.destination_persistence_steps <= 0:
+        raise ValueError("destination radius and persistence steps must be positive")
     manifest = json.loads(args.manifest.read_text())
     entry = _manifest_entry(manifest, args.pair_id)
     pair = load_instruction_pair(args.manifest.parent / entry["fixture"])
@@ -94,6 +100,9 @@ def main() -> int:
         "intervention": intervention,
         "intervene_replans": args.intervene_replans if intervention is not None else None,
         "stop_after_first_task_contact": args.stop_after_first_task_contact,
+        "stop_after_registered_destination": args.stop_after_registered_destination,
+        "destination_radius_m": args.destination_radius,
+        "destination_persistence_steps": args.destination_persistence_steps,
         "results": results,
     }
     (args.output / "summary.json").write_text(json.dumps(summary, indent=2, sort_keys=True) + "\n")
@@ -127,8 +136,11 @@ def _rollout(
     simulator_states = []
     contacts: dict[str, int] = {}
     first_chunk_error = None
+    first_chunk_closure_position = None
     applied_replans = []
     terminated_after_first_task_contact = False
+    terminated_after_registered_destination = False
+    destination_stability_steps = 0
     try:
         # Fixture generation advances the seeded environment reset sequence once
         # per initialization index. Replay that sequence because observation-
@@ -168,6 +180,8 @@ def _rollout(
                     applied_replans.append(replans)
                 response = client.infer(request)
                 chunk = np.asarray(response["actions"])
+                if replans == 0:
+                    first_chunk_closure_position = gripper_closure_position(chunk)
                 if replans == 0 and expected is not None:
                     first_chunk_error = float(np.max(np.abs(chunk - expected[side])))
                     if first_chunk_error != 0.0:
@@ -202,6 +216,23 @@ def _rollout(
             if args.stop_after_first_task_contact and contacts:
                 terminated_after_first_task_contact = True
                 break
+            if args.stop_after_registered_destination:
+                destination = _destination_evaluation(env, entry, target)
+                if destination is None:
+                    raise ValueError("registered-destination termination requires a destination pair")
+                nearest_distance = min(
+                    destination["distance_to_base_target_m"],
+                    destination["distance_to_donor_target_m"],
+                )
+                released = not _gripper_object_contact(env, destination["manipulated_object"])
+                destination_stability_steps = (
+                    destination_stability_steps + 1
+                    if nearest_distance <= args.destination_radius and released
+                    else 0
+                )
+                if destination_stability_steps >= args.destination_persistence_steps:
+                    terminated_after_registered_destination = True
+                    break
         imageio.mimwrite(args.output / f"{side}.mp4", frames, fps=10)
         (args.output / f"{side}_actions.json").write_text(json.dumps(action_chunks) + "\n")
         with (args.output / f"{side}_trajectory_records.jsonl").open("w") as stream:
@@ -222,12 +253,15 @@ def _rollout(
             "steps": steps,
             "replans": replans,
             "first_chunk_max_abs_error": first_chunk_error,
+            "first_chunk_gripper_closure_position": first_chunk_closure_position,
             "restored_sim_state_max_abs_error": 0.0,
             "initial_input_mode": args.initial_input_mode,
             "live_initial_input_diagnostics": initial_input_diagnostics,
             "saved_simulator_states": len(simulator_states),
             "intervention_replans_applied": applied_replans,
             "terminated_after_first_task_contact": terminated_after_first_task_contact,
+            "terminated_after_registered_destination": terminated_after_registered_destination,
+            "destination_stability_steps": destination_stability_steps,
             "first_contact_step_by_object": contacts,
             "target_contacted": target in contacts,
             "destination_evaluation": destination_evaluation,
@@ -353,6 +387,19 @@ def _live_object_position(env: OffScreenRenderEnv, object_name: str) -> np.ndarr
     if not geom_ids:
         raise ValueError(f"object {object_name!r} has no contact geoms")
     return np.asarray(env.sim.data.geom_xpos[geom_ids], dtype=np.float64).mean(axis=0)
+
+
+def _gripper_object_contact(env: OffScreenRenderEnv, object_name: str) -> bool:
+    gripper_geoms = set(env.robots[0].gripper.contact_geoms)
+    object_geoms = set(env.env.get_object(object_name).contact_geoms)
+    for contact in env.sim.data.contact[: env.sim.data.ncon]:
+        geoms = {
+            env.sim.model.geom_id2name(contact.geom1),
+            env.sim.model.geom_id2name(contact.geom2),
+        }
+        if geoms & gripper_geoms and geoms & object_geoms:
+            return True
+    return False
 
 
 def _quat2axisangle(quat: np.ndarray) -> np.ndarray:

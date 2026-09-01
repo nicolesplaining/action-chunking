@@ -1,5 +1,26 @@
 # Reproducibility log
 
+## 2026-08-31: official pi0.5-LIBERO baseline replication
+
+The unchanged official OpenPI evaluator completed 500 episodes per suite for
+three suites. Spatial achieved 493/500 = 98.6% (Wilson 95% interval
+0.971--0.993), object 491/500 = 98.2% (0.966--0.991), and goal 490/500 = 98.0%
+(0.964--0.989). The public pinned OpenPI table reports 98.8%, 98.2%, and 98.0%
+respectively, so object and goal match exactly and spatial differs by 0.2
+percentage points. LIBERO-10 remains in progress. Task-level tables and raw
+logs are retained; the four-suite average will not be reported until all 2,000
+episodes complete.
+
+The matched public pi0 base checkpoint was converted with the pinned OpenPI
+converter. Because the public pi0 checkpoint does not provide LIBERO
+normalization statistics, the unchanged public `pi0_libero` data configuration
+was run over all 8,545 batches of `physical-intelligence/libero`. The resulting
+`norm_stats.json` is 1,951 bytes with SHA-256
+`f68a5fafe15e1577b7bb2c6fc4837a7d1669e2e9be3752f2589c3d327c6f8ccf`.
+The access credential was supplied only to the downloader process and was not
+written to the repository, shell history, or experiment metadata. These frozen
+statistics are the input to the preregistered two-device pi0 control training.
+
 This log records environment validation and discrepancies encountered while
 executing the pinned public implementation. Raw machine-readable outputs remain
 in the experiment artifact store and are summarized here at coherent milestones.
@@ -257,3 +278,151 @@ legible after the first flow update while remaining causally editable until the
 last one or two updates. It remains a single instruction contrast and a single
 noise seed; the closed-loop state sweep and additional shared-noise seeds are
 required before generalization.
+
+A direct paired scene-cluster bootstrap of commitment minus formation timing is
+positive in all 15 eligible states for every retained property. The mean gap is
+9.53 flow steps for the full action and translation (95% interval 9.27--9.80),
+8.80 for rotation (8.60--9.00), and 8.20 for target direction (6.80--9.40).
+The corresponding median gaps are 10 (interval 9--10), 9 (9--9), and 10
+(9--10). Thus the formation--commitment separation is a directly estimated
+within-state effect rather than an inference from nonoverlapping summaries.
+
+A clean-only pre-contact pilot tested whether gripper closure could be brought
+inside the 10-token horizon without changing the prompt-only target-pair design.
+States were forked one full horizon before each origin rollout's first contact.
+In the base-derived state, the wine prompt first closed at token 9 while the bowl
+prompt did not close in the initial chunk, but the bowl rollout contacted the
+wine bottle before its instructed bowl. In the donor-derived state, both prompts
+closed at token 8; the wine rollout contacted the bowl first and failed. Both
+blocks therefore fail preregistered property-specific eligibility for different
+reasons. They are retained as a negative identifiability result: bringing
+closure into the horizon also places the robot close enough to the origin object
+to invalidate the counterfactual instruction. Gripper timing is not inferred
+from these data and requires a separately registered target-pose family.
+
+The first eight completed scene states in the repeated-intervention closed-loop
+target sweep provide 16 directional seed-0 curves. All 16 are monotonic, all
+full-donor endpoints transfer target identity, and all full-source endpoints
+retain it. Source-target retention is zero through boundary 7, rises to 0.5625
+(cluster-bootstrap 95% interval 0.375--0.750) at boundary 8, and is 1.0 at
+boundaries 9 and 10. The median directional categorical commitment boundary is
+8, with interquartile range 8--9 and source-retention AUC 0.206. This is a
+completed-job-only interim; the final aggregate requires all 15 preregistered
+states and does not read the partially written current job.
+
+## 2026-08-31: phase-aligned destination positive control
+
+Four exact prompt-only destination families were generated from the official
+`libero_goal` registry. The first phase-aligned pilot uses the bowl-on-stove
+versus bowl-on-plate family. One clean rollout was captured for each prompt, and
+the earliest state satisfying the frozen post-grasp rule was selected: five
+consecutive control steps with gripper--bowl contact and at least 2 cm of lift.
+The base-derived snapshot was step 51 (2.32 cm lift, persistence through step
+55); the donor-derived snapshot was step 50 (2.60 cm lift, persistence through
+step 54). An initial implementation incorrectly read LIBERO's static placement
+specification as the live bowl pose and reported zero lift. The audited fix uses
+the mean live MuJoCo position of the bowl's contact geoms; the selection
+threshold and persistence rule were unchanged.
+
+Both prompts succeeded from both serialized held-bowl snapshots. A registered
+endpoint evaluator based on final live bowl position selected the instructed
+destination in all four clean rollouts, with nearest-destination margins of
+0.330--0.378 m. From the base-derived snapshot, the repeated full-donor flow
+condition then swapped the physical destination in both directions: the stove
+prompt placed nearest the donor plate (0.378 m margin), and the plate prompt
+placed nearest the donor stove region (0.342 m margin). Images, wrist images,
+proprioception, and simulator state remained exact. LIBERO's built-in success
+flags were false for these crossed rollouts because each environment still
+checks its source BDDL goal; they are not used as the donor-destination endpoint.
+This establishes a causal subgoal-transfer ceiling after target identity and
+grasp are already fixed. The boundary curve and independent donor-derived state
+replication remain in progress.
+
+For runtime only, the full destination curve stops after five consecutive steps
+with the released bowl within 8 cm of either registered destination. The radius
+was calibrated from clean endpoint distances (2.7 and 5.1 cm) and does not alter
+the nearest-destination scorer. The shortened full-donor boundary must reproduce
+the original 400-step endpoint before the rule is used for the remaining curve.
+
+The shortened boundary reproduced both original donor destinations to within
+`3.7e-5` m of the long-run margins and reduced the two rollout lengths from 400
+steps each to 64 and 83. The complete base-derived destination curve then passed
+both endpoint controls and was monotonic in both directions. Boundaries 0--6
+selected the donor destination in both directions, boundary 7 split by
+direction, and boundaries 8--10 selected the source destination in both
+directions. Direction-specific categorical commitment boundaries were 7 and 8,
+with source-retention AUC 0.300. This is the first full causal subgoal-timing
+curve; the donor-derived physical-state block is the preregistered replication.
+
+The donor-derived block subsequently completed with the same result. Both
+directional curves were monotonic, both endpoint controls passed, the two
+direction-specific commitment boundaries were again 7 and 8, and AUC was
+0.300. Combining the two independently selected physical-state blocks yields
+four monotonic directional curves, 100% full-donor transfer, 100% full-source
+retention, a median commitment boundary of 7.5 (interquartile range 7--8), and
+the same AUC of 0.300. Source retention is exactly zero through boundary 6,
+0.5 at boundary 7, and one at boundaries 8--10 in both blocks. The matching
+step function across opposite-origin snapshots is a replicated causal result,
+although the current inference remains conditional on one destination contrast
+and one shared-noise seed.
+
+For the gripper-timing follow-up, three target-pose fixtures were generated from
+the base-derived pre-contact snapshot at step 18 by translating only the wine
+bottle 2, 4, or 6 cm along the planar end-effector-to-target axis. Instruction
+and robot state are identical within each pair. A simulator-level audit requires
+bitwise equality of every generalized position outside the target free joint's
+two planar coordinates, as well as every velocity and actuator state. Clean
+closed-loop eligibility screening is performed without viewing any patched
+outcome. The primary selection rule was frozen as the smallest offset passing
+all clean criteria. The 2 cm candidate passes: both initial inputs and restored
+simulator states are exact, both sides contact only the wine bottle first, and
+both succeed. The unshifted pose first closes at action-token position 9,
+whereas closure is right-censored after token 9 for the shifted pose. The 2 cm
+candidate was therefore frozen for causal intervention before inspecting the
+larger-offset screens or any patched outcome. The subsequently completed clean
+sensitivity grid found that all three offsets remained exact, first-target
+contact-valid, and dual-successful. The 4 cm candidate closed at token 9 on both
+sides and is closure-ineligible; the 6 cm candidate reproduced the 2 cm
+finite-versus-censored contrast. This nonmonotonic clean policy response does not
+alter the already frozen smallest-valid-offset choice. Both frozen 2 cm online
+first chunks are bitwise identical to the independent offline intervention
+runner's clean endpoints (maximum absolute error zero).
+
+The frozen 2 cm causal coarse sweep passed all controls exactly: 60 grouped-
+dimension identity interventions, nine residual identity interventions, and the
+full-donor switch had maximum absolute action error zero. Encoding absent
+closure as right-censored at the 10-token horizon, the clean closure-time
+contrast is token 9 versus 10. It is absent from both intermediate clean
+estimates through flow step 6 and appears exactly at step 7, remaining stable
+thereafter. The symmetric suffix-switch curve is donor-like through boundary 3,
+directionally split at boundaries 4--6, and source-retaining in both directions
+from boundary 7, giving closure formation and commitment steps of 7. Swapping
+only the gripper coordinates of `x_t` at flow step 6 transfers the categorical
+closure time completely in both directions; translation- or rotation-coordinate
+swaps never do so. In the same pair, continuous translation and rotation do not
+reach 0.8 retention until boundary 10, so this clean pilot falsifies a universal
+"gripper always commits last" hierarchy.
+
+A labeled post-hoc threshold sensitivity leaves the clean finite-versus-censored
+endpoint unchanged at gripper-command thresholds -0.5, 0, and 0.5. Commitment
+is boundary 6 at -0.5 and boundary 7 at 0 and 0.5; formation is steps 6, 7, and
+8 respectively. The qualitative mid-to-late-flow result is therefore stable,
+while the exact discrete boundary has the expected one-step threshold
+sensitivity.
+
+Before single-token outcomes are inspected, the follow-up grid is frozen at
+flow steps 6--8 and layers 0, 8, 14, and 17. Step 6 is the first bidirectionally
+effective gripper-`x_t` site, layer 14 is the earliest residual layer that changes
+closure there, and layers 0, 8, and 17 are depth anchors. All ten future action
+positions are tested at every selected site; the position set is not reduced
+after viewing token effects.
+
+The frozen single-token grid completed with 120 bidirectional layer--flow--token
+sites and exact identity/full-donor controls. Exactly nine sites changed the
+categorical closure time, and all nine patched future action position 9. Every
+one of the 111 patches to positions 0--8 had zero closure-time effect. At flow
+step 6, a token-9 effect appeared only at the final tested layer 17; at steps 7
+and 8, token 9 was effective at all four depth anchors. Each nonzero site was
+direction-asymmetric (symmetric NCTE 0.5), so the crisp positional localization
+is stronger than the current evidence for a layer-specific mediator. This is a
+pilot result and requires scene-state and noise replication.

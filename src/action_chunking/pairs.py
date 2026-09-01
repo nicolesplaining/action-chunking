@@ -15,7 +15,7 @@ from numpy.typing import NDArray
 
 @dataclasses.dataclass(frozen=True)
 class InstructionPair:
-    """Model-ready inputs for a prompt-only target intervention."""
+    """Model-ready inputs for one explicitly registered paired intervention."""
 
     base_image: NDArray[np.uint8]
     base_wrist_image: NDArray[np.uint8]
@@ -27,18 +27,21 @@ class InstructionPair:
     donor_state: NDArray[np.floating]
     donor_sim_state: NDArray[np.floating]
     donor_prompt: str
+    registered_variable: str = "instruction"
 
     def validate(self) -> None:
-        """Raise unless language is the only model-input or simulator difference."""
+        """Raise unless inputs obey the registered variable's equality contract."""
 
-        if self.base_prompt == self.donor_prompt:
-            raise ValueError("instruction pair prompts must differ")
-        equal_fields = (
-            "image",
-            "wrist_image",
-            "state",
-            "sim_state",
-        )
+        if self.registered_variable == "instruction":
+            if self.base_prompt == self.donor_prompt:
+                raise ValueError("instruction pair prompts must differ")
+            equal_fields = ("image", "wrist_image", "state", "sim_state")
+        elif self.registered_variable == "target_pose":
+            if self.base_prompt != self.donor_prompt:
+                raise ValueError("target-pose pair prompts must match")
+            equal_fields = ("state",)
+        else:
+            raise ValueError(f"unsupported registered pair variable {self.registered_variable!r}")
         for field in equal_fields:
             base = np.asarray(getattr(self, f"base_{field}"))
             donor = np.asarray(getattr(self, f"donor_{field}"))
@@ -80,7 +83,7 @@ def file_digest(path: Path) -> str:
 
 
 def load_instruction_pair(path: Path) -> InstructionPair:
-    """Load and validate an instruction pair saved by the LIBERO generator."""
+    """Load and validate a registered pair saved by a LIBERO generator."""
 
     with np.load(path, allow_pickle=False) as fixture:
         pair = InstructionPair(
@@ -94,6 +97,11 @@ def load_instruction_pair(path: Path) -> InstructionPair:
             donor_state=fixture["donor_state"],
             donor_sim_state=fixture["donor_sim_state"],
             donor_prompt=str(fixture["donor_prompt"].item()),
+            registered_variable=(
+                str(fixture["registered_variable"].item())
+                if "registered_variable" in fixture
+                else "instruction"
+            ),
         )
     pair.validate()
     return pair

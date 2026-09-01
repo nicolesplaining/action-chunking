@@ -39,6 +39,30 @@ def test_instruction_pair_requires_prompt_only_difference() -> None:
         InstructionPair(**{**pair.__dict__, "donor_image": changed}).validate()
 
 
+def test_target_pose_pair_requires_same_prompt_and_robot_state() -> None:
+    pair = make_pair()
+    changed_image = pair.donor_image.copy()
+    changed_image[0, 0, 0] += 1
+    changed_sim_state = pair.donor_sim_state.copy()
+    changed_sim_state[0] += 0.02
+    pose_pair = InstructionPair(
+        **{
+            **pair.__dict__,
+            "donor_image": changed_image,
+            "donor_sim_state": changed_sim_state,
+            "donor_prompt": pair.base_prompt,
+            "registered_variable": "target_pose",
+        }
+    )
+    pose_pair.validate()
+    changed_robot_state = pose_pair.donor_state.copy()
+    changed_robot_state[0] += 0.01
+    with pytest.raises(ValueError, match="state"):
+        InstructionPair(**{**pose_pair.__dict__, "donor_state": changed_robot_state}).validate()
+    with pytest.raises(ValueError, match="prompts must match"):
+        InstructionPair(**{**pose_pair.__dict__, "donor_prompt": "different"}).validate()
+
+
 def test_canonical_bddl_scene_ignores_only_task_semantics() -> None:
     template = """
     (define (problem same)

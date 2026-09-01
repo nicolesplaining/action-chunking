@@ -16,9 +16,10 @@ import numpy as np
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--input", type=Path, required=True)
+    parser.add_argument("--input", type=Path, nargs="+", required=True)
     parser.add_argument("--manifest", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--expected-jobs", type=int)
     parser.add_argument("--bootstrap-replicates", type=int, default=10_000)
     parser.add_argument("--bootstrap-seed", type=int, default=17)
     return parser.parse_args()
@@ -30,7 +31,7 @@ def main() -> int:
         raise ValueError("bootstrap-replicates must be positive")
     manifest = json.loads(args.manifest.read_text())
     cluster_by_pair = {entry["pair_id"]: entry["identity_hashes"]["sim_state"] for entry in manifest["pairs"]}
-    rows = _read_rows(args.input, cluster_by_pair)
+    rows = _read_rows(args.input, cluster_by_pair, args.expected_jobs)
     _validate_jobs(rows)
     pair_curves = _pair_curves(rows)
     curve = _curve_summary(pair_curves, args.bootstrap_replicates, args.bootstrap_seed)
@@ -48,12 +49,35 @@ def main() -> int:
     return 0
 
 
-def _read_rows(root: Path, cluster_by_pair: dict[str, str]) -> list[dict[str, Any]]:
+def _read_rows(
+    roots: list[Path],
+    cluster_by_pair: dict[str, str],
+    expected_jobs: int | None,
+) -> list[dict[str, Any]]:
     rows = []
-    paths = sorted(root.glob("*/noise_*/rollouts.csv"))
-    if (root / "rollouts.csv").exists():
-        paths.append(root / "rollouts.csv")
+    paths = []
+    for root in roots:
+        run_summary_path = root / "run_summary.json"
+        if run_summary_path.exists():
+            run_summary = json.loads(run_summary_path.read_text())
+            root_paths = [
+                root / job["pair_id"] / f"noise_{int(job['noise_seed'])}" / "rollouts.csv"
+                for job in run_summary["jobs"]
+            ]
+            if len(root_paths) != int(run_summary["completed_jobs"]):
+                raise ValueError("online run summary job count is internally inconsistent")
+        else:
+            root_paths = sorted(root.glob("*/noise_*/rollouts.csv"))
+            if (root / "rollouts.csv").exists():
+                root_paths.append(root / "rollouts.csv")
+        paths.extend(root_paths)
+    if expected_jobs is not None and len(paths) != expected_jobs:
+        raise ValueError(f"expected {expected_jobs} completed online jobs, found {len(paths)}")
+    if len(paths) != len(set(paths)):
+        raise ValueError("online run summary contains duplicate job tables")
     for path in paths:
+        if not path.exists():
+            raise ValueError(f"completed online job is missing {path}")
         with path.open(newline="") as stream:
             for raw in csv.DictReader(stream):
                 pair_id = raw["pair_id"]

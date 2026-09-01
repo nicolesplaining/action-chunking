@@ -143,6 +143,7 @@ def main() -> int:
 
     flow_curve, flow_statistics = _aggregate_flow(flow_rows, args)
     formation_curve, formation_statistics = _aggregate_formation(formation_rows, args)
+    timing_separation_statistics = _timing_separation(units, args)
     residual_cells = _aggregate_intervention_cells(
         residual_rows,
         ("flow_step", "layer"),
@@ -186,6 +187,7 @@ def main() -> int:
         "formation_relative_error_tolerance": args.formation_relative_error_tolerance,
         "flow_statistics": flow_statistics,
         "formation_statistics": formation_statistics,
+        "timing_separation_statistics": timing_separation_statistics,
         "intervention_statistics": {
             "residual_patch": _intervention_statistics(residual_cells, ("flow_step", "layer")),
             "dimension_patch": _intervention_statistics(
@@ -387,6 +389,46 @@ def _intervention_statistics(
                 "symmetric_ci95_high": peak["symmetric_ci95_high"],
                 "q_bh_within_metric_family": peak["q_bh_within_metric_family"],
             },
+        }
+    return output
+
+
+def _timing_separation(units: list[dict[str, Any]], args: argparse.Namespace) -> dict[str, Any]:
+    grouped: dict[tuple[str, str], list[float]] = defaultdict(list)
+    for unit in units:
+        if not unit["eligible"] or unit["commitment_step"] is None or unit["formation_step"] is None:
+            continue
+        grouped[(unit["scene_state_sha256"], unit["metric"])].append(
+            float(unit["commitment_step"] - unit["formation_step"])
+        )
+    state_gaps = [
+        {
+            "scene_state_sha256": cluster,
+            "metric": metric,
+            "gap_steps": float(np.mean(values)),
+        }
+        for (cluster, metric), values in sorted(grouped.items())
+    ]
+    rng = np.random.default_rng(args.bootstrap_seed + 4)
+    output = {}
+    for metric in sorted({row["metric"] for row in state_gaps}):
+        values = np.asarray(
+            [row["gap_steps"] for row in state_gaps if row["metric"] == metric],
+            dtype=np.float64,
+        )
+        indices = rng.integers(0, len(values), size=(args.bootstrap_replicates, len(values)))
+        sampled = values[indices]
+        bootstrap_means = sampled.mean(axis=1)
+        bootstrap_medians = np.median(sampled, axis=1)
+        output[metric] = {
+            "eligible_state_clusters": len(values),
+            "mean_commitment_minus_formation_steps": float(values.mean()),
+            "mean_gap_ci95_low": float(np.quantile(bootstrap_means, 0.025)),
+            "mean_gap_ci95_high": float(np.quantile(bootstrap_means, 0.975)),
+            "median_commitment_minus_formation_steps": float(np.median(values)),
+            "median_gap_ci95_low": float(np.quantile(bootstrap_medians, 0.025)),
+            "median_gap_ci95_high": float(np.quantile(bootstrap_medians, 0.975)),
+            "positive_gap_state_fraction": float(np.mean(values > 0.0)),
         }
     return output
 

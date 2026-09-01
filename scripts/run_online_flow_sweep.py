@@ -21,7 +21,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--noise-seed", type=int, default=0)
     parser.add_argument("--boundaries", default="all", help="all or comma-separated values in 0..10")
     parser.add_argument("--intervene-replans", default="all")
-    parser.add_argument("--rollout-endpoint", choices=("first_contact", "full"), default="first_contact")
+    parser.add_argument(
+        "--rollout-endpoint",
+        choices=("first_contact", "destination", "full"),
+        default="first_contact",
+    )
     return parser.parse_args()
 
 
@@ -30,6 +34,8 @@ def main() -> int:
     boundaries = _boundaries(args.boundaries)
     manifest = json.loads(args.manifest.read_text())
     entry = _manifest_entry(manifest, args.pair_id)
+    if args.rollout_endpoint == "destination" and entry.get("semantic_role") != "destination":
+        raise ValueError("destination rollout endpoint requires a destination pair")
     launcher = Path(__file__).with_name("run_pair_validation.sh")
     args.output.mkdir(parents=True, exist_ok=True)
     specs = args.output / "specs"
@@ -59,6 +65,7 @@ def main() -> int:
             str(spec_path),
             args.intervene_replans,
             str(args.rollout_endpoint == "first_contact").lower(),
+            str(args.rollout_endpoint == "destination").lower(),
         ]
         completed = subprocess.run(command, check=False)
         if completed.returncode not in {0, 1} or not summary_path.exists():
@@ -113,6 +120,9 @@ def _write_tables(output: Path, pair_id: str, entry: dict[str, Any], noise_seed:
                     "terminated_after_first_task_contact": result.get(
                         "terminated_after_first_task_contact", False
                     ),
+                    "terminated_after_registered_destination": result.get(
+                        "terminated_after_registered_destination", False
+                    ),
                 }
             )
     rows.sort(key=lambda row: (row["switch_after_steps"], row["side"]))
@@ -143,13 +153,7 @@ def _write_tables(output: Path, pair_id: str, entry: dict[str, Any], noise_seed:
         "intervention_applied_at_replans": json.loads(next(output.glob("switch_after_*/summary.json")).read_text())[
             "intervene_replans"
         ],
-        "rollout_endpoint": (
-            "first_contact"
-            if all(row["terminated_after_first_task_contact"] for row in rows)
-            else "full"
-            if not any(row["terminated_after_first_task_contact"] for row in rows)
-            else "mixed"
-        ),
+        "rollout_endpoint": _rollout_endpoint(rows),
         "all_initial_inputs_exact": all(row["initial_input_exact"] for row in rows),
         "all_simulator_states_exact": all(row["simulator_state_exact"] for row in rows),
         "boundaries": by_boundary,
@@ -165,6 +169,8 @@ def _validate_summary(summary: dict[str, Any], args: argparse.Namespace, boundar
         raise ValueError("existing flow sweep output does not match the requested intervention")
     if summary.get("stop_after_first_task_contact", False) != (args.rollout_endpoint == "first_contact"):
         raise ValueError("existing flow sweep output does not match the requested rollout endpoint")
+    if summary.get("stop_after_registered_destination", False) != (args.rollout_endpoint == "destination"):
+        raise ValueError("existing flow sweep output does not match the requested destination endpoint")
     for result in summary["results"]:
         if not all(value["array_equal"] for value in result["live_initial_input_diagnostics"].values()):
             raise ValueError("intervened rollout did not restore the exact initial model input")
@@ -182,6 +188,22 @@ def _boundaries(value: str) -> list[int]:
     if not boundaries or boundaries[0] < 0 or boundaries[-1] > 10:
         raise ValueError("boundaries must lie in [0, 10]")
     return boundaries
+
+
+def _rollout_endpoint(rows: list[dict[str, Any]]) -> str:
+    if all(row["terminated_after_first_task_contact"] for row in rows):
+        return "first_contact"
+    if all(
+        row["terminated_after_registered_destination"] or row["success"]
+        for row in rows
+    ):
+        return "destination"
+    if not any(
+        row["terminated_after_first_task_contact"] or row["terminated_after_registered_destination"]
+        for row in rows
+    ):
+        return "full"
+    return "mixed"
 
 
 def _manifest_entry(manifest: dict[str, Any], pair_id: str) -> dict[str, Any]:

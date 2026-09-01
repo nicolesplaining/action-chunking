@@ -19,6 +19,8 @@ inference:
 
 pair_families:
   - instruction_target
+  - instruction_target_precontact
+  - instruction_destination_postgrasp
   - target_pose
   - obstacle_position
   - recovery
@@ -36,9 +38,19 @@ pilot_eligibility:
   # pairs, then freeze before confirmatory data are generated.
   minimum_action_group_l2: 0.01
   minimum_target_direction_contrast: 0.01
+  formation_relative_error_tolerance: 0.2
+  destination_stop_radius_m: 0.08
+  destination_stop_persistence_steps: 5
+  target_pose_offsets_m: [0.02, 0.04, 0.06]
+  target_pose_axis: planar_end_effector_to_target
+  target_pose_primary_selection: smallest_offset_passing_clean_eligibility
+  target_pose_requires_dual_success: true
+  target_pose_requires_first_target_contact: true
 
 analysis:
   cluster_unit: scene_pair
   bootstrap_replicates: 10000
   fdr_method: benjamini_hochberg
   fdr_family: property_x_intervention
+  target_pose_token_followup_flow_steps: [6, 7, 8]
+  target_pose_token_followup_layers: [0, 8, 14, 17]

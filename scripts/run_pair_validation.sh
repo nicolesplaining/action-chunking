@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-if [[ $# -lt 6 || $# -gt 12 ]]; then
-  echo "usage: $0 <manifest> <pair-id> <gpu> <port> <noise-seed> <output-dir> [clean-screen-jsonl] [initial-input-mode] [save-sim-states] [intervention-json] [intervene-replans] [stop-after-first-task-contact]" >&2
+if [[ $# -lt 6 || $# -gt 13 ]]; then
+  echo "usage: $0 <manifest> <pair-id> <gpu> <port> <noise-seed> <output-dir> [clean-screen-jsonl] [initial-input-mode] [save-sim-states] [intervention-json] [intervene-replans] [stop-after-first-task-contact] [stop-after-registered-destination]" >&2
   exit 2
 fi
 
@@ -13,11 +13,15 @@ port="$4"
 noise_seed="$5"
 output_dir="$(realpath -m "$6")"
 clean_screen="${7:-}"
+if [[ "$clean_screen" == "none" ]]; then
+  clean_screen=""
+fi
 initial_input_mode="${8:-strict}"
 save_sim_states="${9:-false}"
 intervention="${10:-}"
 intervene_replans="${11:-0}"
 stop_after_first_task_contact="${12:-false}"
+stop_after_registered_destination="${13:-false}"
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 mkdir -p "$output_dir"
@@ -32,6 +36,7 @@ expected_args=()
 sim_state_args=()
 intervention_args=()
 contact_args=()
+destination_args=()
 if [[ -n "$clean_screen" ]]; then
   clean_screen="$(realpath "$clean_screen")"
   extra_mounts+=(--volume "$(dirname "$clean_screen"):/screen:ro")
@@ -46,6 +51,12 @@ if [[ "$stop_after_first_task_contact" == "true" ]]; then
   contact_args=(--stop-after-first-task-contact)
 elif [[ "$stop_after_first_task_contact" != "false" ]]; then
   echo "stop-after-first-task-contact must be true or false" >&2
+  exit 2
+fi
+if [[ "$stop_after_registered_destination" == "true" ]]; then
+  destination_args=(--stop-after-registered-destination)
+elif [[ "$stop_after_registered_destination" != "false" ]]; then
+  echo "stop-after-registered-destination must be true or false" >&2
   exit 2
 fi
 if [[ "$save_sim_states" == "true" ]]; then
@@ -78,4 +89,5 @@ fi
     ${expected_args[*]} \
     ${sim_state_args[*]} \
     ${intervention_args[*]} \
-    ${contact_args[*]}"
+    ${contact_args[*]} \
+    ${destination_args[*]}"

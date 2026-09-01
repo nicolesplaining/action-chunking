@@ -100,6 +100,14 @@ def gripper_closure_position(actions: ArrayLike, *, threshold: float = 0.0) -> i
     return int(positions[0]) if len(positions) else None
 
 
+def gripper_closure_time(actions: ArrayLike, *, threshold: float = 0.0) -> int:
+    """Return closure position, encoding right-censoring at the chunk horizon."""
+
+    action_array = np.asarray(actions, dtype=np.float64)
+    position = gripper_closure_position(action_array, threshold=threshold)
+    return action_array.shape[0] if position is None else position
+
+
 def summarize_transfer(patched: ArrayLike, base: ArrayLike, donor: ArrayLike) -> dict[str, object]:
     """Return preregistered action-group and temporal transfer summaries."""
 

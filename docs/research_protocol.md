@@ -145,6 +145,27 @@ result is not conditional on one destination's clean approach trajectory. The
 2 cm lift, five-step persistence, and earliest-qualifying-state rule are frozen
 before inspecting destination interventions.
 
+Gripper-closure timing is evaluated from phase-aligned pre-contact states because
+the initial target-pair chunks do not contain a closure event. For each clean
+prompt direction, restore the state exactly one full 10-action horizon before
+that rollout's first instructed-object contact. Retain both origin directions as
+separate blocks only if neither registered target is already in gripper contact,
+both prompts still first contact their instructed objects, and both tasks
+succeed. A gripper property is eligible only when the clean first chunks have
+different finite closure positions or one closes within the horizon while the
+other does not. This selection uses clean behavior only.
+
+If the prompt-swap pre-contact block is invalid because the unchanged object
+layout causes cross-target contact, use a separately registered target-pose
+family rather than relaxing the contact rule. Hold the instruction, robot state,
+distractors, target height, and target orientation fixed, and translate only the
+designated target object's planar free-joint coordinates along the clean
+end-effector-to-target axis. The pilot offset grid is 2, 4, and 6 cm. Every
+generalized position outside those two coordinates, every generalized velocity,
+and every actuator state must remain bitwise identical. Candidate selection uses
+only clean dual-success, first-target-contact, and first-chunk closure-contrast
+criteria; patched outcomes are not inspected until the offset is frozen.
+
 A pair enters causal analysis only if both unpatched endpoints are successful,
 their measured property contrast exceeds the evaluator's minimum effect size,
 and neither rollout violates simulator safety or validity checks. Exclusion
@@ -184,6 +205,16 @@ donor and full-source boundaries are required positive and identity controls.
 A separate first-replan-only experiment measures whether later clean replans
 recover from an intervened initial chunk; it is labeled recovery rather than
 pooled into the repeated-intervention target-identity curve.
+
+Categorical destination identity is evaluated from the phase-aligned held-object
+fixtures. The same boundary intervention is repeated until the released object
+has remained within 8 cm of either registered destination for five consecutive
+steps, or the source task succeeds. The categorical outcome is the registered
+destination nearest the final live MuJoCo object position. The radius and
+persistence rule affect termination only; endpoint identity is always scored by
+the two registered distances. Full-donor placement, full-source placement, and
+both clean endpoint margins must pass before intermediate boundaries are
+interpreted.
 
 ### 5.2 Residual-stream patch
 

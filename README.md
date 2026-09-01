@@ -28,6 +28,15 @@ copying or silently modifying it.
 - [ ] Fine-tune and evaluate the matched pi0 control.
 - [ ] Produce the manuscript, figures, and reproducibility package.
 
+Current pilot evidence includes a 15-state prompt-only target contrast whose
+clean action difference is formed near the start of denoising but remains
+causally editable until the last one or two flow updates; a two-state-block
+destination intervention whose four directional curves all switch between flow
+boundaries 7 and 8; and a clean target-pose gripper contrast whose categorical
+closure time commits at boundary 7. These are positive pilot results, not yet
+confirmatory population claims. Exact controls, exclusions, intervals, and
+negative pilots are recorded in `docs/reproducibility_log.md`.
+
 The preregistered protocol is in
 [`docs/research_protocol.md`](docs/research_protocol.md). Source provenance is
 recorded in [`docs/sources.md`](docs/sources.md) and
@@ -71,6 +80,9 @@ selection.
    enforce byte-exact equality of images, proprioception, simulator state, and
    object poses. `generate_instruction_pair_grid.sh` retains the original
    six-contrast LIBERO-90 pilot grid.
+   `generate_postgrasp_instruction_pairs.py` constructs phase-aligned
+   destination fixtures, while `generate_target_pose_pairs.py` changes only a
+   target free joint's registered planar coordinates for closure-timing pairs.
 2. `screen_instruction_pairs.py` evaluates only clean chunks under shared saved
    noise and writes a pre-intervention eligibility table.
 3. `run_pair_interventions.py` runs bidirectional flow switches, residual-stream

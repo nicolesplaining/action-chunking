@@ -14,7 +14,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from action_chunking.analysis import commitment_step, symmetric_mean
-from action_chunking.metrics import LIBERO_ACTION_GROUPS, gripper_closure_position
+from action_chunking.metrics import (
+    LIBERO_ACTION_GROUPS,
+    gripper_closure_position,
+    gripper_closure_time,
+    normalized_causal_transfer,
+)
 
 GROUPS = ("all", "translation", "rotation", "gripper")
 DIRECTIONS = ("base_to_donor", "donor_to_base")
@@ -50,9 +55,8 @@ def main() -> int:
     }
     validity["gripper"] = (
         validity["gripper"]
-        and closure_positions["base"] is not None
-        and closure_positions["donor"] is not None
         and closure_positions["base"] != closure_positions["donor"]
+        and any(position is not None for position in closure_positions.values())
     )
     flow_rows, commitments, curve_statistics = _flow_summary(records, args.threshold, validity)
     _write_csv(args.output / "flow_retention.csv", flow_rows)
@@ -65,6 +69,16 @@ def main() -> int:
     )
     _write_csv(args.output / "formation_contrast.csv", formation_rows)
     _plot_formation_contrast(formation_rows, validity, args.output / "formation_contrast")
+
+    closure_analysis, closure_tables = _gripper_closure_analysis(
+        records,
+        args.gripper_closure_threshold,
+        args.threshold,
+        args.formation_relative_error_tolerance,
+    )
+    for name, rows in closure_tables.items():
+        if rows:
+            _write_csv(args.output / f"gripper_closure_{name}.csv", rows)
 
     residual_rows = _residual_summary(records)
     intervention_peaks: dict[str, Any] = {}
@@ -112,6 +126,7 @@ def main() -> int:
         "valid_contrasts": validity,
         "gripper_closure_threshold": args.gripper_closure_threshold,
         "gripper_closure_positions": closure_positions,
+        "gripper_closure_timing": closure_analysis,
         "intervention_peaks": intervention_peaks,
         "token_mixing": token_mixing,
         "endpoint_l2_contrast": metadata["endpoint_l2_contrast"],
@@ -702,6 +717,213 @@ def _endpoint_contrasts(
         "donor": gripper_closure_position(donor, threshold=gripper_closure_threshold),
     }
     return contrasts, closure_positions
+
+
+def _gripper_closure_analysis(
+    records: list[dict[str, Any]],
+    closure_threshold: float,
+    commitment_threshold: float,
+    formation_tolerance: float,
+) -> tuple[dict[str, Any], dict[str, list[dict[str, Any]]]]:
+    clean_records = {record["direction"]: record for record in records if record["family"] == "clean"}
+    clean_actions = {
+        side: np.asarray(clean_records[side]["actions"], dtype=np.float64)
+        for side in ("base", "donor")
+    }
+    clean_positions = {
+        side: gripper_closure_position(actions, threshold=closure_threshold)
+        for side, actions in clean_actions.items()
+    }
+    clean_times = {
+        side: gripper_closure_time(actions, threshold=closure_threshold)
+        for side, actions in clean_actions.items()
+    }
+    eligible = clean_times["base"] != clean_times["donor"]
+    tables: dict[str, list[dict[str, Any]]] = {
+        "flow_retention": [],
+        "formation": [],
+        "residual_transfer": [],
+        "position_transfer": [],
+        "dimension_transfer": [],
+    }
+    summary: dict[str, Any] = {
+        "eligible": eligible,
+        "right_censoring_value": clean_actions["base"].shape[0],
+        "clean_positions": clean_positions,
+        "clean_times": clean_times,
+        "commitment_step": None,
+        "formation_step": None,
+        "curve_statistics": None,
+        "intervention_peaks": {},
+    }
+    if not eligible:
+        return summary, tables
+
+    flow = [record for record in records if record["family"] == "flow_switch"]
+    directional_retention: dict[str, list[float]] = {}
+    boundaries = None
+    for direction in DIRECTIONS:
+        selected = sorted((record for record in flow if record["direction"] == direction), key=_switch_key)
+        current_boundaries = [int(record["switch_after_steps"]) for record in selected]
+        if boundaries is None:
+            boundaries = current_boundaries
+        elif current_boundaries != boundaries:
+            raise ValueError("gripper-closure flow directions have different grids")
+        source_side, destination_side = (
+            ("base", "donor") if direction == "base_to_donor" else ("donor", "base")
+        )
+        directional_retention[direction] = [
+            1.0
+            - normalized_causal_transfer(
+                [gripper_closure_time(record["actions"], threshold=closure_threshold)],
+                [clean_times[source_side]],
+                [clean_times[destination_side]],
+            )
+            for record in selected
+        ]
+    if boundaries != list(range(len(boundaries or []))):
+        raise ValueError("gripper-closure flow boundaries must form a complete zero-based grid")
+    symmetric = symmetric_mean(
+        directional_retention["base_to_donor"],
+        directional_retention["donor_to_base"],
+    )
+    commitment, fitted = commitment_step(symmetric, commitment_threshold)
+    half_commitment, _ = commitment_step(symmetric, 0.5)
+    normalized_x = np.asarray(boundaries, dtype=np.float64) / boundaries[-1]
+    auc = float(np.trapz(symmetric, normalized_x))
+    summary["commitment_step"] = commitment
+    summary["curve_statistics"] = {
+        "half_commitment_step": half_commitment,
+        "retention_auc": auc,
+        "late_weighting_index": 0.5 - auc,
+        "final_step_marginal_retention": float(fitted[-1] - fitted[-2]),
+    }
+    for index, boundary in enumerate(boundaries):
+        tables["flow_retention"].append(
+            {
+                "switch_after_steps": boundary,
+                "base_to_donor_retention": directional_retention["base_to_donor"][index],
+                "donor_to_base_retention": directional_retention["donor_to_base"][index],
+                "symmetric_retention": float(symmetric[index]),
+                "isotonic_retention": float(fitted[index]),
+                "directional_asymmetry": abs(
+                    directional_retention["base_to_donor"][index]
+                    - directional_retention["donor_to_base"][index]
+                ),
+            }
+        )
+
+    formation = [record for record in records if record["family"] == "formation"]
+    by_side = {
+        side: {int(record["flow_step"]): record for record in formation if record["side"] == side}
+        for side in ("base", "donor")
+    }
+    if set(by_side["base"]) != set(by_side["donor"]):
+        raise ValueError("gripper-closure formation sides have different grids")
+    final_contrast = float(clean_times["donor"] - clean_times["base"])
+    for step in sorted(by_side["base"]):
+        current_contrast = float(
+            gripper_closure_time(by_side["donor"][step]["actions"], threshold=closure_threshold)
+            - gripper_closure_time(by_side["base"][step]["actions"], threshold=closure_threshold)
+        )
+        relative_error = abs(current_contrast - final_contrast) / abs(final_contrast)
+        tables["formation"].append(
+            {
+                "flow_step": step,
+                "base_closure_time": gripper_closure_time(
+                    by_side["base"][step]["actions"], threshold=closure_threshold
+                ),
+                "donor_closure_time": gripper_closure_time(
+                    by_side["donor"][step]["actions"], threshold=closure_threshold
+                ),
+                "contrast": current_contrast,
+                "final_contrast": final_contrast,
+                "contrast_alignment": current_contrast / final_contrast,
+                "contrast_relative_error": relative_error,
+            }
+        )
+    summary["formation_step"] = _persistent_formation_step(
+        [
+            {"flow_step": row["flow_step"], "contrast_relative_error": row["contrast_relative_error"]}
+            for row in tables["formation"]
+        ],
+        formation_tolerance,
+    )
+
+    family_specs = {
+        "residual_transfer": ("residual_patch", ("flow_step", "layer")),
+        "position_transfer": ("residual_patch_position", ("flow_step", "layer", "action_position")),
+        "dimension_transfer": (
+            "action_dimension_patch",
+            ("flow_step", "patched_tensor", "action_dimension_group"),
+        ),
+    }
+    for table_name, (family, fields) in family_specs.items():
+        rows = _gripper_closure_patch_rows(
+            records,
+            family,
+            fields,
+            clean_times,
+            closure_threshold,
+        )
+        tables[table_name] = rows
+        if rows:
+            summary["intervention_peaks"][family] = {
+                "maximum": max(rows, key=lambda row: row["symmetric_ncte"]),
+                "minimum": min(rows, key=lambda row: row["symmetric_ncte"]),
+            }
+    return summary, tables
+
+
+def _gripper_closure_patch_rows(
+    records: list[dict[str, Any]],
+    family: str,
+    fields: tuple[str, ...],
+    clean_times: dict[str, int],
+    threshold: float,
+) -> list[dict[str, Any]]:
+    grouped: dict[tuple[Any, ...], dict[str, dict[str, Any]]] = defaultdict(dict)
+    for record in records:
+        if record["family"] != family:
+            continue
+        values = []
+        for field in fields:
+            if field == "action_position":
+                positions = record["action_positions"]
+                if not isinstance(positions, list) or len(positions) != 1:
+                    raise ValueError("closure position patch must identify one action position")
+                values.append(int(positions[0]))
+            else:
+                values.append(record[field])
+        grouped[tuple(values)][record["direction"]] = record
+    output = []
+    for site, directions in sorted(grouped.items()):
+        if set(directions) != set(DIRECTIONS):
+            raise ValueError(f"gripper-closure site {site} lacks a patch direction")
+        values = []
+        for direction in DIRECTIONS:
+            source_side, destination_side = (
+                ("base", "donor") if direction == "base_to_donor" else ("donor", "base")
+            )
+            current = gripper_closure_time(directions[direction]["actions"], threshold=threshold)
+            values.append(
+                normalized_causal_transfer(
+                    [current],
+                    [clean_times[source_side]],
+                    [clean_times[destination_side]],
+                )
+            )
+        row = {field: value for field, value in zip(fields, site, strict=True)}
+        row.update(
+            {
+                "base_to_donor_ncte": values[0],
+                "donor_to_base_ncte": values[1],
+                "symmetric_ncte": float(np.mean(values)),
+                "directional_asymmetry": abs(values[0] - values[1]),
+            }
+        )
+        output.append(row)
+    return output
 
 
 def _peak_summary(
