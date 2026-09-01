@@ -5,11 +5,13 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 from pathlib import Path
 from typing import Any
 
 import numpy as np
 
+from action_chunking.noninferiority import binomial_upper_bound
 from action_chunking.pairs import file_digest
 
 
@@ -79,8 +81,10 @@ def analyze_early_exit_pilot(
         )
         if not full_actions_exact:
             raise ValueError(f"ten-step early-exit control differs from clean actions: {pair_id}")
-        full_composite = _pair_composite(entry, full_summary)
-        early_composite = _pair_composite(entry, early_summary)
+        full_outcomes = _pair_outcomes(entry, full_summary)
+        early_outcomes = _pair_outcomes(entry, early_summary)
+        full_composite = full_outcomes["composite"]
+        early_composite = early_outcomes["composite"]
         full_compute_exact = bool(full_job["early_exit_compute_exact"])
         early_compute_exact = bool(early_job["early_exit_compute_exact"])
         if not full_compute_exact or not early_compute_exact:
@@ -93,6 +97,17 @@ def analyze_early_exit_pilot(
                 "scene_state_sha256": _scene_state_hash(entry),
                 "eligible": eligible,
                 "full_actions_exact": full_actions_exact,
+                "full_target_first": full_outcomes["target_first"],
+                "early_exit_target_first": early_outcomes["target_first"],
+                "target_first_preserved": bool(
+                    full_outcomes["target_first"] and early_outcomes["target_first"]
+                ),
+                "full_eventual_success": full_outcomes["eventual_success"],
+                "early_exit_eventual_success": early_outcomes["eventual_success"],
+                "eventual_success_preserved": bool(
+                    full_outcomes["eventual_success"]
+                    and early_outcomes["eventual_success"]
+                ),
                 "full_composite": full_composite,
                 "early_exit_composite": early_composite,
                 "composite_preserved": bool(full_composite and early_composite),
@@ -109,6 +124,12 @@ def analyze_early_exit_pilot(
     if len(eligible_rows) != 15:
         raise ValueError("early-exit pilot requires exactly 15 frozen clean-eligible clusters")
     preserved = sum(row["composite_preserved"] for row in eligible_rows)
+    target_first_preserved = sum(
+        row["target_first_preserved"] for row in eligible_rows
+    )
+    eventual_success_preserved = sum(
+        row["eventual_success_preserved"] for row in eligible_rows
+    )
     latency = np.asarray(
         [row["first_replan_latency_savings_fraction"] for row in eligible_rows],
         dtype=np.float64,
@@ -116,6 +137,15 @@ def analyze_early_exit_pilot(
     if np.any(~np.isfinite(latency)):
         raise ValueError("early-exit latency savings must be finite")
     median_latency = float(np.median(latency))
+    latency_interval = _bootstrap_median_interval(latency)
+    positive_latency_clusters = int(np.count_nonzero(latency > 0.0))
+    negative_latency_clusters = int(np.count_nonzero(latency < 0.0))
+    latency_sign_p = _two_sided_sign_test_p(
+        positive_latency_clusters, negative_latency_clusters
+    )
+    preservation_interval = _clopper_pearson_interval(
+        preserved, len(eligible_rows)
+    )
     compute_exact = all(
         row["full_compute_exact"] and row["early_exit_compute_exact"]
         for row in eligible_rows
@@ -126,11 +156,19 @@ def analyze_early_exit_pilot(
         "frozen_scene_states": 16,
         "eligible_scene_clusters": len(eligible_rows),
         "full_control_exact_clusters": sum(row["full_actions_exact"] for row in eligible_rows),
+        "target_first_preserved_clusters": target_first_preserved,
+        "eventual_success_preserved_clusters": eventual_success_preserved,
         "composite_preserved_clusters": preserved,
+        "composite_preservation_rate": preserved / len(eligible_rows),
+        "composite_preservation_clopper_pearson_ci95": preservation_interval,
         "minimum_preserved_clusters": 14,
         "all_compute_counts_exact": compute_exact,
         "velocity_evaluation_savings_fraction": 0.3 if compute_exact else None,
         "median_first_replan_latency_savings_fraction": median_latency,
+        "median_first_replan_latency_savings_fraction_bootstrap_ci95": latency_interval,
+        "positive_latency_savings_clusters": positive_latency_clusters,
+        "negative_latency_savings_clusters": negative_latency_clusters,
+        "latency_savings_two_sided_sign_test_p": latency_sign_p,
         "pilot_positive": bool(
             preserved >= 14 and compute_exact and median_latency > 0.0
         ),
@@ -255,14 +293,25 @@ def _artifact_pair_root(root: Path, pair_id: str) -> Path:
 
 
 def _pair_composite(entry: dict[str, Any], summary: dict[str, Any]) -> bool:
+    return _pair_outcomes(entry, summary)["composite"]
+
+
+def _pair_outcomes(entry: dict[str, Any], summary: dict[str, Any]) -> dict[str, bool]:
     by_side = {result["side"]: result for result in summary["results"]}
     if set(by_side) != {"base", "donor"}:
         raise ValueError("early-exit pair summary must contain both directions")
-    return all(
-        bool(by_side[side]["success"])
-        and _first_contact(by_side[side]) == entry[f"{side}_target"]
+    target_first = all(
+        _first_contact(by_side[side]) == entry[f"{side}_target"]
         for side in ("base", "donor")
     )
+    eventual_success = all(
+        bool(by_side[side]["success"]) for side in ("base", "donor")
+    )
+    return {
+        "target_first": bool(target_first),
+        "eventual_success": bool(eventual_success),
+        "composite": bool(target_first and eventual_success),
+    }
 
 
 def _first_contact(result: dict[str, Any]) -> str | None:
@@ -283,6 +332,43 @@ def _first_replan_cluster_latency(summary: dict[str, Any]) -> float:
             raise ValueError("early-exit summary lacks one positive first-replan latency")
         values.append(float(first[0]["integration_ms"]))
     return float(np.mean(values))
+
+
+def _bootstrap_median_interval(
+    values: np.ndarray, *, samples: int = 10_000, seed: int = 0
+) -> list[float]:
+    if values.ndim != 1 or values.size == 0 or samples <= 0:
+        raise ValueError("latency bootstrap requires nonempty one-dimensional values")
+    rng = np.random.default_rng(seed)
+    indices = rng.integers(0, values.size, size=(samples, values.size))
+    medians = np.median(values[indices], axis=1)
+    return [float(value) for value in np.quantile(medians, [0.025, 0.975])]
+
+
+def _clopper_pearson_interval(successes: int, trials: int) -> list[float]:
+    if not 0 <= successes <= trials or trials <= 0:
+        raise ValueError("invalid exact-binomial counts")
+    alpha = 0.025
+    lower = (
+        0.0
+        if successes == 0
+        else 1.0 - binomial_upper_bound(trials - successes, trials, alpha)
+    )
+    upper = (
+        1.0
+        if successes == trials
+        else binomial_upper_bound(successes, trials, alpha)
+    )
+    return [float(lower), float(upper)]
+
+
+def _two_sided_sign_test_p(positive: int, negative: int) -> float:
+    trials = positive + negative
+    if trials == 0:
+        return 1.0
+    extreme = min(positive, negative)
+    tail = sum(math.comb(trials, value) for value in range(extreme + 1))
+    return min(1.0, 2.0 * tail / (2**trials))
 
 
 if __name__ == "__main__":

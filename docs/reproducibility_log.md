@@ -36,6 +36,15 @@ jobs, seed zero, strict inputs, exact simulator state and first chunk, matching
 manifest simulator-state hashes, and success/contact recomputed from each
 immutable `noise_0` pair artifact. The test fixture now reproduces this schema.
 
+The corrected frozen analysis then passed its original decision rule: 14 of 15
+eligible clusters preserved the target-first-plus-eventual-success composite,
+all compute counts were exact, and median first-replan latency savings were
+positive. After that decision, reporting-only fields were added to separate
+target-first contact from eventual success and to provide an exact binomial
+interval, a seed-zero 10,000-resample scene bootstrap interval for median
+latency savings, and a two-sided sign test. These additions do not change
+eligibility, the 14/15 threshold, the latency sign gate, or `pilot_positive`.
+
 ## 2026-09-01: executed-action early-exit pilot frozen
 
 Protocol version 0.18 was frozen after the population action-position result and

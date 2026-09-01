@@ -24,10 +24,20 @@ def test_early_exit_pilot_uses_scene_clusters_and_exact_full_control(tmp_path) -
 
     assert len(rows) == 16
     assert summary["eligible_scene_clusters"] == 15
+    assert summary["target_first_preserved_clusters"] == 15
+    assert summary["eventual_success_preserved_clusters"] == 14
     assert summary["composite_preserved_clusters"] == 14
+    assert summary["composite_preservation_rate"] == 14 / 15
+    assert summary["composite_preservation_clopper_pearson_ci95"][0] < 14 / 15
     assert summary["full_control_exact_clusters"] == 15
     assert summary["velocity_evaluation_savings_fraction"] == 0.3
     assert summary["median_first_replan_latency_savings_fraction"] == 0.3
+    assert summary["median_first_replan_latency_savings_fraction_bootstrap_ci95"] == [
+        0.3,
+        0.3,
+    ]
+    assert summary["positive_latency_savings_clusters"] == 15
+    assert summary["latency_savings_two_sided_sign_test_p"] < 0.001
     assert summary["pilot_positive"] is True
 
 
