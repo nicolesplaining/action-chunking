@@ -52,6 +52,8 @@ def main() -> int:
         "progress_sha256": file_digest(args.root / "progress.json"),
         "warmup_sessions": len(warmups),
         "warmup_sessions_sha256": file_digest(args.root / "warmup_sessions.jsonl"),
+        "source_artifact_files": 3 * EXPECTED + 5,
+        "source_artifact_manifest_sha256": _source_artifact_manifest_digest(args.root),
         "rows": rows,
     }
     (args.output / "summary.json").write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n")
@@ -74,14 +76,64 @@ def _load_pairs(root: Path) -> list[dict[str, Any]]:
         or len(progress.get("jobs", [])) != EXPECTED
     ):
         raise ValueError("confirmation progress is incomplete or incompatible")
+    pair_root = root / "pairs"
+    expected_directories = {
+        _pair_key(task_id, trial_index)
+        for task_id in range(TASKS)
+        for trial_index in range(TRIALS)
+    }
+    observed_directories = {path.name for path in pair_root.iterdir() if path.is_dir()}
+    if observed_directories != expected_directories:
+        raise ValueError("confirmation pair directories do not match the frozen grid")
     pairs = []
     for task_id in range(TASKS):
         for trial_index in range(TRIALS):
-            path = root / "pairs" / _pair_key(task_id, trial_index) / "pair_summary.json"
-            pairs.append(json.loads(path.read_text()))
+            directory = pair_root / _pair_key(task_id, trial_index)
+            expected_files = {"early_exit_7.json", "full_control_10.json", "pair_summary.json"}
+            if {path.name for path in directory.iterdir() if path.is_file()} != expected_files:
+                raise ValueError("confirmation pair directory has missing or unexpected files")
+            pair = json.loads((directory / "pair_summary.json").read_text())
+            _validate_condition_files(directory, pair)
+            pairs.append(pair)
     if {str(pair.get("code_commit")) for pair in pairs} != {str(progress["code_commit"])}:
         raise ValueError("confirmation progress and pairs use different code commits")
     return pairs
+
+
+def _validate_condition_files(directory: Path, pair: dict[str, Any]) -> None:
+    for condition in CONDITIONS:
+        path = directory / f"{condition}.json"
+        if not path.is_file() or json.loads(path.read_text()) != pair.get(condition):
+            raise ValueError(f"confirmation {condition} file differs from pair summary")
+
+
+def _source_artifact_manifest_digest(root: Path) -> str:
+    paths = [
+        root / "code_commit.txt",
+        root / "gpu_preflight.csv",
+        root / "pilot_summary.sha256",
+        root / "progress.json",
+        root / "warmup_sessions.jsonl",
+    ]
+    for task_id in range(TASKS):
+        for trial_index in range(TRIALS):
+            directory = root / "pairs" / _pair_key(task_id, trial_index)
+            paths.extend(
+                directory / name
+                for name in (
+                    "early_exit_7.json",
+                    "full_control_10.json",
+                    "pair_summary.json",
+                )
+            )
+    digest = hashlib.sha256()
+    for path in paths:
+        relative = str(path.relative_to(root))
+        digest.update(relative.encode())
+        digest.update(b"\0")
+        digest.update(file_digest(path).encode())
+        digest.update(b"\n")
+    return digest.hexdigest()
 
 
 def _validate_progress(
