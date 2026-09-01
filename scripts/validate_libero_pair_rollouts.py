@@ -43,6 +43,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--destination-persistence-steps", type=int, default=5)
     parser.add_argument("--dynamic-retarget-strategy", choices=("continue", "restart"))
     parser.add_argument("--dynamic-retarget-boundary", type=int)
+    parser.add_argument("--sides", default="base,donor")
     return parser.parse_args()
 
 
@@ -52,6 +53,7 @@ def main() -> int:
     if args.destination_radius <= 0.0 or args.destination_persistence_steps <= 0:
         raise ValueError("destination radius and persistence steps must be positive")
     dynamic_retarget = _dynamic_retarget_spec(args)
+    sides = _sides(args.sides)
     manifest = json.loads(args.manifest.read_text())
     entry = _manifest_entry(manifest, args.pair_id)
     pair = load_instruction_pair(args.manifest.parent / entry["fixture"])
@@ -86,7 +88,7 @@ def main() -> int:
         expected = _clean_screen_actions(args.expected_clean_screen, args.pair_id, args.noise_seed)
 
     results = []
-    for side in ("base", "donor"):
+    for side in sides:
         result = _rollout(
             side,
             bddl_paths[side],
@@ -105,6 +107,8 @@ def main() -> int:
         "pair_id": args.pair_id,
         "noise_seed": args.noise_seed,
         "shared_noise_by_replan_index": True,
+        "requested_sides": sides,
+        "all_successful": all(result["success"] for result in results),
         "both_successful": all(result["success"] for result in results),
         "intervention": intervention,
         "intervene_replans": args.intervene_replans if intervention is not None else None,
@@ -118,6 +122,13 @@ def main() -> int:
     (args.output / "summary.json").write_text(json.dumps(summary, indent=2, sort_keys=True) + "\n")
     print(json.dumps(summary, indent=2, sort_keys=True))
     return 0 if summary["both_successful"] else 1
+
+
+def _sides(value: str) -> list[str]:
+    sides = [side.strip() for side in value.split(",") if side.strip()]
+    if not sides or len(sides) != len(set(sides)) or not set(sides) <= {"base", "donor"}:
+        raise ValueError("sides must be a nonempty unique subset of base,donor")
+    return sides
 
 
 def _rollout(

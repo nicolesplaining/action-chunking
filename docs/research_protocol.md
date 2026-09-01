@@ -137,6 +137,17 @@ state-level accuracy and Spearman correlation; the useful claim requires
 out-of-sample scene states and cannot be established from the original 15
 mechanistic states alone.
 
+The state-level predictor is frozen before inspecting any intermediate
+continuation outcome. On the exact eligible fixture and shared noise, run the
+offline source-to-new-condition flow switch and compute direction-specific
+target-approach retention. The endpoint target-affinity contrast must be at
+least 0.01. Let `k*` be the earliest boundary whose isotonic retention reaches
+0.8 and remains there; the preregistered predicted last successful continued
+boundary is `k* - 1`. Predictions, including invalid contrasts, are serialized
+before the closed-loop boundary sweep. The symmetric population curve remains
+the primary mechanistic summary, but it is not substituted for this
+direction-matched utility predictor.
+
 ### 2.5 Post-pilot behavioral-sensitivity amendment
 
 This amendment was added after inspecting the state-zero dynamic-retargeting
@@ -204,6 +215,28 @@ atom substitution. The substituted atom's goal-argument position distinguishes
 a manipulated-object change from a destination/subgoal change; these families
 are never pooled. Public suite-level competence is established first, followed
 by pair-level clean closed-loop validation.
+
+### 4.1 Frozen pi0 competence gate
+
+The matched pi0 checkpoint is evaluated only after the 30,000-update Orbax
+checkpoint has finalized. Before any pi0 intervention outcome is inspected, it
+must pass both levels of the following gate:
+
+1. The unchanged public OpenPI evaluator runs 50 episodes for each of the ten
+   `libero_goal` tasks. The 500-episode success estimate must be at least 90%,
+   and its Wilson 95% lower bound must be at least 87%.
+2. On the 16 held-out wine-bottle-versus-bowl scene pairs with shared noise seed
+   zero, at least 12 pairs must be dual-successful, restore exact inputs and
+   simulator state, and contact the instructed object first in both directions.
+
+The 90% suite threshold is fixed below the public pi0.5-LIBERO-goal reference
+of 98.0% but high enough that causal differences are not dominated by a broadly
+incompetent control. The 12/16 pair threshold ensures a minimum paired overlap
+for descriptive model contrasts. Primary pi0-versus-pi0.5 estimates use only
+the clean-eligible state intersection and retain every exclusion. If either
+level fails, pi0 is reported as a competence-limited negative control and no
+architectural timing comparison is claimed; the gate is not relaxed or rescued
+by selecting a later checkpoint.
 
 1. **Instruction target:** identical scene with two valid objects; change only
    the target phrase in the instruction.

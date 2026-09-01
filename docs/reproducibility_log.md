@@ -136,6 +136,23 @@ after initialization, including first-step compilation, and Orbax checkpoint 1
 finalized without an asynchronous-save error. This establishes that the matched
 training pipeline is executable; it is not a policy-performance result.
 
+At training step approximately 16,800, before any pi0 evaluation or
+intervention outcome existed, the competence gate was made numerical. The
+finalized step-30,000 policy must achieve at least 90% success over the unchanged
+500-episode `libero_goal` evaluation with a Wilson 95% lower bound of at least
+87%, and at least 12/16 dual-successful exact held-out target-pair controls at
+noise seed zero. Model contrasts use only the clean-eligible intersection. A
+failed gate is reported as competence limitation; thresholds and checkpoint
+selection are not revised after evaluation.
+
+Before any held-out intermediate continuation boundary was run, U1's predictor
+was also made executable and directional. It uses the exact eligible fixture,
+shared noise, offline old-to-new flow switch, target-direction affinity contrast
+of at least 0.01, and the existing 0.8 isotonic retention threshold. If the
+editability boundary is `k*`, the frozen prediction is that `k* - 1` is the last
+successful no-restart correction boundary. The prediction file must predate the
+corresponding closed-loop boundary outputs.
+
 The first smoke attempt exposed two reproducibility hazards and produced no
 update. It used LeRobot's incomplete default cache and received an anonymous
 Hugging Face HTTP 429 while fetching missing shards. Both training launchers now
