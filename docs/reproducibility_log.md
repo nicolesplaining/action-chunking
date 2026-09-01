@@ -1,5 +1,14 @@
 # Reproducibility log
 
+## 2026-09-01: confirmation paper promotion made hash-gated
+
+Before the sealed confirmation completed, its future paper promotion was made
+a distinct immutable step. The promoter requires exact original/hardened audit
+agreement, the hardened 1,505-file source digest, a figure manifest bound to
+that hardened summary, and unchanged PDF/PNG hashes. It copies both run and
+audit code identities and refuses to overwrite an existing result directory.
+Positive and negative confirmations use the same path and artifact schema.
+
 ## 2026-09-01: sealed-confirmation figure path fixed before completion
 
 While the 500-pair confirmation was incomplete, a separate publication figure
