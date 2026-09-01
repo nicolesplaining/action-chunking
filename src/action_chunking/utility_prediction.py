@@ -12,6 +12,32 @@ import numpy as np
 from action_chunking.analysis import commitment_step
 from action_chunking.metrics import target_direction_affinity
 
+PI05_ACTION_SHAPE = (10, 7)
+PI05_ACTION_NOISE_SHAPE = (10, 32)
+
+
+def validate_pi05_prediction_arrays(
+    actions_by_boundary: dict[int, np.ndarray],
+    restart: np.ndarray,
+    noise: np.ndarray,
+) -> None:
+    """Validate complete finite pi0.5 arrays before prediction or audit."""
+    if set(actions_by_boundary) != set(range(11)):
+        raise ValueError("pi0.5 prediction requires action arrays for boundaries 0..10")
+    action_arrays = [*actions_by_boundary.values(), restart]
+    if any(array.shape != PI05_ACTION_SHAPE for array in action_arrays):
+        raise ValueError(
+            f"pi0.5 prediction requires physical action shape {PI05_ACTION_SHAPE}"
+        )
+    if noise.shape != PI05_ACTION_NOISE_SHAPE:
+        raise ValueError(
+            f"pi0.5 prediction requires action noise shape {PI05_ACTION_NOISE_SHAPE}"
+        )
+    if any(not np.issubdtype(array.dtype, np.number) for array in [*action_arrays, noise]):
+        raise ValueError("pi0.5 prediction arrays must be numeric")
+    if any(not np.all(np.isfinite(array)) for array in [*action_arrays, noise]):
+        raise ValueError("pi0.5 prediction arrays must be finite")
+
 
 def validate_eligible_retarget_row(row: dict[str, Any]) -> None:
     """Reject an eligible row unless every frozen endpoint control passed."""
@@ -114,13 +140,9 @@ def audit_prediction_artifacts(
         }
         restart = np.asarray(archive["restart"])
         noise = np.asarray(archive["noise"])
-    action_shapes = {value.shape for value in actions_by_boundary.values()}
+    validate_pi05_prediction_arrays(actions_by_boundary, restart, noise)
     if (
-        len(action_shapes) != 1
-        or restart.shape not in action_shapes
-        or restart.shape != (10, 7)
-        or noise.shape != (10, 32)
-        or tuple(restart.shape) != tuple(prediction.get("action_shape", []))
+        tuple(restart.shape) != tuple(prediction.get("action_shape", []))
         or tuple(noise.shape) != tuple(prediction.get("action_noise_shape", []))
     ):
         raise ValueError("prediction action archive has invalid shapes")

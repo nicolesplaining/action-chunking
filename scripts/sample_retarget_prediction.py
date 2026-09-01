@@ -14,7 +14,11 @@ from openpi_client import websocket_client_policy
 
 from action_chunking.metrics import target_direction_affinity
 from action_chunking.pairs import action_noise_shape, advance_action_noise, load_instruction_pair
-from action_chunking.utility_prediction import predict_last_successful_boundary
+from action_chunking.utility_prediction import (
+    PI05_ACTION_NOISE_SHAPE,
+    predict_last_successful_boundary,
+    validate_pi05_prediction_arrays,
+)
 
 
 def parse_args() -> argparse.Namespace:
@@ -45,9 +49,10 @@ def main() -> int:
     if "dynamic_retarget" not in metadata.get("causal_intervention_families", []):
         raise ValueError("server does not advertise dynamic retargeting")
     noise_shape = action_noise_shape(metadata)
-    if noise_shape != (10, 32):
+    if noise_shape != PI05_ACTION_NOISE_SHAPE:
         raise ValueError(
-            f"pi0.5 retarget prediction requires action noise shape (10, 32), got {noise_shape}"
+            "pi0.5 retarget prediction requires action noise shape "
+            f"{PI05_ACTION_NOISE_SHAPE}, got {noise_shape}"
         )
     noise_rng = np.random.default_rng(args.noise_seed)
     source_replan_index = int(entry.get("source_replan_index") or 0)
@@ -77,11 +82,7 @@ def main() -> int:
             }
         )
     restart = np.asarray(_infer(client, pair, args.new_side, 0, "restart", noise)["actions"])
-    action_shapes = {actions.shape for actions in actions_by_boundary.values()}
-    if action_shapes != {(10, 7)} or restart.shape != (10, 7):
-        raise ValueError(
-            "pi0.5 retarget prediction requires every physical action chunk to have shape (10, 7)"
-        )
+    validate_pi05_prediction_arrays(actions_by_boundary, restart, noise)
     if not np.array_equal(restart, actions_by_boundary[0]):
         raise ValueError("boundary-zero continuation differs from clean restart")
     try:
