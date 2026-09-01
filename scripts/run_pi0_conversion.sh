@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-if [[ $# -ne 7 ]]; then
-  echo "usage: $0 <repo-root> <jax-checkpoint-label-29999> <competence-gate> <manifest> <pytorch-output> <parity-output> <gpu>" >&2
+if [[ $# -ne 8 ]]; then
+  echo "usage: $0 <repo-root> <jax-checkpoint-label-29999> <competence-gate> <manifest> <prior-failed-parity> <pytorch-output> <parity-output> <gpu>" >&2
   exit 2
 fi
 
@@ -10,9 +10,10 @@ repo_root="$(realpath "$1")"
 jax_checkpoint="$(realpath "$2")"
 competence_gate="$(realpath "$3")"
 manifest="$(realpath "$4")"
-pytorch_output="$(realpath -m "$5")"
-parity_output="$(realpath -m "$6")"
-gpu="$7"
+prior_failed_parity="$(realpath "$5")"
+pytorch_output="$(realpath -m "$6")"
+parity_output="$(realpath -m "$7")"
+gpu="$8"
 openpi="$repo_root/third_party/openpi"
 pinned_openpi="215abfb217dbac7d5f1273282331b9b1866c0479"
 actual_openpi="$(git -C "$openpi" rev-parse HEAD)"
@@ -40,6 +41,14 @@ if [[ -e "$pytorch_output" || -e "$parity_output/summary.json" ]]; then
   echo "conversion or parity output already exists" >&2
   exit 1
 fi
+if ! PYTHONPATH="$repo_root/src" "$repo_root/.venv/bin/python" \
+  "$repo_root/scripts/validate_prior_conversion_failure.py" \
+  --summary "$prior_failed_parity" \
+  --jax-checkpoint "$jax_checkpoint" \
+  --manifest "$manifest" >/dev/null; then
+  echo "lossless conversion is not bound to the preserved bfloat16 failure" >&2
+  exit 1
+fi
 
 env CUDA_VISIBLE_DEVICES="$gpu" XLA_PYTHON_CLIENT_PREALLOCATE=false \
   PYTHONPATH="$repo_root/src:$openpi" \
@@ -48,6 +57,7 @@ env CUDA_VISIBLE_DEVICES="$gpu" XLA_PYTHON_CLIENT_PREALLOCATE=false \
   --config-name pi0_libero \
   --output-path "$pytorch_output" \
   --upstream-converter "$openpi/examples/convert_jax_model_to_pytorch.py" \
+  --prior-failed-summary "$prior_failed_parity" \
   --upstream-revision "$actual_openpi"
 
 if [[ ! -f "$pytorch_output/model.safetensors" || ! -f "$pytorch_output/config.json" || ! -f "$pytorch_output/conversion_provenance.json" ]]; then

@@ -468,6 +468,21 @@ the OpenPI submodule revision, the public repair commit, and both conversion
 precision choices in `conversion_provenance.json`; the parity gate hashes this
 file alongside the config and weights.
 
+Before the lossless converter may write a checkpoint, a separate preflight now
+requires the preserved bfloat16 result itself: exactly the same finalized JAX
+checkpoint identity, 16-pair manifest and 32 directional cases, seed-zero
+noise, `[50, 7]` physical-action shape, 0.02/0.999 tolerances, 24/32 passing
+cases, maximum error 2.0130362831905284, minimum cosine 0.805807150674655, and
+the original converted config/weight hashes. The new parity summary embeds the
+prior summary hash and failure metrics. The pi0 intervention gate requires this
+binding in addition to 32/32 lossless parity, preventing an apparent repair
+from changing the checkpoint, case set, or comparison thresholds.
+The committed preflight was then executed read-only against the real remote
+artifacts and passed all checks. The preserved failed-summary SHA-256 is
+`d6712dc48f783bf9815c536152157f5296a7ae03abe38375d699b125013a0d4d`;
+its original converted config and weight hashes are retained in the preflight
+record. No lossless checkpoint or parity output was created during this check.
+
 ## 2026-09-01: utility-prediction sample-size gate
 
 Before any public-catalog continuation rollout or action-only prediction
@@ -502,6 +517,15 @@ numeric regression tests pin the four-loss and five-loss Clopper--Pearson
 decision boundary, and a negative-latency case verifies that behavioral
 preservation alone cannot pass. No outcome, threshold, denominator, estimand,
 or active rollout code changed.
+
+At 57/500 rows, a post-run handoff was added without reading another outcome
+field or changing the active checkout. The registered original analyzer must
+finish first in its existing `analysis` directory. The handoff then copies that
+summary into an immutable original slot, runs the current hardened analyzer in
+a distinct directory, and requires exact equality for every registered field,
+all ten task strata, and all 500 rows. Only the hardened 1,505-file count and
+source-manifest digest may be additional fields. A disagreement produces no
+audit-positive comparison and never overwrites the original result.
 
 ## 2026-09-01: publication-artifact audit
 

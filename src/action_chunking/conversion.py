@@ -2,9 +2,18 @@
 
 from __future__ import annotations
 
+import json
+import re
+from pathlib import Path
 from typing import Any
 
 import numpy as np
+
+from action_chunking.pairs import file_digest
+from action_chunking.pi0_checkpoint import validate_pi0_final_checkpoint
+
+PRIOR_FAILURE_MAXIMUM_ABS_ERROR = 2.0130362831905284
+PRIOR_FAILURE_MINIMUM_COSINE = 0.805807150674655
 
 
 def conversion_parity_summary(
@@ -54,4 +63,76 @@ def conversion_parity_summary(
         "passed_cases": sum(row["passed"] for row in rows),
         "passed": all(row["passed"] for row in rows),
         "rows": rows,
+    }
+
+
+def validate_prior_conversion_failure(
+    summary_path: Path,
+    jax_checkpoint: Path,
+    manifest_path: Path,
+) -> dict[str, Any]:
+    """Bind a lossless rerun to the preserved 24/32 bfloat16 failure."""
+    if not summary_path.is_file():
+        raise FileNotFoundError("prior failed conversion summary is missing")
+    summary = json.loads(summary_path.read_text())
+    manifest = json.loads(manifest_path.read_text())
+    expected_cases = {
+        f"{entry['pair_id']}:{side}"
+        for entry in manifest["pairs"]
+        for side in ("base", "donor")
+    }
+    observed_cases = {str(row.get("case")) for row in summary.get("rows", [])}
+    required = {
+        "schema_version": 1,
+        "config": "pi0_libero",
+        "noise_seed": 0,
+        "cases": 32,
+        "shape_per_case": [50, 7],
+        "max_abs_tolerance": 0.02,
+        "minimum_cosine_similarity": 0.999,
+        "passed_cases": 24,
+        "passed": False,
+    }
+    mismatched = {
+        key: {"expected": expected, "actual": summary.get(key)}
+        for key, expected in required.items()
+        if summary.get(key) != expected
+    }
+    if mismatched:
+        raise ValueError(f"prior conversion failure differs from frozen audit: {mismatched}")
+    if (
+        Path(summary.get("jax_checkpoint", "")).resolve() != jax_checkpoint.resolve()
+        or summary.get("jax_checkpoint_identity")
+        != validate_pi0_final_checkpoint(jax_checkpoint)
+    ):
+        raise ValueError("prior conversion failure used a different JAX checkpoint")
+    if (
+        summary.get("manifest_sha256") != file_digest(manifest_path)
+        or observed_cases != expected_cases
+        or len(summary.get("rows", [])) != len(expected_cases)
+        or len(expected_cases) != 32
+    ):
+        raise ValueError("prior conversion failure used a different case manifest")
+    if sum(bool(row.get("passed")) for row in summary["rows"]) != 24:
+        raise ValueError("prior conversion failure rows disagree with the pass count")
+    if (
+        float(summary.get("maximum_case_abs_error", -1.0))
+        != PRIOR_FAILURE_MAXIMUM_ABS_ERROR
+        or float(summary.get("minimum_case_cosine_similarity", -1.0))
+        != PRIOR_FAILURE_MINIMUM_COSINE
+    ):
+        raise ValueError("prior conversion failure metrics differ from the preserved result")
+    artifact_hashes = summary.get("pytorch_checkpoint_artifact_sha256", {})
+    if set(artifact_hashes) != {"config.json", "model.safetensors"} or not all(
+        re.fullmatch(r"[0-9a-f]{64}", str(value)) for value in artifact_hashes.values()
+    ):
+        raise ValueError("prior conversion failure has invalid checkpoint hashes")
+    return {
+        "path": str(summary_path),
+        "sha256": file_digest(summary_path),
+        "passed_cases": 24,
+        "cases": 32,
+        "maximum_case_abs_error": PRIOR_FAILURE_MAXIMUM_ABS_ERROR,
+        "minimum_case_cosine_similarity": PRIOR_FAILURE_MINIMUM_COSINE,
+        "pytorch_checkpoint_artifact_sha256": artifact_hashes,
     }
