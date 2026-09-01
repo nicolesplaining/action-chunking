@@ -1,5 +1,48 @@
 # Reproducibility log
 
+## 2026-09-01: protocol and future-run artifact gates independently audited
+
+Protocol version 0.23 synchronizes the machine-readable study constants with
+the already registered utility and matched-control procedures. It records the
+first-59-eligible-clusters-or-exhaustion stop rule, the frozen boundary-seven
+comparator, separate conservative noninferiority checks for target-first
+contact, eventual task success, and their composite, exact compute accounting,
+and a latency-savings interval above zero. A regression test now compares these
+values with the executable function defaults. This is a specification audit;
+the numerical thresholds and outcome definitions are not selected from held-out
+continuation results.
+
+Before any repaired pi0 conversion or pi0 activation intervention, the
+conversion launcher was fixed to forward the preserved 24/32 bfloat16 failure
+into the final parity analyzer. The new parity artifact hashes weights, model
+configuration, conversion provenance, and every normalization asset. The
+intervention launcher recomputes these hashes, the exact 16-pair manifest
+digest, all 32 case identities, and the finalized 30,000-update checkpoint
+identity before patching is allowed. The real frozen checkpoint contains one
+normalization asset, so this stronger binding does not change its runtime.
+
+The future held-out recovery handoff now independently reconstructs catalog
+counts from the contiguous frozen job prefix, rejects continuation after the
+first threshold crossing, and verifies eligible pair IDs, seed zero, the
+five-action event horizon, source-pair lineage, and duplicate directions. Each
+completed 12-condition recovery sweep is re-audited for all boundaries zero
+through ten, exact boundary-zero continue/restart actions, exact simulator and
+controller replay, exact initial inputs, and first-replan-only intervention
+before population analysis. No held-out continuation outcome existed when
+these checks were added.
+
+The obstacle follow-up is explicitly scoped to gripper-geometry contact with a
+moved object plus an end-effector planar-clearance proxy. It is not a whole-arm
+or whole-robot collision certificate. Its exploratory practical flag now also
+requires exact boundary-zero action equality and all registered identity
+controls. No obstacle intervention outcome existed when this correction was
+made.
+
+The separate 500-pair early-exit confirmation remained isolated at its original
+frozen commit throughout this audit. It had completed 108/500 pair-atomic keys
+at the last read-only check; no interim rate was interpreted, and none of the
+future-run changes above alter its estimator, denominator, or gate.
+
 ## 2026-09-01: twelve-state matched-control overlap frozen
 
 Protocol version 0.22 was frozen while the pi0 suite evaluation was incomplete

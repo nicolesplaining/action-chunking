@@ -1,6 +1,6 @@
 study:
   name: pi05_libero_conditional_editability
-  protocol_version: "0.6"
+  protocol_version: "0.23"
   pilot_pairs_per_family: 16
   primary_noise_seed: 0
   robustness_noise_seeds_per_pair: 4
@@ -27,8 +27,35 @@ retarget_utility:
   primary_efficiency_boundary: 7
   negative_control_boundaries: [9, 10]
   paired_noninferiority_margin: 0.05
+  paired_noninferiority_alpha_one_sided: 0.05
+  noninferiority_outcomes:
+    - new_target_first
+    - eventual_new_task_success
+    - target_first_and_task_success_composite
   minimum_eligible_scene_clusters: 59
-  stop_rule: public_catalog_exhaustion
+  stop_rule: first_59_eligible_scene_clusters_or_public_catalog_exhaustion
+  prediction_fixed_boundary_comparator: 7
+  prediction_bootstrap_replicates: 10000
+  prediction_bootstrap_seed: 0
+  practical_gate_requires_complete_frozen_population: true
+  practical_gate_requires_exact_boundary_zero: true
+  practical_gate_requires_latency_ci_low_above_zero: true
+
+early_exit_confirmation:
+  conditions:
+    early_exit_flow_steps: 7
+    full_control_flow_steps: 10
+  task_count: 10
+  trials_per_task: 50
+  paired_episode_keys: 500
+  condition_rollouts: 1000
+  paired_loss_margin: 0.02
+  maximum_passing_paired_losses: 4
+  alpha_one_sided: 0.05
+  bootstrap_replicates: 10000
+  bootstrap_seed: 0
+  evaluation_savings_fraction: 0.30
+  require_balanced_order_per_task: true
 
 pair_families:
   - instruction_target
@@ -47,8 +74,8 @@ action_groups:
   auxiliary: []
 
 pilot_eligibility:
-  # Provisional clean-endpoint thresholds. Re-estimate using all 16 pilot
-  # pairs, then freeze before confirmatory data are generated.
+  # Frozen clean-endpoint thresholds. They are not re-estimated from held-out
+  # continuation, recovery, or matched-control outcomes.
   minimum_action_group_l2: 0.01
   minimum_target_direction_contrast: 0.01
   formation_relative_error_tolerance: 0.2
@@ -61,9 +88,30 @@ pilot_eligibility:
   target_pose_requires_first_target_contact: true
 
 analysis:
-  cluster_unit: scene_pair
+  cluster_unit: scene_state_sha256
   bootstrap_replicates: 10000
   fdr_method: benjamini_hochberg
   fdr_family: property_x_intervention
   target_pose_token_followup_flow_steps: [6, 7, 8]
   target_pose_token_followup_layers: [0, 8, 14, 17]
+  population_position_flow_steps: [0, 7, 8, 9]
+  population_position_layers: [0, 8, 14, 17]
+  pi05_action_horizon: 10
+  pi0_action_horizon: 50
+  normalized_chunk_time_bins: 10
+
+matched_pi0:
+  optimizer_updates: 30000
+  final_checkpoint_label: 29999
+  parity_cases: 32
+  parity_shape_per_case: [50, 7]
+  maximum_absolute_error: 0.02
+  minimum_cosine_similarity: 0.999
+  minimum_common_scene_pairs: 12
+  require_normalization_asset_hashes: true
+
+obstacle_pilot:
+  contact_definition: gripper_geom_x_obstacle_contact_geom
+  clearance_definition: eef_center_planar_distance_minus_obstacle_bounding_radius
+  whole_robot_collision_measured: false
+  population_claim_allowed: false
