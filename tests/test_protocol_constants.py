@@ -18,7 +18,7 @@ def test_machine_readable_protocol_matches_executable_frozen_defaults() -> None:
 
     utility_defaults = inspect.signature(summarize_utility_jobs).parameters
     catalog_defaults = inspect.signature(build_retarget_screening_plan).parameters
-    assert protocol["study"]["protocol_version"] == "0.31"
+    assert protocol["study"]["protocol_version"] == "0.32"
     assert protocol["inference"]["flow_steps"] == 10
     assert protocol["inference"]["receding_horizon_steps"] == 5
     assert protocol["study"]["editability_retention_threshold"] == 0.8
@@ -75,6 +75,10 @@ def test_machine_readable_protocol_matches_executable_frozen_defaults() -> None:
     assert comparison["maximum_absolute_error"] == 0.02
     assert comparison["minimum_cosine_similarity"] == 0.999
     assert comparison["minimum_common_scene_pairs"] == 12
+    assert comparison["parallel_intervention_gpus"] == 2
+    assert comparison["require_distinct_h100_preflight"] is True
+    assert comparison["require_complete_worktree_cleanliness"] is True
+    assert comparison["resume_requires_code_commit_binding"] is True
     assert comparison["require_complete_grid_per_intervention_unit"] is True
     assert comparison["require_prior_failure_digest_in_conversion_provenance"] is True
     assert comparison["require_parity_reconstruction_from_worker_artifacts"] is True

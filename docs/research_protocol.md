@@ -1,6 +1,6 @@
 # Research protocol: causal editability and retargeting in action chunks
 
-Protocol version: 0.31 (immutable audited confirmation rendering)
+Protocol version: 0.32 (isolated two-GPU matched-control execution)
 
 ## 1. Research question
 
@@ -598,6 +598,15 @@ execution. The matched coarse grid crosses all ten flow steps and all 18 layers
 with all action positions patched jointly, plus the same preregistered physical
 action-dimension groups. The position grid crosses flow steps `{0, 7, 8, 9}`,
 layers `{0, 8, 14, 17}`, and all 50 native pi0 positions.
+
+After parity passes, these two independent offline grids run concurrently on
+the two registered H100s. Each process sees only its assigned GPU; neither grid
+contains a latency estimand, and comparison begins only after both exit
+successfully. The launcher rejects competing GPU processes and every tracked or
+untracked worktree change. A partial output is resumable only when it already
+contains the same full code-commit binding; an unrelated or unbound directory
+is never adopted. The final audit independently requires the preflight to name
+two distinct H100 UUIDs.
 
 Primary position comparisons use common positions zero through nine. A separate
 normalized-chunk-time analysis partitions pi0.5's ten positions and pi0's 50

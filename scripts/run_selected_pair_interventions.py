@@ -93,6 +93,8 @@ def main() -> int:
     if not set(selected) <= manifest_ids:
         raise ValueError("clean-selected pair is absent from the intervention manifest")
     args.output.mkdir(parents=True, exist_ok=True)
+    repo = Path(__file__).resolve().parents[1]
+    worktree_clean = _git_worktree_clean(repo)
     selection = {
         "schema_version": 1,
         "selection_uses_interventions": False,
@@ -104,8 +106,9 @@ def main() -> int:
         "reference_clean_validation_summary_sha256": reference_validation_hashes,
         "manifest": str(args.manifest),
         "manifest_sha256": file_digest(args.manifest),
-        "repo_commit": _git_revision(Path(__file__).resolve().parents[1]),
-        "repo_tracked_clean": _git_tracked_clean(Path(__file__).resolve().parents[1]),
+        "repo_commit": _git_revision(repo),
+        "repo_tracked_clean": worktree_clean,
+        "repo_worktree_clean": worktree_clean,
         "model_clean_eligible_pairs": model_selected,
         "reference_clean_eligible_pairs": reference_selected,
         "selection_is_clean_eligible_intersection": args.reference_clean_validation is not None,
@@ -266,12 +269,14 @@ def _selection_gate(selected: list[str], minimum: int) -> dict[str, Any]:
     }
 
 
-def _git_tracked_clean(repo: Path) -> bool:
-    unstaged = subprocess.run(["git", "-C", str(repo), "diff", "--quiet"], check=False).returncode
-    staged = subprocess.run(["git", "-C", str(repo), "diff", "--cached", "--quiet"], check=False).returncode
-    if unstaged not in {0, 1} or staged not in {0, 1}:
-        raise RuntimeError("could not determine tracked repository cleanliness")
-    return unstaged == 0 and staged == 0
+def _git_worktree_clean(repo: Path) -> bool:
+    result = subprocess.run(
+        ["git", "-C", str(repo), "status", "--porcelain=v1", "--untracked-files=all"],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    return not result.stdout.strip()
 
 
 def _first_contact_is_target(result: dict[str, Any]) -> bool:

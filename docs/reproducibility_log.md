@@ -1,5 +1,17 @@
 # Reproducibility log
 
+## 2026-09-01: matched pi0 grids assigned to isolated H100s
+
+Protocol version 0.32 changes only execution of the future matched-control
+grid. After 32/32 conversion parity, the coarse and all-50-position grids run
+concurrently in separate processes with one registered H100 visible to each;
+there is no timing outcome in either grid. Both must finish before comparison.
+The launcher now rejects untracked as well as tracked changes, checks both GPUs
+for competing compute, and permits a partial resume only when its output already
+carries the same full code commit. The final audit requires two distinct H100
+UUIDs in the saved preflight. Intervention cells, models, noise, and statistics
+are unchanged.
+
 ## 2026-09-01: confirmation rendering restricted to hardened lineage
 
 Protocol version 0.31 strengthens the sealed confirmation publication handoff
