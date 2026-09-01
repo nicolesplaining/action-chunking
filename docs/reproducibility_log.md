@@ -1,5 +1,34 @@
 # Reproducibility log
 
+## 2026-09-01: independent-cluster utility analysis frozen before outcomes
+
+Protocol version 0.7 was frozen while exact replan-aligned candidate generation
+for the corrected 16-state block was still running. No corrected endpoint-gate,
+action-only prediction, or continuation-sweep outcome existed or was inspected
+at this amendment. The clean prerequisite had completed 16/16 exact-state jobs
+with 15/16 dual successes; candidate generation was an outcome-blind prefix and
+the endpoint gate remained absent.
+
+The utility runner now selects the first endpoint-eligible direction in frozen
+gate order within each independent scene cluster. Additional directions remain
+auditable but cannot inflate the primary denominator. Pair and side are both
+part of prediction and rollout paths, preventing two eligible directions from
+colliding. The catalog screen now always follows the pilot rather than running
+only after a zero-eligibility pilot. Once its frozen stop rule is reached or the
+catalog is exhausted, a hashed handoff gathers the endpoint gates and candidate
+manifests, freezes every selected action-only prediction, and only then permits
+continuation outcomes.
+
+The registered U1 summary is exact and within-one-boundary accuracy, mean
+absolute error, Spearman correlation, success at the predicted boundary, and
+failure at the immediately following boundary. U2 uses a composite of
+new-target-first contact and eventual new-task success, the one-sided exact
+Clopper--Pearson upper bound on paired boundary-seven losses, exact 3-versus-10
+post-event velocity-evaluation accounting, and a seed-zero 10,000-resample
+scene-cluster bootstrap interval for median paired latency savings. These
+statistics and their implementation tests were added before any construct-valid
+utility outcome.
+
 ## 2026-09-01: pi0 conversion-parity gate frozen
 
 Before the step-30,000 pi0 checkpoint or any pi0 intervention outcome existed,

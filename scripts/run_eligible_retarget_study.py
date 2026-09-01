@@ -12,13 +12,16 @@ import sys
 from pathlib import Path
 from typing import Any
 
+from action_chunking.utility_analysis import summarize_utility_jobs
 from action_chunking.utility_prediction import validate_eligible_retarget_row
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--gate-summary", type=Path, required=True)
-    parser.add_argument("--candidate-root", type=Path, required=True)
+    candidates = parser.add_mutually_exclusive_group(required=True)
+    candidates.add_argument("--candidate-root", type=Path)
+    candidates.add_argument("--candidate-index", type=Path)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--gpu", type=int, default=1)
     parser.add_argument("--port", type=int, default=8003)
@@ -31,13 +34,14 @@ def main() -> int:
     gate = json.loads(args.gate_summary.read_text())
     if gate.get("selection_uses_continuation_outcomes") is not False:
         raise ValueError("eligibility selection must explicitly exclude continuation outcomes")
-    eligible = [row for row in gate["rows"] if row["eligible"]]
-    if not eligible:
+    endpoint_eligible = [row for row in gate["rows"] if row["eligible"]]
+    if not endpoint_eligible:
         raise ValueError("endpoint gate contains no eligible retargeting directions")
-    for row in eligible:
+    for row in endpoint_eligible:
         validate_eligible_retarget_row(row)
+    eligible, selection = _select_primary_directions(endpoint_eligible)
     gate_digest = _digest(args.gate_summary)
-    manifest_by_pair = _candidate_manifests(args.candidate_root)
+    manifest_by_pair = _candidate_manifests(args.candidate_root, args.candidate_index)
     missing = sorted({row["pair_id"] for row in eligible} - set(manifest_by_pair))
     if missing:
         raise ValueError(f"eligible pairs are absent from candidate manifests: {missing}")
@@ -47,7 +51,7 @@ def main() -> int:
     prediction_script = Path(__file__).with_name("sample_retarget_prediction.py")
     for row in eligible:
         pair_id = row["pair_id"]
-        prediction_output = args.output / "predictions" / pair_id
+        prediction_output = args.output / "predictions" / pair_id / row["new_side"]
         prediction_path = prediction_output / "prediction.json"
         if not prediction_path.is_file():
             subprocess.run(
@@ -76,6 +80,7 @@ def main() -> int:
             {
                 "pair_id": pair_id,
                 "new_side": row["new_side"],
+                "cluster_id": _cluster_id(row),
                 "manifest": str(manifest_by_pair[pair_id]),
                 "manifest_sha256": _digest(manifest_by_pair[pair_id]),
                 "prediction": str(prediction_path),
@@ -90,6 +95,10 @@ def main() -> int:
         "schema_version": 1,
         "all_predictions_frozen_before_closed_loop": True,
         "selection_uses_continuation_outcomes": False,
+        "primary_direction_selection_rule": "first_endpoint_eligible_in_frozen_gate_order",
+        "endpoint_eligible_directions": len(endpoint_eligible),
+        "selected_independent_clusters": len(eligible),
+        "direction_selection": selection,
         "noise_seed": args.noise_seed,
         "gate_summary": str(args.gate_summary),
         "gate_summary_sha256": gate_digest,
@@ -115,7 +124,7 @@ def main() -> int:
             frozen_digest,
         )
         pair_id = row["pair_id"]
-        rollout_output = args.output / "rollouts" / pair_id
+        rollout_output = args.output / "rollouts" / pair_id / row["new_side"]
         subprocess.run(
             [
                 sys.executable,
@@ -151,7 +160,28 @@ def main() -> int:
     return 0
 
 
-def _candidate_manifests(root: Path) -> dict[str, Path]:
+def _candidate_manifests(root: Path | None, index_path: Path | None) -> dict[str, Path]:
+    if index_path is not None:
+        index = json.loads(index_path.read_text())
+        if index.get("selection_uses_continuation_outcomes") is not False:
+            raise ValueError("candidate index must exclude continuation outcomes")
+        result = {pair_id: Path(path) for pair_id, path in index["manifest_by_pair"].items()}
+        expected_digests = index.get("manifest_sha256_by_pair")
+        if not isinstance(expected_digests, dict) or set(expected_digests) != set(result):
+            raise ValueError("candidate index must contain one frozen digest per manifest")
+        missing = [str(path) for path in result.values() if not path.is_file()]
+        if missing:
+            raise ValueError(f"candidate index contains missing manifests: {missing}")
+        changed = [
+            pair_id
+            for pair_id, path in result.items()
+            if _digest(path) != expected_digests[pair_id]
+        ]
+        if changed:
+            raise ValueError(f"candidate manifests changed after catalog handoff: {changed}")
+        return result
+    if root is None:
+        raise ValueError("candidate root or index is required")
     result = {}
     paths = {
         *root.glob("**/offset_*/manifest.json"),
@@ -185,13 +215,17 @@ def _job_summary(
     ]
     observed_last = max((boundary for boundary, success in enumerate(success_curve) if success), default=None)
     prediction = next(
-        entry for entry in prediction_entries if entry["pair_id"] == gate_row["pair_id"]
+        entry
+        for entry in prediction_entries
+        if entry["pair_id"] == gate_row["pair_id"]
+        and entry["new_side"] == gate_row["new_side"]
     )
     boundary7 = by_boundary[7]
     restart = next(row for row in rows if row["strategy"] == "restart")
     return {
         "pair_id": gate_row["pair_id"],
         "new_side": gate_row["new_side"],
+        "cluster_id": _cluster_id(gate_row),
         "prediction_valid": prediction["valid"],
         "predicted_last_successful_boundary": prediction[
             "predicted_last_successful_boundary"
@@ -210,6 +244,9 @@ def _job_summary(
         "boundary7_post_event_total_ms": float(boundary7["post_event_total_ms"]),
         "restart_new_target_first": _boolean(restart["new_target_first"]),
         "restart_new_task_success": _boolean(restart["eventual_new_task_success"]),
+        "restart_post_event_velocity_evaluations": int(
+            restart["post_event_velocity_evaluations"]
+        ),
         "restart_post_event_total_ms": float(restart["post_event_total_ms"]),
     }
 
@@ -221,17 +258,14 @@ def _write_summary(
     frozen_path: Path,
     frozen_digest: str,
 ) -> None:
-    valid = [job for job in jobs if job["prediction_valid"]]
+    statistics = summarize_utility_jobs(jobs)
     payload = {
         "schema_version": 1,
-        "expected_eligible_directions": expected,
-        "completed_directions": len(jobs),
+        "expected_primary_clusters": expected,
+        "completed_primary_clusters": len(jobs),
         "frozen_predictions": str(frozen_path),
         "frozen_predictions_sha256": frozen_digest,
-        "valid_predictions": len(valid),
-        "exact_prediction_rate": (
-            sum(job["prediction_exact"] for job in valid) / len(valid) if valid else None
-        ),
+        **statistics,
         "boundary7_new_target_first_rate": _rate(jobs, "boundary7_new_target_first"),
         "boundary7_new_task_success_rate": _rate(jobs, "boundary7_new_task_success"),
         "restart_new_target_first_rate": _rate(jobs, "restart_new_target_first"),
@@ -239,7 +273,7 @@ def _write_summary(
         "jobs": jobs,
     }
     (output / "summary.json").write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n")
-    print(f"completed {len(jobs)}/{expected} eligible directions", flush=True)
+    print(f"completed {len(jobs)}/{expected} primary scene clusters", flush=True)
 
 
 def _digest(path: Path) -> str:
@@ -274,6 +308,38 @@ def _boolean(value: str) -> bool:
 
 def _rate(rows: list[dict[str, Any]], key: str) -> float | None:
     return sum(bool(row[key]) for row in rows) / len(rows) if rows else None
+
+
+def _cluster_id(row: dict[str, Any]) -> str:
+    return str(row.get("cluster_id") or row.get("source_pair_id") or row["pair_id"])
+
+
+def _select_primary_directions(
+    rows: list[dict[str, Any]],
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    selected = []
+    decisions = []
+    seen = set()
+    for row in rows:
+        cluster_id = _cluster_id(row)
+        is_selected = cluster_id not in seen
+        if is_selected:
+            selected.append(row)
+            seen.add(cluster_id)
+        decisions.append(
+            {
+                "pair_id": row["pair_id"],
+                "new_side": row["new_side"],
+                "cluster_id": cluster_id,
+                "selected": is_selected,
+                "reason": (
+                    "first_endpoint_eligible_in_frozen_gate_order"
+                    if is_selected
+                    else "additional_direction_in_selected_cluster"
+                ),
+            }
+        )
+    return selected, decisions
 
 
 if __name__ == "__main__":

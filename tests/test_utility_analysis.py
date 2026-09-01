@@ -1,0 +1,55 @@
+from __future__ import annotations
+
+import pytest
+
+from action_chunking.utility_analysis import summarize_utility_jobs
+
+
+def test_cluster_summary_reports_prediction_and_noninferiority_statistics() -> None:
+    jobs = [
+        _job("a", predicted=7, observed=7, boundary7=True, latency=180.0),
+        _job("b", predicted=8, observed=7, boundary7=True, latency=200.0),
+    ]
+
+    result = summarize_utility_jobs(jobs, bootstrap_samples=200)
+
+    assert result["analysis_unit"] == "independent_scene_cluster"
+    assert result["prediction_exact_rate"] == 0.5
+    assert result["prediction_within_one_rate"] == 1.0
+    assert result["prediction_mean_absolute_error"] == 0.5
+    assert result["boundary7_paired_losses"] == 0
+    assert result["boundary7_velocity_evaluation_counts_exact"] is True
+    assert result["boundary7_post_event_velocity_evaluation_savings_fraction"] == 0.7
+    assert result["boundary7_noninferior"] is False
+
+
+def test_cluster_summary_rejects_direction_pseudoreplication() -> None:
+    with pytest.raises(ValueError, match="one direction per cluster"):
+        summarize_utility_jobs([_job("a"), _job("a")], bootstrap_samples=10)
+
+
+def _job(
+    cluster: str,
+    *,
+    predicted: int = 7,
+    observed: int = 7,
+    boundary7: bool = True,
+    latency: float = 180.0,
+) -> dict:
+    curve = [boundary <= observed for boundary in range(11)]
+    return {
+        "cluster_id": cluster,
+        "prediction_valid": True,
+        "predicted_last_successful_boundary": predicted,
+        "observed_last_successful_boundary": observed,
+        "prediction_exact": predicted == observed,
+        "success_curve": curve,
+        "boundary7_new_target_first": boundary7,
+        "boundary7_new_task_success": boundary7,
+        "boundary7_post_event_velocity_evaluations": 3,
+        "boundary7_post_event_total_ms": latency,
+        "restart_new_target_first": True,
+        "restart_new_task_success": True,
+        "restart_post_event_velocity_evaluations": 10,
+        "restart_post_event_total_ms": 400.0,
+    }
