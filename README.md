@@ -95,6 +95,11 @@ selection.
 5. `analyze_pair.py` emits machine-readable tables and pilot figures while
    refusing to assign commitment to properties with inadequate clean endpoint
    contrast.
+6. `make_manuscript_figures.py` composes the frozen population tables into four
+   compact PDF/PNG figures and writes a manifest containing every input SHA-256.
+   Population heatmap markers require both BH-adjusted `q < 0.05` and a
+   scene-cluster interval strictly above zero; the noise-conditional closure
+   panel is explicitly labeled descriptive.
 
 Machine-specific checkpoint paths and hosts are CLI arguments and are never
 stored in the repository.
