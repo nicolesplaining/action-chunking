@@ -12,12 +12,15 @@ from action_chunking.noninferiority import binomial_upper_bound
 def summarize_utility_jobs(
     jobs: list[dict[str, Any]],
     *,
+    fixed_boundary_baseline: int = 7,
     noninferiority_margin: float = 0.05,
     alpha: float = 0.05,
     bootstrap_samples: int = 10_000,
     bootstrap_seed: int = 0,
 ) -> dict[str, Any]:
     """Summarize one frozen direction per independent scene cluster."""
+    if not 0 <= fixed_boundary_baseline <= 10:
+        raise ValueError("fixed boundary baseline must lie in 0..10")
     if not 0.0 < noninferiority_margin < 1.0:
         raise ValueError("noninferiority margin must lie strictly between zero and one")
     if bootstrap_samples <= 0:
@@ -34,6 +37,11 @@ def summarize_utility_jobs(
         [int(job["observed_last_successful_boundary"]) for job in valid], dtype=np.float64
     )
     errors = predicted - observed
+    baseline_errors = fixed_boundary_baseline - observed
+    absolute_error_advantage = np.abs(errors) - np.abs(baseline_errors)
+    absolute_error_advantage_interval = _cluster_bootstrap_mean(
+        absolute_error_advantage, bootstrap_samples, bootstrap_seed
+    )
 
     restart_composite = [
         bool(job["restart_new_target_first"] and job["restart_new_task_success"])
@@ -124,6 +132,29 @@ def summarize_utility_jobs(
         "prediction_mean_absolute_error": (
             float(np.mean(np.abs(errors))) if len(errors) else None
         ),
+        "prediction_fixed_boundary_baseline": fixed_boundary_baseline,
+        "prediction_fixed_boundary_baseline_exact_rate": (
+            float(np.mean(baseline_errors == 0)) if len(baseline_errors) else None
+        ),
+        "prediction_fixed_boundary_baseline_within_one_rate": (
+            float(np.mean(np.abs(baseline_errors) <= 1)) if len(baseline_errors) else None
+        ),
+        "prediction_fixed_boundary_baseline_mean_absolute_error": (
+            float(np.mean(np.abs(baseline_errors))) if len(baseline_errors) else None
+        ),
+        "prediction_mae_difference_vs_fixed_boundary": (
+            float(np.mean(absolute_error_advantage))
+            if len(absolute_error_advantage)
+            else None
+        ),
+        "prediction_mae_difference_vs_fixed_boundary_ci95": (
+            absolute_error_advantage_interval
+        ),
+        "prediction_beats_fixed_boundary_mae": (
+            bool(absolute_error_advantage_interval[1] < 0.0)
+            if absolute_error_advantage_interval is not None
+            else None
+        ),
         "prediction_spearman_rho": _spearman(predicted, observed),
         "predicted_boundary_composite_success_rate": _mean_boolean(
             predicted_boundary_success
@@ -189,6 +220,17 @@ def _cluster_bootstrap_median(
     draws = rng.integers(0, len(values), size=(samples, len(values)))
     medians = np.median(values[draws], axis=1)
     return [float(np.quantile(medians, 0.025)), float(np.quantile(medians, 0.975))]
+
+
+def _cluster_bootstrap_mean(
+    values: np.ndarray, samples: int, seed: int
+) -> list[float] | None:
+    if not len(values):
+        return None
+    rng = np.random.default_rng(seed)
+    draws = rng.integers(0, len(values), size=(samples, len(values)))
+    means = np.mean(values[draws], axis=1)
+    return [float(np.quantile(means, 0.025)), float(np.quantile(means, 0.975))]
 
 
 def _spearman(left: np.ndarray, right: np.ndarray) -> float | None:

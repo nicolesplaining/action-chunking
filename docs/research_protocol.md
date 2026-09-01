@@ -205,6 +205,17 @@ successful correction is identifiable. U2 remains the primary efficiency test
 at boundaries 0 and 7, while boundaries 9 and 10 remain U3's negative controls;
 the dense grid is not used to replace those preregistered comparisons.
 
+U1 is useful only if the state-specific action-only predictor adds information
+beyond the population rule already available from the mechanistic pilot. Its
+frozen comparator always predicts boundary seven, the last boundary with full
+donor control in that pilot. Report both predictors' exact rate, within-one
+rate, and mean absolute error. The primary comparative statistic is the paired
+scene-cluster difference `abs(state prediction - observed) - abs(7 - observed)`.
+A predictive positive requires the upper endpoint of its 10,000-resample,
+seed-zero scene-cluster bootstrap 95% interval to be below zero. Correlation or
+accuracy without improvement over this fixed rule is not called useful timing
+prediction.
+
 U2 uses a paired composite endpoint requiring both new-target-first contact and
 eventual new-task success. A paired loss is a cluster where restart passes this
 composite and continuation at boundary seven does not. The one-sided 95%
@@ -339,7 +350,8 @@ episodes and may depend on task-specific observability.
 The utility amendment adds:
 
 - **U1:** the first-chunk editability boundary predicts the last successful
-  continue-without-restart boundary on held-out scene states;
+  continue-without-restart boundary on held-out scene states and beats the
+  frozen fixed-boundary-seven rule in paired scene-cluster mean absolute error;
 - **U2:** continuing at the preregistered safe boundary `k=7` is noninferior to
   full restart for new-target-first contact and eventual new-task success while
   using 70% fewer post-event velocity-field evaluations;
