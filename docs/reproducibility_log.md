@@ -1,5 +1,26 @@
 # Reproducibility log
 
+## 2026-09-01: obstacle-pose pilot frozen before clean or patched outcomes
+
+Protocol version 0.9 adds a same-task obstacle family before generating any
+obstacle-pose fixture or rollout. It reuses the public LIBERO simulator and the
+existing exact target-pair scene rather than introducing a synthetic renderer.
+The unchanged instructed object is the target and the alternate registered
+object is a task-irrelevant distractor. Only the distractor free joint's planar
+coordinates may differ; configuration validation rejects any change to robot
+state, target pose, other generalized positions, velocity, actuator state,
+obstacle height, or orientation.
+
+The frozen placement grid uses path fractions 0.35, 0.50, and 0.65 and lateral
+offsets 0, -5 cm, and +5 cm in nested manifest order. MuJoCo geometry bounds
+provide pre-policy overlap exclusions. The clean-only screen requires exact
+target-first dual success, no first-chunk obstacle contact, counterfactual
+intersection of the original trajectory with the moved-obstacle corridor,
+clearance beyond the obstacle bound, at least 1.5 cm clearance improvement, and
+at least 1 cm first-horizon endpoint change. The first passing candidate is
+selected; all rows remain in the denominator. No obstacle clean or intervention
+outcome existed when these rules and tests were added.
+
 ## 2026-09-01: matched pi0 intervention grid frozen before control outcomes
 
 Protocol version 0.8 was frozen while the public pi0 training run was still at

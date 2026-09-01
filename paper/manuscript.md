@@ -178,6 +178,15 @@ and a clean within-chunk closure-time contrast. Closure absence is right-censore
 at the ten-token horizon. Noise seeds are repeated modes, not independent scene
 states; a state-level effect requires eligibility in every registered seed.
 
+For the obstacle-position pilot, the instruction and target remain fixed while
+only a distractor's planar free-joint coordinates move onto a registered grid
+around the initial end-effector-to-target corridor. MuJoCo configuration checks
+hold all other positions, velocities, actuator state, obstacle height, and
+orientation exact. Placement selection uses only dual-success clean rollouts,
+target-first contact, absence of first-chunk obstacle contact, and frozen
+trajectory-clearance and detour thresholds; patched outcomes are sealed until
+selection is complete.
+
 ### 3.3 Formation
 
 At flow time `t`, with noisy action state `x_t` and predicted velocity `v_t`, the

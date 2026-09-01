@@ -63,6 +63,20 @@ def test_target_pose_pair_requires_same_prompt_and_robot_state() -> None:
         InstructionPair(**{**pose_pair.__dict__, "donor_prompt": "different"}).validate()
 
 
+def test_obstacle_pose_pair_has_same_prompt_and_robot_state_contract() -> None:
+    pair = make_pair()
+    obstacle_pair = InstructionPair(
+        **{
+            **pair.__dict__,
+            "donor_image": np.flip(pair.donor_image, axis=0).copy(),
+            "donor_sim_state": pair.donor_sim_state + 0.01,
+            "donor_prompt": pair.base_prompt,
+            "registered_variable": "obstacle_pose",
+        }
+    )
+    obstacle_pair.validate()
+
+
 def test_canonical_bddl_scene_ignores_only_task_semantics() -> None:
     template = """
     (define (problem same)

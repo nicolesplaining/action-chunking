@@ -1,6 +1,6 @@
 # Research protocol: causal editability and retargeting in action chunks
 
-Protocol version: 0.8 (matched pi0 intervention and comparison grid)
+Protocol version: 0.9 (clean-selected obstacle-pose family)
 
 ## 1. Research question
 
@@ -410,6 +410,29 @@ estimand remains primary. This separation prevents a downstream placement
 failure from being relabeled as failed target selection while making the
 inclusion rule and its timing auditable. Confirmatory inclusion rules are frozen
 before confirmatory interventions are inspected.
+
+For the obstacle-position pilot, reuse a clean target-pair scene and treat the
+non-instructed registered object as a movable distractor. Hold the prompt,
+target pose, robot state, every non-obstacle generalized position, all
+velocities, actuator state, obstacle height, and obstacle orientation fixed.
+Move only the obstacle free joint's planar coordinates. Candidate centers are
+placed at fractions `{0.35, 0.50, 0.65}` along the initial end-effector-to-target
+line, with lateral offsets `{0.00, -0.05, +0.05}` meters in that fixed nested
+order. Placements whose MuJoCo bounding spheres violate the frozen 1 cm
+target-object or 4 cm gripper clearance are excluded before policy evaluation.
+
+Selection then uses clean closed-loop behavior only. Both paired rollouts must
+restore their fixture exactly, contact the unchanged instructed target first,
+and complete the task. Over the first five executed controls, the unmodified
+trajectory's counterfactual planar clearance to the moved obstacle must be at
+most the obstacle bounding radius plus 2 cm; the obstacle-scene trajectory must
+avoid obstacle contact, clear the bounding radius, improve center clearance by
+at least 1.5 cm, and differ in its five-step end-effector endpoint by at least
+1 cm. Select the first passing placement in the registered order and retain all
+failed rows. This creates a clean obstacle-sensitive pilot without selecting on
+patched outcomes. It does not yet establish that a late-arriving safety update
+can redirect the robot; that requires a separate physical-state-aligned dynamic
+condition-update experiment.
 
 Eligibility is property-specific. For example, an instruction pair whose clean
 chunks both keep the gripper open may be valid for target direction but is not
