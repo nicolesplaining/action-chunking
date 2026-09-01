@@ -28,6 +28,11 @@ def test_general_exact_upper_bound_matches_zero_loss_case() -> None:
     assert binomial_upper_bound(59, 59) == 1.0
 
 
+def test_confirmation_loss_boundary_matches_exact_reference_values() -> None:
+    assert binomial_upper_bound(4, 500) == pytest.approx(0.018212851796106794)
+    assert binomial_upper_bound(5, 500) == pytest.approx(0.02091032294226697)
+
+
 def test_general_exact_upper_bound_rejects_invalid_counts() -> None:
     with pytest.raises(ValueError):
         binomial_upper_bound(-1, 10)

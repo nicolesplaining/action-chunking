@@ -492,6 +492,17 @@ commit, its original analyzer will run first; after completion, the hardened
 analyzer is rerun on the immutable pair artifacts and both summaries are
 retained.
 
+At 41/500 pair-atomic rows, still before completion of the first task stratum,
+the independent audit received one further provenance-only hardening. It now
+requires exactly three files in every frozen pair directory, checks that each
+separately written condition JSON is semantically identical to its copy in the
+pair summary, rejects missing or extra pair directories, and records one
+deterministic digest over all 1,505 scored and run-binding source files. Exact
+numeric regression tests pin the four-loss and five-loss Clopper--Pearson
+decision boundary, and a negative-latency case verifies that behavioral
+preservation alone cannot pass. No outcome, threshold, denominator, estimand,
+or active rollout code changed.
+
 ## 2026-09-01: population action-token grid frozen
 
 Before any population target-token intervention was generated, the missing

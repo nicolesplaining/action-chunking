@@ -46,6 +46,20 @@ def test_confirmation_fails_with_five_paired_losses() -> None:
     assert summary["confirmation_positive"] is False
 
 
+def test_confirmation_fails_without_positive_latency_interval() -> None:
+    pairs = _pairs(losses=0)
+    for index, pair in enumerate(pairs):
+        pair["early_exit_7"]["early_exit_diagnostics"][0]["integration_ms"] = (
+            11.0 if index < 300 else 7.0
+        )
+
+    _, summary = analyze_confirmation(pairs)
+
+    assert summary["paired_loss_clopper_pearson_upper95"] < 0.02
+    assert summary["median_first_replan_latency_savings_fraction_bootstrap_ci95"][0] <= 0.0
+    assert summary["confirmation_positive"] is False
+
+
 def test_confirmation_rejects_nonexact_initial_pair() -> None:
     pairs = _pairs(losses=0)
     pairs[0]["early_exit_7"]["initial_input_sha256"]["image"] = "different"
@@ -147,6 +161,20 @@ def test_independent_analysis_validates_run_binding(tmp_path: Path) -> None:
     (tmp_path / "code_commit.txt").write_text("b" * 40 + "\n")
     with pytest.raises(ValueError, match="code-commit binding"):
         analysis["_validate_run_binding"](tmp_path, CODE_COMMIT)
+
+
+def test_independent_analysis_reconciles_condition_files(tmp_path: Path) -> None:
+    pair = _pairs(losses=0)[0]
+    for condition in ("early_exit_7", "full_control_10"):
+        (tmp_path / f"{condition}.json").write_text(json.dumps(pair[condition]))
+
+    analysis["_validate_condition_files"](tmp_path, pair)
+
+    changed = dict(pair["early_exit_7"])
+    changed["success"] = False
+    (tmp_path / "early_exit_7.json").write_text(json.dumps(changed))
+    with pytest.raises(ValueError, match="differs from pair summary"):
+        analysis["_validate_condition_files"](tmp_path, pair)
 
 
 def _pairs(*, losses: int) -> list[dict]:
