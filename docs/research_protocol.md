@@ -1,11 +1,12 @@
-# Research protocol: causal commitment in action chunks
+# Research protocol: causal editability and retargeting in action chunks
 
-Protocol version: 0.1 (design-stage preregistration)
+Protocol version: 0.2 (construct-validity amendment before utility outcomes)
 
 ## 1. Research question
 
-When does a flow-matching vision-language-action model become causally committed
-to the semantic and geometric properties of a predicted action chunk?
+When can the semantic and geometric properties of a flow-matching action sample
+still be redirected, which internal sites mediate that redirection, and does the
+measured boundary predict useful low-latency correction?
 
 The primary model is the public pi0.5-LIBERO checkpoint. A pi0 model fine-tuned
 with the pinned public `pi0_libero` recipe uses the same demonstrations, 30,000-
@@ -65,9 +66,9 @@ site mediates the paired behavioral contrast. Because action-expert hidden
 states are recomputed at every flow step, a transformer layer is not a
 persistent memory location across the entire trajectory.
 
-### 2.3 Flow-step commitment
+### 2.3 Flow-step conditional editability
 
-Commitment is measured with a suffix conditioning switch. The action state is
+Conditional editability is measured with a suffix conditioning switch. The action state is
 integrated using condition `A` for the first `k` Euler updates and condition `B`
 for all remaining updates. Let `Y` be a continuous property score oriented from
 `A` to `B`. Retention is
@@ -77,39 +78,95 @@ R_z(k) = 1 - (Y_switch(k) - Y_A) / (Y_B - Y_A).
 ```
 
 The symmetric estimate averages `A -> B` and `B -> A` after orienting both to
-retention of the initial condition. The commitment step is the earliest `k`
-whose isotonic mean retention is at least 0.8 and remains at least 0.8 for every
-later switch. Confidence intervals are cluster-bootstrapped by scene pair.
+retention of the initial condition. The editability boundary is the earliest
+`k` whose isotonic mean retention is at least 0.8 and remains at least 0.8 for
+every later switch. Confidence intervals are cluster-bootstrapped by scene pair.
 
 Because a threshold crossing alone can obscure whether influence accumulates
 uniformly across Euler updates, every curve is also compared with the
-`R(k)=k/S` uniform-step null. Report retention AUC, half-commitment boundary,
+`R(k)=k/S` uniform-step null. Report retention AUC, half-editability boundary,
 and the marginal retention contributed by the final update. A positive
 `0.5 - AUC` is a late-weighting index, not by itself evidence for a discrete
 internal planning phase.
 
-This is commitment relative to a natural, in-distribution counterfactual—not a
-claim that no arbitrarily large perturbation could ever alter the output.
+This is an operational boundary for causal control by a natural,
+in-distribution conditioning counterfactual. Successful redirection does not
+show that the model was undecided, had no source-conditioned plan, or lacked a
+persistent representation. It can instead show that an existing plan is
+overwritable or that instruction following remains effective. Conversely,
+failed redirection does not prove absolute irreversibility under arbitrary
+perturbations. We therefore reserve *commitment* for shorthand tied explicitly
+to this estimand and use *conditional editability* in claims.
 
-## 3. Confirmatory hypotheses
+### 2.4 Registered inference-utility test
+
+The utility experiment is an amendment motivated by construct validity after
+the initial editability curves, but before inspecting any dynamic-retargeting
+outcome. It simulates a new target instruction arriving after `k` source-
+conditioned flow evaluations have already completed. Two inference strategies
+share the same observation, Gaussian noise, old instruction, new instruction,
+and pre-event action state:
+
+- **continue:** retain `x_k`, prepare the new condition, and execute only flow
+  updates `k,...,S-1`;
+- **restart:** discard `x_k`, prepare the new condition, and regenerate from the
+  original noise with all `S` updates.
+
+The new instruction is used as the task goal and for every subsequent clean
+replan. Thus the outcome is not whether a patched action resembles a donor; it
+is whether retargeting reaches the newly instructed object, completes that task,
+and survives ordinary receding-horizon replanning. The primary tested
+boundaries are `k in {0, 7, 8, 9, 10}`: zero is the exact restart ceiling, seven
+is the last boundary with complete donor control in the existing population
+curve, eight is its transition, and nine and ten are negative controls.
+
+Primary outcomes are new-target-first contact, eventual new-task success,
+completion steps, post-event velocity-field evaluations, and synchronized
+post-event wall time including new-condition preparation. Continue at `k=7`
+uses three post-event velocity evaluations versus ten for restart. It is useful
+only if its paired new-target and task-success rates are noninferior to restart
+within a frozen five-percentage-point margin and its measured post-event latency
+is lower. Scene state is the inference cluster. Full-restart success, exact
+initial-state restoration, and byte-exact `k=0` equivalence are eligibility
+gates selected without viewing continued outcomes.
+
+For each accepted state, the separately measured first-chunk editability
+boundary predicts the last continued boundary that preserves new-target-first
+contact and eventual task success. Association is reported with paired
+state-level accuracy and Spearman correlation; the useful claim requires
+out-of-sample scene states and cannot be established from the original 15
+mechanistic states alone.
+
+## 3. Mechanistic hypotheses and utility amendment
 
 The following hypotheses will be frozen after the pilot and before examining
 confirmatory outcomes:
 
-- **H1:** target identity commits earlier in flow integration than grasp
-  orientation.
-- **H2:** trajectory homotopy or initial direction commits earlier than
-  gripper-closure timing.
+- **H1:** target identity loses conditional editability earlier in flow
+  integration than grasp orientation.
+- **H2:** trajectory homotopy or initial direction loses conditional
+  editability earlier than gripper-closure timing.
 - **H3:** layerwise target-identity mediation peaks earlier than geometric
   orientation mediation within an action-expert pass.
 - **H4:** causal effects on future-token positions are temporally localized:
   early positions dominate initial direction, while positions near first
   contact dominate orientation and closure timing.
-- **H5:** pi0.5 exhibits a sharper target-identity commitment transition and
+- **H5:** pi0.5 exhibits a sharper target-identity editability transition and
   better swap symmetry than matched pi0.
 
 Recovery is initially exploratory because it requires closed-loop perturbation
 episodes and may depend on task-specific observability.
+
+The utility amendment adds:
+
+- **U1:** the first-chunk editability boundary predicts the last successful
+  continue-without-restart boundary on held-out scene states;
+- **U2:** continuing at the preregistered safe boundary `k=7` is noninferior to
+  full restart for new-target-first contact and eventual new-task success while
+  using 70% fewer post-event velocity-field evaluations;
+- **U3:** late negative-control boundaries `k>=9` reduce immediate correction
+  even when subsequent clean replanning can sometimes recover eventual task
+  success.
 
 ## 4. Paired episode families
 
@@ -185,7 +242,7 @@ before confirmatory interventions are inspected.
 
 Eligibility is property-specific. For example, an instruction pair whose clean
 chunks both keep the gripper open may be valid for target direction but is not
-evidence about gripper-closure commitment. Normalized effects are never
+evidence about gripper-closure editability. Normalized effects are never
 interpreted when their clean endpoint denominator is below the frozen pilot
 threshold.
 
@@ -314,8 +371,8 @@ four shared noise seeds per pair. Before confirmation, a simulation-based power
 analysis using only pilot variance may increase this number. It may not reduce
 the sample below 50 or use the observed confirmatory effect.
 
-Primary intervals use a scene-pair cluster bootstrap. Ordered commitment
-hypotheses use the bootstrap distribution of paired commitment-step differences.
+Primary intervals use a scene-pair cluster bootstrap. Ordered editability
+hypotheses use the bootstrap distribution of paired boundary differences.
 Exploratory heatmap cells use Benjamini-Hochberg false-discovery-rate correction
 within each property and intervention family. Raw effects, uncertainty, and
 effective sample sizes accompany every heatmap.

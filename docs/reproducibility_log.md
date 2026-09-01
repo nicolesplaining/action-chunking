@@ -1,5 +1,38 @@
 # Reproducibility log
 
+## 2026-08-31: construct-validity amendment and utility registration
+
+An internal construct-validity review identified that the suffix-switch result
+had been overinterpreted. Successful redirection under later donor conditioning
+demonstrates retained causal control by the instruction counterfactual; it does
+not demonstrate that the policy was undecided, lacked an internal plan, or had
+not formed a persistent representation. The numerical retention curves,
+interventions, thresholds, and raw outcomes are unchanged. Protocol version 0.2
+renames the primary estimand *conditional editability* and records the stronger
+nonclaim before any inference-utility outcome is inspected.
+
+The amendment registers a consequential test. A new instruction arrives after
+`k` old-instruction velocity-field evaluations. Continuation retains `x_k` and
+uses only the remaining updates; restart discards `x_k` and regenerates from the
+same original noise. The new instruction defines the evaluated task and every
+later clean replan. Boundaries 0, 7, 8, 9, and 10, a five-percentage-point paired
+noninferiority margin, target-first contact, eventual new-task success,
+completion steps, synchronized post-event latency, and velocity-evaluation
+counts were frozen before running held-out episodes. Boundary 7 is the primary
+safe-point prediction and requires three post-event velocity evaluations versus
+ten for restart.
+
+The sampling adapter now supports exact partial integration and resumption from
+an explicit action state. A unit control proves that split prefix/suffix
+integration is bitwise identical to the original one-pass conditioning switch.
+The inference server separately times new-condition preparation and the
+post-event integration, and its restart control deliberately computes then
+discards the old prefix. Boundary-zero continuation and restart actions, restart
+actions across event boundaries, initial observations, simulator state, and
+first-replan-only application are mandatory exact controls. No dynamic-
+retargeting behavioral or latency result had been generated when this amendment
+was written.
+
 ## 2026-08-31: official pi0.5-LIBERO baseline replication
 
 The unchanged official OpenPI evaluator completed 500 episodes per suite for

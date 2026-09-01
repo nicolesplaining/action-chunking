@@ -1,8 +1,9 @@
-# Action commitment in vision-language-action models
+# Conditional editability in vision-language-action models
 
-This project asks when an action-chunking VLA becomes causally committed to
-properties of its plan. The primary system is the public `pi05_libero`
-checkpoint; a LIBERO-fine-tuned pi0 model is the matched architectural control.
+This project asks when a flow-matching action sample can still be causally
+redirected, and whether that boundary is useful for low-latency retargeting.
+The primary system is the public `pi05_libero` checkpoint; a LIBERO-fine-tuned
+pi0 model is the matched architectural control.
 
 The study separates three questions that are often conflated:
 
@@ -10,8 +11,15 @@ The study separates three questions that are often conflated:
    estimate?
 2. **Causal mediation:** which transformer layers and future action positions
    transmit the property?
-3. **Commitment:** after which flow step does a natural-scale counterfactual
-   conditioning switch fail to redirect the final plan?
+3. **Conditional editability:** after which flow step does a natural-scale
+   counterfactual conditioning switch fail to redirect the sampled action?
+
+Conditional editability is not a claim that the policy was previously
+undecided or lacked an internal plan. A fully formed plan can remain
+overwritable, and late redirection can reflect strong instruction following.
+The registered utility study therefore asks whether the measured boundary
+predicts successful mid-sampling retargeting, subsequent clean replanning, and
+post-update latency.
 
 The exact upstream OpenPI revision is pinned as a git submodule in
 `third_party/openpi`. Experimental code extends that implementation without
@@ -33,7 +41,7 @@ clean action difference is formed near the start of denoising but remains
 causally editable until the last one or two flow updates; a two-state-block
 destination intervention whose four directional curves all switch between flow
 boundaries 7 and 8; and a clean target-pose gripper contrast whose categorical
-closure time commits at boundary 7. These are positive pilot results, not yet
+closure time loses editability at boundary 7. These are positive pilot results, not yet
 confirmatory population claims. Exact controls, exclusions, intervals, and
 negative pilots are recorded in `docs/reproducibility_log.md`.
 
@@ -54,7 +62,7 @@ recorded in [`docs/sources.md`](docs/sources.md) and
 - Results retain the model checkpoint hash, OpenPI commit, configuration,
   environment lock, seeds, and raw intervention manifest.
 - Claims about representation use causal interventions; probe accuracy alone is
-  never described as causal commitment.
+  never described as loss of conditional editability.
 
 ## Upstream implementation
 
@@ -93,8 +101,8 @@ selection.
    closed-loop task environments and verify the first chunks against clean-only
    offline inference.
 5. `analyze_pair.py` emits machine-readable tables and pilot figures while
-   refusing to assign commitment to properties with inadequate clean endpoint
-   contrast.
+   refusing to assign an editability boundary to properties with inadequate
+   clean endpoint contrast.
 6. `make_manuscript_figures.py` composes the frozen population tables into four
    compact PDF/PNG figures and writes a manifest containing every input SHA-256.
    Population heatmap markers require both BH-adjusted `q < 0.05` and a
