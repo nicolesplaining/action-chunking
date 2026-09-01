@@ -81,6 +81,22 @@ paper version, not this summary.
   of iterative VLA sampling ([paper](https://arxiv.org/abs/2603.12480)). Our
   continuation method is complementary: it saves only already-completed updates
   after a late instruction change and requires no retraining.
+- **A1:** jointly accelerates the VLM and action head with intermediate-layer
+  action-consistency exits and Inter-Layer Truncated Flow Matching
+  ([paper](https://arxiv.org/abs/2604.05672),
+  [code](https://github.com/ATeam-Research/A1)). It is the closest public
+  adaptive-VLA precedent. A1 trains an adaptive model and warm-starts action
+  generation across VLM layers; our study leaves the released pi0.5 model and
+  its ordinary flow path unchanged, measures causal editability first, and
+  tests a frozen exit on sealed closed-loop episodes.
+- **FASTER:** introduces a horizon-aware flow schedule that prioritizes
+  near-term action positions and couples it to streaming execution
+  ([paper](https://arxiv.org/abs/2603.19199),
+  [code](https://github.com/innovator-zero/FASTER)). Its position-dependent
+  schedule is directly related to our finding that executed and deferred chunk
+  positions have different late causal mediation. We do not adopt its schedule
+  in the confirmation; our practical test truncates the unchanged uniform
+  sampler selected before its suite outcomes.
 - **SafeDiffuser:** inserts control-barrier constraints into iterative diffusion
   planning and evaluates safety jointly with planning quality
   ([paper](https://arxiv.org/abs/2306.00148),

@@ -1,5 +1,14 @@
 # Reproducibility log
 
+## 2026-09-01: closest adaptive-vla precedents added
+
+The related-work audit now includes A1 and FASTER with their public papers and
+official code. A1 learns intermediate-layer exits and cross-layer truncated
+flow warm starts; FASTER changes the flow schedule to prioritize near-term
+actions. The manuscript correspondingly narrows novelty to causal selection of
+an executable prefix in an unchanged released pi0.5 sampler, followed by sealed
+closed-loop validation. No experiment, threshold, or outcome changed.
+
 ## 2026-09-01: confirmation paper promotion made hash-gated
 
 Before the sealed confirmation completed, its future paper promotion was made

@@ -122,6 +122,14 @@ understands both instructions, can its measured conditional-editability region
 identify which completed velocity evaluations can be safely retained after the
 instruction changes?
 
+Treat A1 and FASTER as the closest efficient-VLA comparisons. A1 learns
+intermediate-layer exits and warm-starts truncated flow matching across VLM
+layers; FASTER changes the flow schedule to prioritize near-term action
+positions and streams execution. The present intervention leaves released
+pi0.5 weights, the uniform schedule, and the ordinary flow path unchanged. Its
+novelty claim is causal selection of an executable prefix followed by sealed
+closed-loop validation, not early exit or fast flow sampling in isolation.
+
 Decompose failures by whether the old event occurs in the five intervened
 actions, the first registered contact occurs only after a later clean replan,
 or task failure follows correct target-first contact. Report the first-contact
