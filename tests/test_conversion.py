@@ -1,13 +1,18 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import runpy
 from dataclasses import dataclass
+from pathlib import Path
 
 import numpy as np
 import pytest
 
-from action_chunking.conversion import conversion_parity_summary
+from action_chunking.conversion import (
+    conversion_parity_summary,
+    validate_prior_conversion_failure,
+)
 
 _manifest_script = runpy.run_path("scripts/validate_conversion_manifest.py")
 _lossless_script = runpy.run_path("scripts/convert_pi0_checkpoint_lossless.py")
@@ -111,3 +116,67 @@ def test_conversion_provenance_binds_upstream_converter(tmp_path) -> None:
     converter.write_text("# changed converter\n")
     with pytest.raises(ValueError, match="wrong upstream converter digest"):
         _manifest_script["_validate_conversion_provenance"](checkpoint, converter)
+
+
+def test_lossless_rerun_binds_the_preserved_failed_cases(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    checkpoint = tmp_path / "29999"
+    checkpoint.mkdir()
+    manifest = tmp_path / "manifest.json"
+    entries = [{"pair_id": f"pair-{index:02d}"} for index in range(16)]
+    manifest.write_text(json.dumps({"pairs": entries}))
+    identity = {"finalized": True, "optimizer_updates": 30_000}
+    rows = [
+        {"case": f"pair-{index:02d}:{side}", "passed": row_index < 24}
+        for row_index, (index, side) in enumerate(
+            (index, side) for index in range(16) for side in ("base", "donor")
+        )
+    ]
+    summary_path = tmp_path / "failed.json"
+    summary_path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "config": "pi0_libero",
+                "noise_seed": 0,
+                "cases": 32,
+                "shape_per_case": [50, 7],
+                "max_abs_tolerance": 0.02,
+                "minimum_cosine_similarity": 0.999,
+                "passed_cases": 24,
+                "passed": False,
+                "jax_checkpoint": str(checkpoint),
+                "jax_checkpoint_identity": identity,
+                "manifest_sha256": hashlib.sha256(manifest.read_bytes()).hexdigest(),
+                "maximum_case_abs_error": 2.0130362831905284,
+                "minimum_case_cosine_similarity": 0.805807150674655,
+                "pytorch_checkpoint_artifact_sha256": {
+                    "config.json": "a" * 64,
+                    "model.safetensors": "b" * 64,
+                },
+                "rows": rows,
+            }
+        )
+    )
+    monkeypatch.setitem(
+        validate_prior_conversion_failure.__globals__,
+        "validate_pi0_final_checkpoint",
+        lambda _path: identity,
+    )
+
+    result = validate_prior_conversion_failure(
+        summary_path, checkpoint, manifest
+    )
+
+    assert result["passed_cases"] == 24
+    assert result["cases"] == 32
+    assert result["sha256"] == hashlib.sha256(summary_path.read_bytes()).hexdigest()
+
+    changed = json.loads(summary_path.read_text())
+    changed["rows"][0]["case"] = "different:base"
+    summary_path.write_text(json.dumps(changed))
+    with pytest.raises(ValueError, match="different case manifest"):
+        validate_prior_conversion_failure(
+            summary_path, checkpoint, manifest
+        )

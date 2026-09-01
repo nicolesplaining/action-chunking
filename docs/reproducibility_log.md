@@ -468,6 +468,16 @@ the OpenPI submodule revision, the public repair commit, and both conversion
 precision choices in `conversion_provenance.json`; the parity gate hashes this
 file alongside the config and weights.
 
+Before the lossless converter may write a checkpoint, a separate preflight now
+requires the preserved bfloat16 result itself: exactly the same finalized JAX
+checkpoint identity, 16-pair manifest and 32 directional cases, seed-zero
+noise, `[50, 7]` physical-action shape, 0.02/0.999 tolerances, 24/32 passing
+cases, maximum error 2.0130362831905284, minimum cosine 0.805807150674655, and
+the original converted config/weight hashes. The new parity summary embeds the
+prior summary hash and failure metrics. The pi0 intervention gate requires this
+binding in addition to 32/32 lossless parity, preventing an apparent repair
+from changing the checkpoint, case set, or comparison thresholds.
+
 ## 2026-09-01: utility-prediction sample-size gate
 
 Before any public-catalog continuation rollout or action-only prediction

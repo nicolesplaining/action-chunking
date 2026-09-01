@@ -13,7 +13,10 @@ from pathlib import Path
 
 import numpy as np
 
-from action_chunking.conversion import conversion_parity_summary
+from action_chunking.conversion import (
+    conversion_parity_summary,
+    validate_prior_conversion_failure,
+)
 from action_chunking.pairs import file_digest
 from action_chunking.pi0_checkpoint import validate_pi0_final_checkpoint
 
@@ -23,6 +26,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--jax-checkpoint", type=Path, required=True)
     parser.add_argument("--pytorch-checkpoint", type=Path, required=True)
     parser.add_argument("--upstream-converter", type=Path, required=True)
+    parser.add_argument("--prior-failed-summary", type=Path, required=True)
     parser.add_argument("--manifest", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--config", default="pi0_libero")
@@ -70,6 +74,11 @@ def run_parent(args: argparse.Namespace) -> int:
     if args.noise_seed < 0:
         raise ValueError("noise seed must be nonnegative")
     args.output.mkdir(parents=True, exist_ok=True)
+    prior_failure = validate_prior_conversion_failure(
+        args.prior_failed_summary,
+        args.jax_checkpoint,
+        args.manifest,
+    )
     conversion_provenance = _validate_conversion_provenance(
         args.pytorch_checkpoint,
         args.upstream_converter,
@@ -83,6 +92,8 @@ def run_parent(args: argparse.Namespace) -> int:
         str(args.pytorch_checkpoint),
         "--upstream-converter",
         str(args.upstream_converter),
+        "--prior-failed-summary",
+        str(args.prior_failed_summary),
         "--manifest",
         str(args.manifest),
         "--output",
@@ -125,6 +136,7 @@ def run_parent(args: argparse.Namespace) -> int:
             "jax_checkpoint_identity": validate_pi0_final_checkpoint(args.jax_checkpoint),
             "pytorch_checkpoint_artifact_sha256": _checkpoint_hashes(args.pytorch_checkpoint),
             "conversion_provenance": conversion_provenance,
+            "prior_failed_conversion": prior_failure,
         }
     )
     (args.output / "summary.json").write_text(json.dumps(result, indent=2, sort_keys=True) + "\n")
