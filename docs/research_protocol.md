@@ -396,8 +396,10 @@ reset and one deterministic Gaussian-noise stream indexed by replan; both
 conditions must reproduce their hashes exactly. Within each task, condition
 order is balanced 25/25 by the rank of a frozen SHA-256 digest of the
 task/trial key, rather than chosen from behavior. A fixed unscored warm-up of
-both conditions precedes timing in every new inference-server process, no other
-client may use the policy GPU, and each episode contributes one paired
+both conditions precedes timing in every new inference-server process. That
+warm-up also requires the full-control physical action tensor to equal an
+ordinary clean-sampler request exactly. No other client may use the policy GPU,
+and each episode contributes one paired
 success/loss outcome regardless of its number of replans. Every warm-up,
 condition, pair, and progress artifact must name the same full Git commit, and
 the launcher rejects tracked worktree changes. The registered 0.02 exact bound

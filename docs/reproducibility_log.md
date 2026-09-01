@@ -1,5 +1,14 @@
 # Reproducibility log
 
+## 2026-09-01: confirmation full control checked against clean sampling
+
+Before the first scored confirmation pair, every session warm-up was extended
+with an unscored ordinary clean-sampler request under the same input and noise
+as `k=10`. Scoring can begin only if the returned physical action tensors are
+array-exact, their hashes agree, and the full-step diagnostic has the expected
+roundoff-bounded clean estimate. This validates the control at runtime in every
+resumed process rather than relying only on the earlier pilot archive.
+
 ## 2026-09-01: confirmation task heterogeneity cannot be hidden
 
 Before the first scored confirmation pair, the analyzer was extended with

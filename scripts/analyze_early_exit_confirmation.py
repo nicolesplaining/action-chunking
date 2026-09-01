@@ -244,6 +244,15 @@ def _validate_pair(pair: dict[str, Any], task_id: int, trial_index: int) -> None
 
 def _validate_diagnostic(diagnostic: dict[str, Any], after_steps: int) -> None:
     savings = 10 - after_steps
+    full_step_exact = after_steps == 10
+    estimate_error = diagnostic.get("full_step_estimate_max_abs_error")
+    estimate_error_valid = (
+        isinstance(estimate_error, (int, float))
+        and np.isfinite(float(estimate_error))
+        and 0.0 <= float(estimate_error) <= 1e-5
+        if full_step_exact
+        else estimate_error is None
+    )
     if (
         int(diagnostic.get("after_steps", -1)) != after_steps
         or int(diagnostic.get("total_flow_steps", -1)) != 10
@@ -251,6 +260,8 @@ def _validate_diagnostic(diagnostic: dict[str, Any], after_steps: int) -> None:
         or int(diagnostic.get("velocity_field_evaluation_savings", -1)) != savings
         or float(diagnostic.get("velocity_field_evaluation_savings_fraction", -1.0)) != savings / 10
         or float(diagnostic.get("integration_ms", 0.0)) <= 0.0
+        or diagnostic.get("full_step_output_exact") is not full_step_exact
+        or not estimate_error_valid
     ):
         raise ValueError("confirmation compute or latency diagnostic is invalid")
 
@@ -324,6 +335,9 @@ def _load_warmups(root: Path) -> list[dict[str, Any]]:
             int(session.get("session_index", -1)) != index
             or session.get("scored") is not False
             or re.fullmatch(r"[0-9a-f]{40}", str(session.get("code_commit"))) is None
+            or session.get("full_control_matches_clean_exact") is not True
+            or re.fullmatch(r"[0-9a-f]{64}", str(session.get("clean_action_sha256"))) is None
+            or session.get("clean_action_sha256") != session.get("full_control_action_sha256")
         ):
             raise ValueError("confirmation warm-up session metadata is invalid")
         records = session.get("records", [])

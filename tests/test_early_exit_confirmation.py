@@ -102,6 +102,14 @@ def test_runner_rejects_warmup_from_another_commit(tmp_path) -> None:
         runner["_existing_warmup_sessions"](tmp_path, "b" * 40)
 
 
+def test_runner_rejects_full_control_without_exact_sampler_flag() -> None:
+    diagnostic = _condition("full_control_10", 10, True, 1.0, 0, 0)["early_exit_diagnostics"][0]
+    diagnostic["full_step_output_exact"] = False
+
+    with pytest.raises(ValueError, match="exact compute or latency"):
+        runner["_validate_diagnostic"](diagnostic, 10)
+
+
 def _pairs(*, losses: int) -> list[dict]:
     pairs = []
     loss_keys = {(0, trial) for trial in range(losses)}
@@ -172,6 +180,8 @@ def _condition(
                 "velocity_field_evaluation_savings": savings,
                 "velocity_field_evaluation_savings_fraction": savings / 10,
                 "integration_ms": integration_ms,
+                "full_step_output_exact": after_steps == 10,
+                "full_step_estimate_max_abs_error": (1e-7 if after_steps == 10 else None),
             }
         ],
     }
