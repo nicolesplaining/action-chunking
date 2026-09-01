@@ -1,6 +1,6 @@
 # Research protocol: causal editability and retargeting in action chunks
 
-Protocol version: 0.33 (audited matched-control comparison artifacts)
+Protocol version: 0.34 (boundary-adaptive inference policy)
 
 ## 1. Research question
 
@@ -239,6 +239,28 @@ U1 evaluates all eleven integer boundaries from 0 through 10 so that the last
 successful correction is identifiable. U2 remains the primary efficiency test
 at boundaries 0 and 7, while boundaries 9 and 10 remain U3's negative controls;
 the dense grid is not used to replace those preregistered comparisons.
+
+The same frozen dense grid additionally evaluates a deployable U4 policy before
+any held-out continuation outcome is inspected. If the instruction changes at
+update `k`, the policy continues the in-progress action sample exactly when the
+frozen scene-specific prediction is valid and `k` is no later than its
+predicted last successful boundary; otherwise it discards the partial sample
+and performs a full restart. An invalid prediction always falls back to restart.
+The controls are always restart and the frozen global-cutoff policy that
+continues through `k=7` and restarts afterward.
+
+U4 averages the eleven registered event times uniformly within each independent
+scene cluster. This is a controlled design estimand, not an estimate of the
+deployment frequency of instruction-update times. For new-target-first contact,
+eventual new-task success, and their composite, the predicted policy's paired
+cluster-mean difference must be noninferior within 0.05 to both controls. Its
+mean exact velocity-evaluation count must also be lower than both controls, with
+both seed-20, 10,000-resample cluster-bootstrap savings intervals strictly above
+zero. At least 59 valid independent predictions are still required, while
+invalid predictions remain in all policy denominators through their conservative
+restart fallback. The U4 claim is positive only if every behavioral and compute
+condition passes. Thus a correlation alone cannot support the practical claim,
+and a predictor identical to the fixed cutoff cannot pass by construction.
 
 U1 is useful only if the state-specific action-only predictor adds information
 beyond the population rule already available from the mechanistic pilot. Its

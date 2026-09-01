@@ -245,10 +245,21 @@ def _job_summary(
     by_boundary = {int(row["switch_after_steps"]): row for row in continuation}
     if len(by_boundary) != len(continuation) or set(by_boundary) != set(range(11)):
         raise ValueError("completed retarget sweep does not contain all boundaries 0..10")
-    success_curve = [
+    new_target_first_curve = [
         _boolean(by_boundary[boundary]["new_target_first"])
-        and _boolean(by_boundary[boundary]["eventual_new_task_success"])
         for boundary in range(11)
+    ]
+    new_task_success_curve = [
+        _boolean(by_boundary[boundary]["eventual_new_task_success"])
+        for boundary in range(11)
+    ]
+    success_curve = [
+        target_first and task_success
+        for target_first, task_success in zip(
+            new_target_first_curve,
+            new_task_success_curve,
+            strict=True,
+        )
     ]
     first_chunk_old_event_curve = [_boolean(by_boundary[boundary]["first_chunk_old_event"]) for boundary in range(11)]
     old_target_first_curve = [_boolean(by_boundary[boundary]["old_target_first"]) for boundary in range(11)]
@@ -257,6 +268,10 @@ def _job_summary(
     ]
     first_contact_replan_index_curve = [
         _optional_int(by_boundary[boundary]["first_contact_replan_index"]) for boundary in range(11)
+    ]
+    post_event_velocity_evaluations_curve = [
+        int(by_boundary[boundary]["post_event_velocity_evaluations"])
+        for boundary in range(11)
     ]
     observed_last = max((boundary for boundary, success in enumerate(success_curve) if success), default=None)
     prediction = next(
@@ -277,11 +292,14 @@ def _job_summary(
         "predicted_last_successful_boundary": prediction["predicted_last_successful_boundary"],
         "observed_last_successful_boundary": observed_last,
         "prediction_exact": (prediction["valid"] and prediction["predicted_last_successful_boundary"] == observed_last),
+        "new_target_first_curve": new_target_first_curve,
+        "new_task_success_curve": new_task_success_curve,
         "success_curve": success_curve,
         "first_chunk_old_event_curve": first_chunk_old_event_curve,
         "old_target_first_curve": old_target_first_curve,
         "clean_replanning_rescue_curve": clean_replanning_rescue_curve,
         "first_contact_replan_index_curve": first_contact_replan_index_curve,
+        "post_event_velocity_evaluations_curve": post_event_velocity_evaluations_curve,
         "boundary7_new_target_first": _boolean(boundary7["new_target_first"]),
         "boundary7_new_task_success": _boolean(boundary7["eventual_new_task_success"]),
         "boundary7_first_chunk_old_event": _boolean(boundary7["first_chunk_old_event"]),
@@ -367,16 +385,21 @@ def _utility_decision(
             "study_complete": False,
             "prediction_utility_positive": None,
             "practical_utility_positive": None,
+            "adaptive_policy_utility_positive": None,
             "utility_inference_status": "pending",
         }
     prediction_positive = bool(statistics["prediction_utility_gate_passed"])
     practical_positive = bool(statistics["boundary7_practical_gate_passed"])
+    adaptive_positive = bool(statistics["adaptive_policy_utility_gate_passed"])
     return {
         "study_complete": True,
         "prediction_utility_positive": prediction_positive,
         "practical_utility_positive": practical_positive,
+        "adaptive_policy_utility_positive": adaptive_positive,
         "utility_inference_status": (
-            "positive" if prediction_positive or practical_positive else "negative"
+            "positive"
+            if prediction_positive or practical_positive or adaptive_positive
+            else "negative"
         ),
     }
 

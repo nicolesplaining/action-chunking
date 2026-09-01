@@ -1,6 +1,6 @@
 study:
   name: pi05_libero_conditional_editability
-  protocol_version: "0.33"
+  protocol_version: "0.34"
   pilot_pairs_per_family: 16
   primary_noise_seed: 0
   robustness_noise_seeds_per_pair: 4
@@ -42,6 +42,19 @@ retarget_utility:
   prediction_no_success_boundary_sentinel: -1
   prediction_positive_requires_selected_boundary_noninferiority: true
   report_nonmonotone_behavioral_success_curves: true
+  adaptive_policy_event_boundary_weighting: uniform_over_0_to_10_design_estimand
+  adaptive_policy_invalid_prediction_fallback: restart
+  adaptive_policy_comparators:
+    - always_restart
+    - fixed_cutoff_7
+  adaptive_policy_outcomes:
+    - new_target_first
+    - eventual_new_task_success
+    - target_first_and_task_success_composite
+  adaptive_policy_bootstrap_replicates: 10000
+  adaptive_policy_bootstrap_seed: 20
+  adaptive_policy_requires_noninferiority_to_both_comparators: true
+  adaptive_policy_requires_compute_savings_ci_low_above_zero_vs_both: true
   practical_gate_requires_complete_frozen_population: true
   practical_gate_requires_exact_boundary_zero: true
   practical_gate_requires_boundary_zero_behavior_equivalence: true

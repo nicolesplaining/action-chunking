@@ -113,6 +113,16 @@ allowed only if the measured editability boundary predicts the last successful
 continue boundary and `k=7` is noninferior to restart while using three rather
 than ten post-event velocity evaluations.
 
+Add the boundary-adaptive policy as the strongest practical test. For an
+instruction update at flow step `k`, continue only if the frozen scene-specific
+predictor says `k` remains recoverable; otherwise restart. Invalid predictions
+restart. Compare this policy with always restart and a fixed global cutoff at
+seven, averaging update times 0--10 uniformly within each independent scene.
+Require target-first contact, task success, and their composite to be
+noninferior to both controls, and require cluster-bootstrap velocity-evaluation
+savings intervals above zero against both. Describe the uniform update-time
+average as a controlled design estimand rather than a deployment distribution.
+
 Position this as training-free reuse of an interrupted flow trajectory, not as
 a general steering algorithm. DynaGuide and Guided Action Flow add learned
 guidance during iterative generation; DSRL learns a latent-noise policy; STEP
